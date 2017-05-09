@@ -90,3 +90,6 @@ ENV/
 
 # Temporary files
 *~
+
+# IDEA
+.idea/
