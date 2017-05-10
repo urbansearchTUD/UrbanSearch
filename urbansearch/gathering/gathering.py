@@ -31,6 +31,7 @@ class PageDownloader(object):
         enc_url = quote(url, safe='')
         response = requests.get(self.cc_index_url + collection +
                                 '?url=' + enc_url + '&output=json')
+        print(response.content)
         indices = [json.loads(x) for x in
                    response.content.strip().decode('utf-8').split('\n')]
         self.indices += indices
@@ -87,8 +88,23 @@ class PageDownloader(object):
         data = self.download_warc_part(index)
         return self.warc_html_to_text(data)
 
+    def indices_from_file(self, filename):
+        """
+        Opens file with filename and parses JSON,
+        adds indices in file to this object.
+
+        :param filename: Filename of the file to open
+        :return: List of parsed JSON indices
+        """
+        with open(filename, 'rb') as f:
+            indices = [json.loads(x) for x in
+                       f.read().decode('utf-8').strip().split('\n')]
+            self.indices += indices
+            return indices
+
 # Test code, remove later
 pd = PageDownloader()
+pd.indices_from_file('/home/gijs/BEP/test_index')
 pd.download_indices('http://commoncrawl.org/faqs/', 'CC-MAIN-2015-27-index')
 test_data = pd.download_warc_part(pd.indices[0])
 print(pd.warc_html_to_text(test_data))
