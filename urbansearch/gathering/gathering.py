@@ -29,12 +29,16 @@ class PageDownloader(object):
         :param collection: Name of the collection, e.g CC-Main-2015-27-index
         """
         enc_url = quote(url, safe='')
-        response = requests.get(self.cc_index_url + collection +
-                                '?url=' + enc_url + '&output=json')
-        print(response.content)
-        indices = [json.loads(x) for x in
-                   response.content.strip().decode('utf-8').split('\n')]
-        self.indices += indices
+        try:
+            response = requests.get(self.cc_index_url + collection +
+                                    '?url=' + enc_url +
+                                    '&output=json', timeout=1)
+            print(response.content)
+            indices = [json.loads(x) for x in
+                       response.content.strip().decode('utf-8').split('\n')]
+            self.indices += indices
+        except requests.exceptions.ReadTimeout:
+            print("URL index request timed out")
     
     def download_warc_part(self, index):
         """
@@ -45,14 +49,20 @@ class PageDownloader(object):
         """
         start, length = int(index['offset']), int(index['length'])
         end = start + length - 1
-        response = requests.get(self.cc_data_prefix + index['filename'],
-                                headers={'Range': 'bytes={}-{}'.format(start, end)})
-        
+        # TODO Put timeout in config
+        try:
+            response = requests.get(self.cc_data_prefix + index['filename'],
+                                    headers={'Range': 'bytes={}-{}'.format(start, end)}, 
+                                    timeout=1)
+        except requests.exceptions.ReadTimeout:
+            print("Timeout while downloading warc part")
+            return None
+
         # Response is compressed gz data, uncompress this using gzip
         compressed_gz = io.BytesIO(response.content)
-        gz_obj = gzip.GzipFile(fileobj=compressed_gz)
-        data = gz_obj.read()
-        gz_obj.close()
+        with gzip.GzipFile(fileobj=compressed_gz) as gz_obj:
+            data = gz_obj.read()
+
         return data
 
     def warc_html_to_text(self, data):
@@ -66,7 +76,7 @@ class PageDownloader(object):
         if data is None:
             return ''
         index = data.find("<html".encode())
-        
+
         if index == -1:
             return ''
 
@@ -91,21 +101,22 @@ class PageDownloader(object):
     def indices_from_file(self, filename):
         """
         Opens file with filename and parses JSON,
-        adds indices in file to this object.
+        adds indices in file to this object. Does not work on cdx indices.
 
         :param filename: Filename of the file to open
         :return: List of parsed JSON indices
         """
-        with open(filename, 'rb') as f:
-            indices = [json.loads(x) for x in
-                       f.read().decode('utf-8').strip().split('\n')]
+        with open(filename, 'r') as f:
+            # Remove the garbage before { and parse to json and add to list
+            indices = [json.loads('{' + x.split('{', 1)[-1]) for x in
+                       f.read().strip().split('\n')]
             self.indices += indices
             return indices
 
 # Test code, remove later
 pd = PageDownloader()
 pd.indices_from_file('/home/gijs/BEP/test_index')
-pd.download_indices('http://commoncrawl.org/faqs/', 'CC-MAIN-2015-27-index')
+# pd.download_indices('http://commoncrawl.org/faqs/', 'CC-MAIN-2015-27-index')
 test_data = pd.download_warc_part(pd.indices[0])
 print(pd.warc_html_to_text(test_data))
 
