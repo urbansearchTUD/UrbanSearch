@@ -93,3 +93,8 @@ ENV/
 
 # IDEA
 .idea/
+
+# vim swap files
+*.swp
+*.swo
+
