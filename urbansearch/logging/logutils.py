@@ -102,4 +102,3 @@ def set_loglevel(logger, level):
     logger.setLevel(level)
     print("Loglevel of %s changed to: %s", (logger,
                                             logging.getLevelName(level))
-
