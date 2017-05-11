@@ -18,16 +18,27 @@ import logging.handlers
 # TODO Move to config? And absolute/relative choice
 directory = './log/'
 
+# Format of the lines in the log
+log_formatter = logging.Formatter(
+    fmt="[%(levelname)s] %(asctime)s || %(message)s"
+)
 
-def _create_directory(dir_path):
-    # Create logging directory if non-existent
-    try:
-        os.makedirs(dir_path, exist_ok=True)
-    except OSError:
-        # TODO do something useful? Report error to user?
-        raise
+# Rotating log with 5 backups
+file_handler = logging.handlers.RotatingFileHandler(
+    '%surbansearch.log' % directory, mode='w', maxBytes=10000000, backupCount=5
+)
+file_handler.setFormatter(log_formatter)
 
-_create_directory(directory)
+# Enable log output on console
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(log_formatter)
+
+try:
+    # Create log directory if non-existent
+    if not os.path.exists(PATH):
+        os.makedirs(PATH)
+except OSError:
+    raise FileNotFoundError('Could not create log directory')
 
 
 def add_handlers(logger):
@@ -56,21 +67,6 @@ def add_console_handler(logger):
     :param logger: logging.Logger instance where handlers will be added to.
     """
     logger.addHandler(console_handler)
-
-# Format of the lines in the log
-log_formatter = logging.Formatter(
-    fmt="[%(levelname)s] %(asctime)s || %(message)s"
-)
-
-# Rotating log with 5 backups
-file_handler = logging.handlers.RotatingFileHandler(
-    '%surbansearch.log' % directory, mode='w', maxBytes=10000000, backupCount=5
-)
-file_handler.setFormatter(log_formatter)
-
-# Enable log output on console
-console_handler = logging.StreamHandler()
-console_handler.setFormatter(log_formatter)
 
 
 def getLogger(name):
