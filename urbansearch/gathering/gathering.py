@@ -4,7 +4,6 @@ import requests
 import io
 from bs4 import BeautifulSoup
 from urllib.parse import quote
-import timeit
 
 
 class PageDownloader(object):
@@ -48,7 +47,8 @@ class PageDownloader(object):
 
     def download_warc_part(self, index):
         """
-        Download the part of the warc file using the JSON index.
+        Download the part of the warc file from common crawl servers
+        using the JSON index.
 
         :param index: index in JSON format
         :return: Uncompressed part of warc file if responsecode for index is
@@ -110,7 +110,8 @@ class PageDownloader(object):
 
     def index_to_txt(self, index):
         """
-        Extract plain text using JSON index.
+        Extract plain text using JSON index. Downloads WARC parts from
+        common crawl servers and parses to plain text.
 
         :return: Plain text of web page in str format
 
@@ -138,7 +139,7 @@ class PageDownloader(object):
         """
         Open compressed gz file, uncompress and parse JSON entries in file.
         Indices are added to this instance of PageDownloader.
-        
+
         :param filename: Path to .gz file
         :return: Return list of indices
         """
@@ -146,21 +147,8 @@ class PageDownloader(object):
             # Remove the garbage before { and parse to json and add to list
             indices = [json.loads('{' + x.split('{', 1)[-1]) for x in
                        gz_obj.read().decode('utf-8').strip().split('\n')]
-            
-            print(len(indices))
+
             self._clean_indices(indices)
-            print(len(indices))
             self.indices += indices
             return indices
-
-# Test code, remove later
-pd = PageDownloader()
-start = timeit.default_timer()
-pd.indices_from_gz_file('/home/gijs/BEP/domain-nl-0000.gz')
-stop = timeit.default_timer()
-
-print( stop - start )
-pd.download_indices('http://commoncrawl.org/faqs/', 'CC-MAIN-2015-27-index')
-test_data = pd.download_warc_part(pd.indices[0])
-print(pd.warc_html_to_text(test_data))
 
