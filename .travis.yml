@@ -9,7 +9,7 @@ install:
   - pip install coveralls
 
 script:
-  - pytest -v --durations=10 tests/ --cov=urbansearch --cov-report term-missing
+  - pytest -v --cov=urbansearch --cov-report term-missing tests/
 
 after_success:
   - coveralls
