@@ -1,0 +1,21 @@
+language: python
+cache: pip
+
+python:
+  - 3.5
+
+before_install:
+  - apt-get install -q neo4j
+
+install:
+  - pip install -r requirements.txt
+  - pip install coveralls
+
+script:
+  - pytest -v --durations=10 tests/ --cov=urbansearch cov-report term-missing --pep8
+
+after_success:
+  - coveralls
+
+services:
+  - neo4j
