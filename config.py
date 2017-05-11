@@ -2,7 +2,7 @@ import os
 
 import yaml
 
-CONFIG_PATH = os.path.join(os.path.expanduser('~'), '.config/urbansearch/')
+CONFIG_PATH = os.path.join(os.path.expanduser('~'), '.config', 'urbansearch')
 CONFIG_FILE = 'urbansearch.yml'
 
 # Create settings directory if it does not exist
