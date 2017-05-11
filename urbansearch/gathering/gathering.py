@@ -4,6 +4,7 @@ import requests
 import io
 from bs4 import BeautifulSoup
 from urllib.parse import quote
+import timeit
 
 
 class PageDownloader(object):
@@ -30,22 +31,28 @@ class PageDownloader(object):
         """
         enc_url = quote(url, safe='')
         try:
+            # TODO Timeout in config
             response = requests.get(self.cc_index_url + collection +
                                     '?url=' + enc_url +
-                                    '&output=json', timeout=1)
-            print(response.content)
+                                    '&output=json', timeout=2)
+
             indices = [json.loads(x) for x in
                        response.content.strip().decode('utf-8').split('\n')]
+            # TODO Benchmark to check forward scanning string for status is
+            # faster than removing after JSON
+            self._clean_indices(indices)
             self.indices += indices
+
         except requests.exceptions.ReadTimeout:
             print("URL index request timed out")
-    
+
     def download_warc_part(self, index):
         """
         Download the part of the warc file using the JSON index.
-        
+
         :param index: index in JSON format
-        :return: Uncompressed part of warc file
+        :return: Uncompressed part of warc file if responsecode for index is
+        200, otherwise None
         """
         start, length = int(index['offset']), int(index['length'])
         end = start + length - 1
@@ -64,6 +71,19 @@ class PageDownloader(object):
             data = gz_obj.read()
 
         return data
+
+    def _useful_responsecode(self, index):
+        # Check responsecode of index to determine if it's useful to download
+        # the part. HTTP 200 is useful, other than 200 will be discarded.
+        if index:
+            return True if int(index['status']) == 200 else False
+        return False
+
+    def _clean_indices(self, indices):
+        # Removes useless entries with status code other than 200
+        for index in indices:
+            if not self._useful_responsecode(index):
+                indices.remove(index)
 
     def warc_html_to_text(self, data):
         """
@@ -110,13 +130,37 @@ class PageDownloader(object):
             # Remove the garbage before { and parse to json and add to list
             indices = [json.loads('{' + x.split('{', 1)[-1]) for x in
                        f.read().strip().split('\n')]
+            self._clean_indices(indices)
+            self.indices += indices
+            return indices
+
+    def indices_from_gz_file(self, filename):
+        """
+        Open compressed gz file, uncompress and parse JSON entries in file.
+        Indices are added to this instance of PageDownloader.
+        
+        :param filename: Path to .gz file
+        :return: Return list of indices
+        """
+        with gzip.GzipFile(filename) as gz_obj:
+            # Remove the garbage before { and parse to json and add to list
+            indices = [json.loads('{' + x.split('{', 1)[-1]) for x in
+                       gz_obj.read().decode('utf-8').strip().split('\n')]
+            
+            print(len(indices))
+            self._clean_indices(indices)
+            print(len(indices))
             self.indices += indices
             return indices
 
 # Test code, remove later
 pd = PageDownloader()
-pd.indices_from_file('/home/gijs/BEP/test_index')
-# pd.download_indices('http://commoncrawl.org/faqs/', 'CC-MAIN-2015-27-index')
+start = timeit.default_timer()
+pd.indices_from_gz_file('/home/gijs/BEP/domain-nl-0000.gz')
+stop = timeit.default_timer()
+
+print( stop - start )
+pd.download_indices('http://commoncrawl.org/faqs/', 'CC-MAIN-2015-27-index')
 test_data = pd.download_warc_part(pd.indices[0])
 print(pd.warc_html_to_text(test_data))
 
