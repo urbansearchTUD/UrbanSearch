@@ -10,13 +10,17 @@ def function_example:
 
 
 """
-
 import os
 import logging
 import logging.handlers
+import config
 
-# TODO Move to config? And absolute/relative choice
-directory = './log/'
+# TODO Standard cross-platform log location, or user chooses in front-end?
+directory = config.get('directories', 'log_directory')
+
+# Create log directory if non-existent
+if not os.path.exists(directory):
+    os.makedirs(directory)
 
 # Format of the lines in the log
 log_formatter = logging.Formatter(
@@ -27,18 +31,12 @@ log_formatter = logging.Formatter(
 file_handler = logging.handlers.RotatingFileHandler(
     '%surbansearch.log' % directory, mode='w', maxBytes=10000000, backupCount=5
 )
+print("Created log in: %surbansearch.log" % directory)
 file_handler.setFormatter(log_formatter)
 
 # Enable log output on console
 console_handler = logging.StreamHandler()
 console_handler.setFormatter(log_formatter)
-
-try:
-    # Create log directory if non-existent
-    if not os.path.exists(PATH):
-        os.makedirs(PATH)
-except OSError:
-    raise FileNotFoundError('Could not create log directory')
 
 
 def add_handlers(logger):
@@ -96,5 +94,4 @@ def set_loglevel(logger, level):
     :param level: Loglevel
     """
     logger.setLevel(level)
-    print("Loglevel of %s changed to: %s", (logger,
-                                            logging.getLevelName(level))
+    print("Loglevel of %s changed to: %s", (logger, logging.getLevelName(level)))
