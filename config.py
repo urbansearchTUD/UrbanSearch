@@ -27,14 +27,14 @@ CONFIG = {
 
 # Try to load existing config or create a new settings file including all parameters, but with empty values
 try:
-    with open('%s%s' % (CONFIG_PATH, CONFIG_FILE), 'r+') as f:
+    with open(os.path.join(CONFIG_PATH, CONFIG_FILE), 'r+') as f:
         CONFIG = yaml.load(f)
         _state = True
 except FileNotFoundError:
     # TODO: log instead of print as soon as logger is implemented
     print('Creating config file in %s...' % CONFIG_PATH)
     print('Make sure to fill it!')
-    with open('%s%s' % (CONFIG_PATH, CONFIG_FILE), 'w') as f:
+    with open(os.path.join(CONFIG_PATH, CONFIG_FILE), 'w') as f:
         yaml.dump(CONFIG, f, default_flow_style=False)
 
 
@@ -50,7 +50,7 @@ def get(entity, param):
     :return: The configuration value
     """
     if not _state:
-        raise SystemError('No configuration present in %s%s' % (CONFIG_PATH, CONFIG_FILE))
+        raise SystemError('No configuration present in %s' % os.path.join(CONFIG_PATH, CONFIG_FILE))
 
     try:
         return CONFIG[entity][param]
