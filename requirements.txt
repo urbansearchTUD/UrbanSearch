@@ -2,6 +2,7 @@
 #
 ####### Requirements without Version Specifiers ######
 beautifulsoup4
+PyYAML
 
 #
 ####### Requirements with Version Specifiers ######
