@@ -1,0 +1,33 @@
+WARC/1.0
+WARC-Type: response
+WARC-Date: 2017-04-28T14:07:11Z
+WARC-Record-ID: <urn:uuid:2f137b97-c70a-4851-a18c-7d8f4d854da6>
+Content-Length: 25384
+Content-Type: application/http; msgtype=response
+WARC-Warcinfo-ID: <urn:uuid:8cd16857-b25c-4e4f-8f44-b11c8c6f41df>
+WARC-Concurrent-To: <urn:uuid:de2355de-c99c-4fa2-80a6-7c8b9af6bb4e>
+WARC-IP-Address: 91.142.252.94
+WARC-Target-URI: http://www.010container.nl/
+WARC-Payload-Digest: sha1:KQXVJFHK2YJMBML3AARMY72K5OWBJE57
+WARC-Block-Digest: sha1:MD5XWT37MBRIVCC5SGSVUPWCWHQ5U2TT
+
+HTTP/1.1 200 OK
+Content-Length: 24868
+Expires: Thu, 19 Nov 1981 08:52:00 GMT
+Set-Cookie: frontend=uv2g9ifloudb3e5olp9cr6gmu3; expires=Fri, 28-Apr-2017 16:27:14 GMT; path=/; domain=www.010container.nl; HttpOnly
+Connection: close
+Server: Apache/2
+X-Powered-By: PHP/5.3.21
+Cache-Control: no-store, no-cache, must-revalidate, post-check=0, pre-check=0
+Pragma: no-cache
+X-Frame-Options: SAMEORIGIN
+Vary: Accept-Encoding,User-Agent
+Date: Fri, 28 Apr 2017 14:07:14 GMT
+Content-Type: text/html; charset=UTF-8
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="nl" lang="nl">
+Test
+</html>
+
+
