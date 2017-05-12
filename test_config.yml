@@ -1,5 +1,5 @@
 neo4j:
-  bolt_uri: 'bolt://localhost:7687'
+  bolt_uri: 'bolt://localhost:7472'
   host: 'localhost'
   password: ''
   username: ''
