@@ -1,3 +1,8 @@
+neo4j:
+  bolt_uri: 'bolt://localhost:7687'
+  host: 'localhost'
+  password: ''
+  username: ''
 resources:
   test: 'tests/resources/'
 logging:
