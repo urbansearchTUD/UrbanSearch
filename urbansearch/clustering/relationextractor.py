@@ -48,7 +48,6 @@ class RelationExtractor(object):
         else:
             self.extend_corpus(self.dictionary.doc2bow(doc, allow_update=True))
 
-
     @list_required
     def extract_tfidf(self, doc):
         """
@@ -108,3 +107,4 @@ class RelationExtractor(object):
         TODO: documentation
         """
         self.tfidf_model = models.TfidfModel(corpus)
+
