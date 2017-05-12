@@ -2,7 +2,7 @@ from urbansearch.clustering import relationextractor
 
 texts = [
     ['handelt', 'bemoederen', 'koe'],
-    ['vallen', 'valt', 'zicht', 'gym', 'breedte'],
+    ['vallen', 'valt', 'zicht', 'gymt', 'breedte'],
     ['dromen', 'muis', 'bezorgen', 'zeeziek']
 ]
 
