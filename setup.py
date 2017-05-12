@@ -1,4 +1,18 @@
+import sys
 from setuptools import setup, find_packages
+
+from setuptools.command.test import test
+
+
+class PyTest(test):
+    def initialize_options(self):
+        test.initialize_options(self)
+
+    def run_tests(self):
+        # import here, cause outside the eggs aren't loaded
+        import pytest
+        errno = pytest.main([])
+        sys.exit(errno)
 
 setup(
     name='UrbanSearch',
@@ -11,5 +25,9 @@ setup(
     description='',
     install_requires=[
         'pytest',
-    ]
+    ],
+    tests_require=['pytest'],
+    cmdclass={
+        'test': PyTest,
+    }
 )
