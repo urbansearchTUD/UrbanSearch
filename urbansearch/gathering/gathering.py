@@ -4,6 +4,7 @@ import requests
 import io
 from bs4 import BeautifulSoup
 from urllib.parse import quote
+import config
 
 
 class PageDownloader(object):
@@ -30,11 +31,11 @@ class PageDownloader(object):
         """
         enc_url = quote(url, safe='')
         try:
-            # TODO Timeout in config
+            req_timeout = config.get('gathering', 'request_timeout')
             response = requests.get(self.cc_index_url + collection +
                                     '?url=' + enc_url +
-                                    '&output=json', timeout=2)
-
+                                    '&output=json', timeout=req_timeout)
+            print(response.content)
             indices = [json.loads(x) for x in
                        response.content.strip().decode('utf-8').split('\n')]
             # TODO Benchmark to check forward scanning string for status is
@@ -54,13 +55,13 @@ class PageDownloader(object):
         :return: Uncompressed part of warc file if responsecode for index is
         200, otherwise None
         """
+        req_timeout = config.get('gathering', 'request_timeout')
         start, length = int(index['offset']), int(index['length'])
         end = start + length - 1
-        # TODO Put timeout in config
         try:
             response = requests.get(self.cc_data_prefix + index['filename'],
                                     headers={'Range': 'bytes={}-{}'.format(start, end)}, 
-                                    timeout=1)
+                                    timeout=req_timeout)
         except requests.exceptions.ReadTimeout:
             print("Timeout while downloading warc part")
             return None
@@ -151,4 +152,5 @@ class PageDownloader(object):
             self._clean_indices(indices)
             self.indices += indices
             return indices
+
 
