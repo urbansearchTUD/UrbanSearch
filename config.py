@@ -1,24 +1,16 @@
+import logging.config
 import os
 
 import yaml
 
-from urbansearch.logging import logutils
-
-LOGGER = logutils.getLogger(__name__)
-logutils.add_handlers(LOGGER)
-logutils.set_loglevel(LOGGER, logutils.logging.DEBUG)
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 CONFIG_PATH = os.path.join(os.path.expanduser('~'), '.config', 'urbansearch')
 CONFIG_FILE = 'urbansearch.yml'
 
-# Create settings directory if it does not exist
-if not os.path.exists(CONFIG_PATH):
-    os.makedirs(CONFIG_PATH)
-
-# Keep track of whether the system has been configured
-_state = False
-
-# The configuration parameters
+# The configuration parameters. They can all be overridden in the YAML config file.
+# For Neo4j, it is required to override the settings since they have been left empty
+# for security purposes.
 CONFIG = {
     'neo4j': {
         'host': '',
@@ -27,20 +19,81 @@ CONFIG = {
         'password': '',
     },
     'resources': {
-        'test': '',
+        'test': os.path.join(BASE_DIR, 'tests', 'resources'),
+    },
+    'logging': {
+        'version': 1,
+        'formatters': {
+            'default': {
+                'format': '[%(levelname)s %(module)s] %(asctime)s || %(message)s',
+            },
+        },
+        'handlers': {
+            'file': {
+                'level': 'DEBUG',
+                'class': 'logging.handlers.RotatingFileHandler',
+                'filename': os.path.join(BASE_DIR, 'urbansearch.log'),
+                'maxBytes': 10000000,
+                'backupCount': 5,
+                'formatter': 'default',
+            },
+            'console': {
+                'level': 'WARN',
+                'class': 'logging.StreamHandler',
+                'formatter': 'default',
+            },
+        },
+        'loggers': {
+            'urbansearch': {
+                'handlers': ['file', 'console'],
+                'level': 'DEBUG',
+                'propagate': True,
+            },
+            'config': {
+                'handlers': ['file'],
+                'level': 'DEBUG',
+                'propagate': True,
+            },
+            'clustering': {
+                'handlers': ['file'],
+                'level': 'INFO',
+                'propagate': True,
+            },
+            'filtering': {
+                'handlers': ['file'],
+                'level': 'INFO',
+                'propagate': True,
+            },
+            'gathering': {
+                'handlers': ['file'],
+                'level': 'INFO',
+                'propagate': True,
+            },
+        },
     },
 }
+
+# Keep track of whether the system has been configured
+_state = False
 
 # Try to load existing config or create a new settings file including all parameters, but with empty values
 try:
     with open(os.path.join(CONFIG_PATH, CONFIG_FILE), 'r+') as f:
-        CONFIG = yaml.load(f)
-        LOGGER.info('Loading configuration file')
+        # Concatenate config, override defaults with YAML values
+        CONFIG = {**CONFIG, **yaml.load(f)}
         _state = True
 except FileNotFoundError:
-    LOGGER.info('Creating config file in %s...\nMake sure to fill it!' % CONFIG_PATH)
+    # Create settings directory if it does not exist
+    if not os.path.exists(CONFIG_PATH):
+        os.makedirs(CONFIG_PATH)
     with open(os.path.join(CONFIG_PATH, CONFIG_FILE), 'w') as f:
         yaml.dump(CONFIG, f, default_flow_style=False)
+
+# Now configure logging
+logging.config.dictConfig(CONFIG['logging'])
+
+# And logging is ready to use
+logger = logging.getLogger(__name__)
 
 
 def get(entity, param):
@@ -56,15 +109,15 @@ def get(entity, param):
     """
     if not _state:
         msg = 'No configuration present in %s' % os.path.join(CONFIG_PATH, CONFIG_FILE)
-        LOGGER.error(msg)
+        logger.error(msg)
         raise SystemError(msg)
 
     try:
         value = CONFIG[entity][param]
-        LOGGER.debug('Found config: %s:%s => %s' % (entity, param, str(value)))
+        logger.debug('Found config: %s:%s => %s' % (entity, param, str(value)))
         return CONFIG[entity][param]
     except KeyError:
         # Should _never_ happen in production!
         msg = 'Parameter %s is not present for entity %s!' % (param, entity)
-        LOGGER.critical(msg)
+        logger.critical(msg)
         raise ValueError(msg)
