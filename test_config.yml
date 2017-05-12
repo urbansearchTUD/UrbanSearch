@@ -1,0 +1,4 @@
+resources:
+  test: 'tests/resources/'
+logging:
+  directory: '/tmp/'
