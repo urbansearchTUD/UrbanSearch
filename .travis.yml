@@ -4,18 +4,17 @@ cache: pip
 python:
   - 3.5
 
-before_install:
-  - apt-get install -q neo4j
-
 install:
   - pip install -r requirements.txt
   - pip install coveralls
 
 script:
-  - pytest -v --durations=10 tests/ --cov=urbansearch cov-report term-missing --pep8
+#  - pytest -v --cov=urbansearch --cov-report term-missing tests/
+  - coverage run --source tests/ setup.py test
 
 after_success:
   - coveralls
 
-services:
-  - neo4j
+notifications:
+  - email: never
+
