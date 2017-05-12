@@ -1,12 +1,12 @@
 # Tokenizes, Stems, removes stop words and counts
 
 import re
+import config
 from collections import Counter
 
 from nltk.corpus import stopwords
 from nltk.stem.snowball import SnowballStemmer, DutchStemmer
 from nltk.tokenize import word_tokenize
-
 
 class EnhancedDutchStemmer(DutchStemmer):
     def __init__(self):
@@ -148,6 +148,8 @@ class PreProcessor:
     def __init__(self, lang='dutch'):
         self.lang = lang
         self.stemmer = None
+        self.nltk_dir = config.get('resources', 'nltk')
+        print(nltk)
 
     def _get_stemmer(self):
         if self.stemmer:
