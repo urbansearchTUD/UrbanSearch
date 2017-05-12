@@ -33,6 +33,13 @@ def test_warc_html_to_text():
         assert pd.warc_html_to_text(f.read()) == "\r\nTest\r\n\n"
 
 
+def test_warc_html_to_text_exceptions():
+    with open('%s%s' % (config.get('resources', 'test'), 'indices.txt'),
+              'rb') as f:
+        assert pd.warc_html_to_text(f.read()) == ""
+        assert pd.warc_html_to_text(None) == ""
+
+
 def test_indices_from_file():
     ind = pd.indices_from_file('%s%s' % (config.get('resources', 'test'),
                                          'indices.txt'))
