@@ -1,0 +1,6 @@
+resources:
+  test: 'tests/resources/'
+logging:
+  directory: '/tmp/'
+gathering:
+  request_timeout: 2
