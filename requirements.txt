@@ -7,6 +7,7 @@ pyahocorasick
 pytest
 pytest-cov
 PyYAML
+requests
 
 #
 ####### Requirements with Version Specifiers ######
