@@ -46,10 +46,10 @@ class RelationExtractor(object):
         """
         if multiple:
             for text in doc:
-                self.extend_corpus(self.dictionary.doc2bow(text,
-                                                           allow_update=True))
+                self.extend_corpus(self.dictionary.doc2bow(text, allow_update=True))
         else:
             self.extend_corpus(self.dictionary.doc2bow(doc, allow_update=True))
+
 
     @list_required
     def extract_tfidf(self, doc):
@@ -73,6 +73,7 @@ class RelationExtractor(object):
         """
         self.lda_model = models.LdaMulticore(self.corpus,
                                              num_topics=self.NUM_OF_TOPICS)
+        return self.tfidf_model[self.doc_to_corpus(doc)]
 
     def init_tfidf_model(self):
         """
