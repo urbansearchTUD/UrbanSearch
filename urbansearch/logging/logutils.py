@@ -16,7 +16,7 @@ import logging.handlers
 import config
 
 # TODO Standard cross-platform log location, or user chooses in front-end?
-directory = config.get('directories', 'log_directory')
+directory = config.get('logging', 'directory')
 
 # Create log directory if non-existent
 if not os.path.exists(directory):
