@@ -2,6 +2,12 @@ import os
 
 import yaml
 
+from urbansearch.logging import logutils
+
+LOGGER = logutils.getLogger(__name__)
+logutils.add_handlers(LOGGER)
+logutils.set_loglevel(LOGGER, logutils.logging.DEBUG)
+
 CONFIG_PATH = os.path.join(os.path.expanduser('~'), '.config', 'urbansearch')
 CONFIG_FILE = 'urbansearch.yml'
 
@@ -29,11 +35,10 @@ CONFIG = {
 try:
     with open(os.path.join(CONFIG_PATH, CONFIG_FILE), 'r+') as f:
         CONFIG = yaml.load(f)
+        LOGGER.info('Loading configuration file')
         _state = True
 except FileNotFoundError:
-    # TODO: log instead of print as soon as logger is implemented
-    print('Creating config file in %s...' % CONFIG_PATH)
-    print('Make sure to fill it!')
+    LOGGER.info('Creating config file in %s...\nMake sure to fill it!' % CONFIG_PATH)
     with open(os.path.join(CONFIG_PATH, CONFIG_FILE), 'w') as f:
         yaml.dump(CONFIG, f, default_flow_style=False)
 
@@ -50,10 +55,16 @@ def get(entity, param):
     :return: The configuration value
     """
     if not _state:
-        raise SystemError('No configuration present in %s' % os.path.join(CONFIG_PATH, CONFIG_FILE))
+        msg = 'No configuration present in %s' % os.path.join(CONFIG_PATH, CONFIG_FILE)
+        LOGGER.error(msg)
+        raise SystemError(msg)
 
     try:
+        value = CONFIG[entity][param]
+        LOGGER.debug('Found config: %s:%s => %s' % (entity, param, str(value)))
         return CONFIG[entity][param]
     except KeyError:
         # Should _never_ happen in production!
-        raise ValueError('Parameter %s is not present for entity %s!' % (param, entity))
+        msg = 'Parameter %s is not present for entity %s!' % (param, entity)
+        LOGGER.critical(msg)
+        raise ValueError(msg)
