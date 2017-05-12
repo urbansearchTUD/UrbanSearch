@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/urbansearchTUD/UrbanSearch.svg?branch=master)](https://travis-ci.org/urbansearchTUD/UrbanSearch) [![Coverage Status](https://coveralls.io/repos/github/urbansearchTUD/UrbanSearch/badge.svg?branch=travis)](https://coveralls.io/github/urbansearchTUD/UrbanSearch?branch=travis)
+
 # UrbanSearch
 This repository contains the code for the UrbanSearch project. The project involves extracting intercity relationships from open data and visualising them. Initially, [Common Crawl](https://commoncrawl.org) is used as document corpus. Clearly this is a large data set, therefore this repository does not contain the data.
 

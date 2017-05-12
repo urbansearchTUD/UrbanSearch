@@ -2,6 +2,8 @@
 #
 ####### Requirements without Version Specifiers ######
 beautifulsoup4
+pytest
+pytest-cov
 PyYAML
 
 #
