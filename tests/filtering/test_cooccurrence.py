@@ -3,7 +3,7 @@ import pytest
 import config
 from urbansearch.filtering import cooccurrence
 
-c = cooccurrence.CoOccurrenceChecker()
+c = cooccurrence.CoOccurrenceChecker(cities=['Amsterdam', 'Amsterdam Zuidoost', 'Den Haag', 'Rotterdam'])
 
 
 def test_single_occurrence():

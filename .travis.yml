@@ -12,9 +12,6 @@ before_script:
   - mkdir -p ~/.config/urbansearch
   - cp test_config.yml ~/.config/urbansearch/urbansearch.yml
 
-services:
-  - neo4j
-
 script:
 #  - pytest -v --cov=urbansearch --cov-report term-missing tests/
   - coverage run setup.py test
