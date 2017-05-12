@@ -35,7 +35,6 @@ class PageDownloader(object):
             response = requests.get(self.cc_index_url + collection +
                                     '?url=' + enc_url +
                                     '&output=json', timeout=req_timeout)
-            print(response.content)
             indices = [json.loads(x) for x in
                        response.content.strip().decode('utf-8').split('\n')]
             # TODO Benchmark to check forward scanning string for status is
@@ -104,6 +103,7 @@ class PageDownloader(object):
         # Strip headers
         data = data[index:-1]
         soup = BeautifulSoup(data, 'html.parser')
+        # Remove style and script statements
         for script in soup(["script", "style"]):
             script.extract()
         plain_txt = soup.get_text()
@@ -152,5 +152,4 @@ class PageDownloader(object):
             self._clean_indices(indices)
             self.indices += indices
             return indices
-
 
