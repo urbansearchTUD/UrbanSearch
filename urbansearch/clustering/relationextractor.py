@@ -107,4 +107,3 @@ class RelationExtractor(object):
         TODO: documentation
         """
         self.tfidf_model = models.TfidfModel(corpus)
-
