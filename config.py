@@ -26,7 +26,6 @@ CONFIG = {
         'cc_index': 'http://index.commoncrawl.org/',
         'request_timeout': 2,
     },
-
     'logging': {
         'version': 1,
         'formatters': {
