@@ -21,6 +21,12 @@ CONFIG = {
     'resources': {
         'test': os.path.join(BASE_DIR, 'tests', 'resources'),
     },
+    'gathering': {
+        'cc_data': 'https://commoncrawl.s3.amazonaws.com/',
+        'cc_index': 'http://index.commoncrawl.org/',
+        'request_timeout': 2,
+    },
+
     'logging': {
         'version': 1,
         'formatters': {
