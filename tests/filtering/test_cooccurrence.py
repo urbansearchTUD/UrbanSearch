@@ -1,5 +1,5 @@
 import pytest
-
+import os
 import config
 from urbansearch.filtering import cooccurrence
 
@@ -38,6 +38,6 @@ def test_overlap():
 
 
 def test_only_accept_string():
-    with open('%s%s' % (config.get('resources', 'test'), 'test.txt'), 'r') as f:
+    with open(os.path.join(config.get('resources', 'test'), 'test.txt'), 'r') as f:
         with pytest.raises(TypeError):
             c.check(f)
