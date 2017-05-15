@@ -1,6 +1,6 @@
 import pytest
 import json
-
+import os
 import config
 from urbansearch.gathering import gathering
 
@@ -41,14 +41,37 @@ def test_warc_html_to_text_exceptions():
 
 
 def test_indices_from_file():
-    ind = pd.indices_from_file('%s%s' % (config.get('resources', 'test'),
-                                         'indices.txt'))
+    ind = pd.indices_from_file(os.path.join(config.get('resources', 'test'),
+                                            'indices.txt'))
     assert (len(ind)) == 5
     assert ind[0]['digest'] == 'WPTH3FM5VR7UGLA5PZS5L5YI22TNIKXG'
 
 
 def test_indices_from_gz_file():
-    ind = pd.indices_from_gz_file('%s%s' % (config.get('resources', 'test'),
-                                            'domain-nl-0000.gz'))
+    ind = pd.indices_from_gz_file(os.path.join(config.get('resources', 'test'),
+                                               'domain-nl-0000.gz'))
     assert (len(ind)) == 1
     assert ind[0]['digest'] == "3I42H3S6NNFQ2MSVX7XZKYAYSCX5QBYJ"
+
+
+def test_download_indices_exc():
+    with pytest.raises(json.decoder.JSONDecodeError) as dec_exc:
+            pd.download_indices("", "")
+            exception_raised = dec_exc.value
+            assert exception_raised == json.decoder.JSONDecodeError.value
+
+
+def test_download_warc_part_none():
+    assert pd.download_warc_part(None) is None
+
+
+def test_index_to_txt():
+    with open(os.path.join(config.get('resources', 'test'),
+                           'text_output.txt'), "r") as text_file:
+            exp = text_file.read()
+    ind = pd.indices_from_file(os.path.join(config.get('resources', 'test'),
+                                            'indices.txt'))
+    result = pd.index_to_txt(ind[0])
+    assert type(result) == str
+    assert result == exp
+
