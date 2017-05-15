@@ -56,6 +56,9 @@ class PageDownloader(object):
         :return: Uncompressed part of warc file if responsecode for index is
         200, otherwise None
         """
+        if not index:
+            return None
+
         req_timeout = config.get('gathering', 'request_timeout')
         start, length = int(index['offset']), int(index['length'])
         end = start + length - 1
