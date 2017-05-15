@@ -77,20 +77,23 @@ class PageDownloader(object):
 
         return data
 
-    def _useful_responsecode(self, index):
+    @staticmethod
+    def _useful_responsecode(index):
         # Check responsecode of index to determine if it's useful to download
         # the part. HTTP 200 is useful, other than 200 will be discarded.
-        if index:
-            return True if int(index['status']) == 200 else False
-        return False
+        if index is not None:
+            return int(index['status']) == 200
+        else:
+            return False
 
     def _clean_indices(self, indices):
         # Removes useless entries with status code other than 200
         for index in indices:
-            if not self._useful_responsecode(index):
+            if not PageDownloader._useful_responsecode(index):
                 indices.remove(index)
 
-    def warc_html_to_text(self, data):
+    @staticmethod
+    def warc_html_to_text(data):
         """
         Process uncompressed warc to plain text.
 
@@ -111,8 +114,7 @@ class PageDownloader(object):
         # Remove style and script statements
         for script in soup(["script", "style"]):
             script.extract()
-        plain_txt = soup.get_text()
-        return plain_txt
+        return soup.get_text()
 
     def index_to_txt(self, index):
         """
@@ -157,4 +159,3 @@ class PageDownloader(object):
             self._clean_indices(indices)
             self.indices += indices
             return indices
-
