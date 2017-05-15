@@ -22,9 +22,19 @@ class EnhancedDutchStemmer(DutchStemmer):
                                    'hj', 'jj', 'kj', 'lj', 'mj', 'nj', 'pj',
                                    'qj', 'rj', 'sj', 'tj', 'uj', 'vj', 'wj',
                                    'xj', 'zj',
-                                   # for diminutives -*dje, * being a consonant
-                                   'bd', 'cd', 'dd', 'fd', 'gd', 'kd', 'ld',
-                                   'md', 'nd', 'pd', 'rd', 'sd', 'zd')
+                                   # for adjectives ending -end (e.g groeiend)
+                                   'nd')
+
+    def stem_verbs_past(self, word):
+        """
+        Removes words in the past that end with -de(n)
+        words ending in te(n) get removed by the other methods.
+        """
+        if word.endswith('de'):
+            word = word[:-2]
+        if word.endswith('den'):
+            word = word[:-3]
+        return word
 
     def stem_double_consonants(self, word):
         """
@@ -130,11 +140,10 @@ class EnhancedDutchStemmer(DutchStemmer):
         :param word: The word to stem
         :return: The stemmed word
         """
+
+        word = self.stem_verbs_past(word)
         word = self.stem_double_consonants(word)
         word = self.stem_changed_consonant(word)
-
-        if word.startswith('groei'):
-            print(word)
         word2 = self.stem_diminutives(word)
         if word2 is word:
             word2 = DutchStemmer.stem(self, word)

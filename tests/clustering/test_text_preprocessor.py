@@ -36,7 +36,7 @@ def test_count():
 
 def test_full():
     text = "Dit is een liedje: een, twee, drie, vier. " \
-           "Hoedje van, hoedje van. Een, twee, drie, vier. Hoeden van papier"
+           "Hoedje van, hoedje van. Een, twee, drie, vier. Hoedje van papier"
     expected = {'Hoed': 3, 'Drie': 2, 'Twee': 2,
                 'Vier': 2, 'Papier': 1, 'Lied': 1}
     assert expected == p.pre_process(text)
@@ -106,5 +106,5 @@ def test_stem_past_irregular():
 
 def test_stem_past_regular():
     text = ['deelde', 'werkten', 'smeedde', 'vergrootte']
-    expected = ['deel', 'werk', 'smed', 'vergrot']
+    expected = ['del', 'werk', 'smed', 'vergrot']
     assert expected == p.stem(text)
