@@ -5,6 +5,9 @@ import io
 from bs4 import BeautifulSoup
 from urllib.parse import quote
 import config
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class PageDownloader(object):
@@ -16,9 +19,8 @@ class PageDownloader(object):
     """
 
     def __init__(self):
-        # TODO Put in config?
-        self.cc_data_prefix = 'https://commoncrawl.s3.amazonaws.com/'
-        self.cc_index_url = 'http://index.commoncrawl.org/'
+        self.cc_data_prefix = config.get('gathering', 'cc_data')
+        self.cc_index_url = config.get('gathering', 'cc_index')
         self.indices = []
 
     def download_indices(self, url, collection):
@@ -38,12 +40,12 @@ class PageDownloader(object):
             indices = [json.loads(x) for x in
                        response.content.strip().decode('utf-8').split('\n')]
             # TODO Benchmark to check forward scanning string for status is
-            # faster than removing after JSON
+            # faster than removing after JSON (Speed improvement card)
             self._clean_indices(indices)
             self.indices += indices
 
         except requests.exceptions.ReadTimeout:
-            print("URL index request timed out")
+            logger.warning("URL index request timed out")
 
     def download_warc_part(self, index):
         """
@@ -62,7 +64,7 @@ class PageDownloader(object):
                                     headers={'Range': 'bytes={}-{}'.format(start, end)}, 
                                     timeout=req_timeout)
         except requests.exceptions.ReadTimeout:
-            print("Timeout while downloading warc part")
+            logger.warning("Timeout while downloading warc part")
             return None
 
         # Response is compressed gz data, uncompress this using gzip

@@ -4,3 +4,5 @@ logging:
   directory: '/tmp/'
 gathering:
   request_timeout: 2
+  cc_data: 'https://commoncrawl.s3.amazonaws.com/'
+  cc_index: 'http://index.commoncrawl.org/'
