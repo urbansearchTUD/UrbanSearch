@@ -94,6 +94,7 @@ ENV/
 
 # IDEA
 .idea/
+.DS_Store
 
 # vim swap files
 *.swp
