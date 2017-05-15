@@ -3,6 +3,7 @@
 ####### Requirements without Version Specifiers ######
 beautifulsoup4
 neo4j-driver
+nltk
 pyahocorasick
 pytest
 pytest-cov
