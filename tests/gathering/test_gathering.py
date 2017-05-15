@@ -1,6 +1,8 @@
-import pytest
 import json
 import os
+
+import pytest
+
 import config
 from urbansearch.gathering import gathering
 
@@ -55,10 +57,8 @@ def test_indices_from_gz_file():
 
 
 def test_download_indices_exc():
-    with pytest.raises(json.decoder.JSONDecodeError) as dec_exc:
-            pd.download_indices("", "")
-            exception_raised = dec_exc.value
-            assert exception_raised == json.decoder.JSONDecodeError.value
+    with pytest.raises(json.decoder.JSONDecodeError):
+        pd.download_indices("", "")
 
 
 def test_download_warc_part_none():
@@ -68,10 +68,9 @@ def test_download_warc_part_none():
 def test_index_to_txt():
     with open(os.path.join(config.get('resources', 'test'),
                            'text_output.txt'), "r") as text_file:
-            exp = text_file.read()
+        exp = text_file.read()
     ind = pd.indices_from_file(os.path.join(config.get('resources', 'test'),
                                             'indices.txt'))
     result = pd.index_to_txt(ind[0])
     assert type(result) == str
     assert result == exp
-
