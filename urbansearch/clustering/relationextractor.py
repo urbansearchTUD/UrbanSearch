@@ -10,7 +10,6 @@ class RelationExtractor(object):
         self.dictionary = corpora.Dictionary()
         self.tfidf_model = None
         self.lda_model = None
-        self.lsi_model = None
 
         if texts:
             self.extend_dictionary(texts, multiple=True)
@@ -51,20 +50,12 @@ class RelationExtractor(object):
 
 
     @list_required
-    def extract_tfidf(doc):
+    def extract_tfidf(self, doc):
         """
         TODO: documentation
         """
         if self.tfidf_model:
-            return self.tfidf_model[self.doc_to_corpus(doc)]
-
-    @list_required
-    def extract_lsi(doc):
-        """
-        TODO: documentation
-        """
-        if self.lsi_model:
-            return self.lsi_model[self.doc_to_corpus(doc)]
+            return self.tfidf_model[self.doc_to_bow(doc)]
 
     def init_tfidf_model(self):
         """
@@ -81,16 +72,11 @@ class RelationExtractor(object):
         """
         pass
 
-    def init_lsi_model(self):
+    def load_corpus(self, filename):
         """
         TODO: documentation
         """
-        if self.corpus and not self.lsi_model:
-            self.lsi_model = models.LsiModel(corpus_tfidf,
-                                             id2word=self.dictionary,
-                                             num_topics=20)
-
-        return self.lsi_model
+        pass
 
     def load_dictionary(self):
         """
@@ -98,22 +84,27 @@ class RelationExtractor(object):
         """
         pass
 
-    def update_corpus(self, corpus):
+    def save_corpus(self, filename):
         """
         TODO: documentation
         """
-        self.corpus = corpus
-        self.update_tfidf_model(corpus)
-        self.update_lsi_model(corpus)
+        pass
+
+    def save_dictionary(self, filename):
+        """
+        TODO: documentation
+        """
+        pass
+
+    # def update_corpus(self, corpus):
+    #     """
+    #     TODO: documentation
+    #     """
+    #     self.corpus = corpus
+    #     self.update_tfidf_model(corpus)
 
     def update_tfidf_model(self, corpus):
         """
         TODO: documentation
         """
         self.tfidf_model = models.TfidfModel(corpus)
-
-    def update_lsi_model(self, corpus):
-        """
-        TODO: documentation
-        """
-        self.lsi_model = models.LsiModel(corpus)
