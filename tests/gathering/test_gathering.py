@@ -15,7 +15,7 @@ status_indices = [
 
 @pytest.mark.parametrize("index, exp", status_indices)
 def test_responsecode(index, exp):
-    assert pd._useful_responsecode(index) == exp
+    assert gathering.PageDownloader._useful_responsecode(index) == exp
 
 
 def test_cleanindices():
@@ -28,13 +28,13 @@ def test_cleanindices():
 
 
 def test_warc_html_to_text():
-    with open('%s%s' % (config.get('resources', 'test'), 'warcdata.txt'),
+    with open(os.path.join(config.get('resources', 'test'), 'warcdata.txt'),
               'rb') as f:
         assert pd.warc_html_to_text(f.read()) == "\r\nTest\r\n\n"
 
 
 def test_warc_html_to_text_exceptions():
-    with open('%s%s' % (config.get('resources', 'test'), 'indices.txt'),
+    with open(os.path.join(config.get('resources', 'test'), 'indices.txt'),
               'rb') as f:
         assert pd.warc_html_to_text(f.read()) == ""
         assert pd.warc_html_to_text(None) == ""
