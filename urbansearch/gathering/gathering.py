@@ -89,7 +89,7 @@ class PageDownloader(object):
     def _clean_indices(self, indices):
         # Removes useless entries with status code other than 200
         for index in indices:
-            if not PageDownloader._useful_responsecode(index):
+            if not self._useful_responsecode(index):
                 indices.remove(index)
 
     @staticmethod
