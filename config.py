@@ -74,26 +74,40 @@ CONFIG = {
 }
 
 # Keep track of whether the system has been configured
-_state = False
+_app_state = False
+_cfg_err = None
 
 # Try to load existing config or create a new settings file including all parameters, but with empty values
 try:
     with open(os.path.join(CONFIG_PATH, CONFIG_FILE), 'r+') as f:
         # Concatenate config, override defaults with YAML values
-        CONFIG = {**CONFIG, **yaml.load(f)}
-        _state = True
+        custom_cfg = yaml.load(f)
+        CONFIG = {**CONFIG, **custom_cfg}
+        _app_state = True
 except FileNotFoundError:
     # Create settings directory if it does not exist
     if not os.path.exists(CONFIG_PATH):
         os.makedirs(CONFIG_PATH)
+    # Fill the config file with the default CONFIG dict
     with open(os.path.join(CONFIG_PATH, CONFIG_FILE), 'w') as f:
         yaml.dump(CONFIG, f, default_flow_style=False)
+except yaml.YAMLError as exc:
+    # Try to point to the line that threw an error
+    if hasattr(exc, 'problem_mark'):
+        mark = exc.problem_mark
+        err = 'Error in YAML at position: (%s:%s)' % (mark.line + 1, mark.column + 1)
 
 # Now configure logging
 logging.config.dictConfig(CONFIG['logging'])
 
 # And logging is ready to use
 logger = logging.getLogger(__name__)
+
+# If an error occurred during YAML parsing, log it
+if _cfg_err:
+    logger.error(_cfg_err)
+else:
+    logger.info('Configuration has been successfully loaded')
 
 
 def get(entity, param):
@@ -107,7 +121,7 @@ def get(entity, param):
     :param param: The configuration parameter
     :return: The configuration value
     """
-    if not _state:
+    if not _app_state:
         msg = 'No configuration present in %s' % os.path.join(CONFIG_PATH, CONFIG_FILE)
         logger.error(msg)
         raise SystemError(msg)
