@@ -82,7 +82,8 @@ try:
     with open(os.path.join(CONFIG_PATH, CONFIG_FILE), 'r+') as f:
         # Concatenate config, override defaults with YAML values
         custom_cfg = yaml.load(f)
-        CONFIG = {**CONFIG, **custom_cfg}
+        if custom_cfg:
+            CONFIG = {**CONFIG, **custom_cfg}
         _app_state = True
 except FileNotFoundError:
     # Create settings directory if it does not exist
