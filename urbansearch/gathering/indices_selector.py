@@ -11,9 +11,9 @@ logger = logging.getLogger(__name__)
 
 class IndicesSelector(object):
 
-    def __init__(self):
+    def __init__(self, cities=None):
         self.page_downloader = gathering.PageDownloader()
-        self.occurrence_checker = cooccurrence.CoOccurrenceChecker()
+        self.occurrence_checker = cooccurrence.CoOccurrenceChecker(cities)
 
     def relevant_indices_from_dir(self, directory):
         """ Check all files in a directory and parse indices in the files
