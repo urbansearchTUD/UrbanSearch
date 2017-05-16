@@ -15,9 +15,6 @@ rex = relationextractor.RelationExtractor()
 rex_filled = relationextractor.RelationExtractor(texts)
 
 def test_extend_dictionary():
-    """
-    TODO: add documentation
-    """
     rex = relationextractor.RelationExtractor()
     assert len(rex.dictionary.items()) == 0
     rex.extend_dictionary(texts[0])
@@ -28,9 +25,6 @@ def test_extend_dictionary():
     assert len(rex.dictionary.items()) == len(rex_filled.dictionary.items())
 
 def test_extend_dictionary_multiple():
-    """
-    TODO: add documentation
-    """
     rex = relationextractor.RelationExtractor()
     assert len(rex.dictionary.items()) == 0
     rex.extend_dictionary(texts, multiple=True)
@@ -39,9 +33,6 @@ def test_extend_dictionary_multiple():
     assert len(rex.dictionary.items()) == 20
 
 def test_doc_to_bow():
-    """
-    TODO: add documentation
-    """
     rex = relationextractor.RelationExtractor()
     rex.extend_dictionary(texts, multiple=True)
 
@@ -54,9 +45,6 @@ def test_doc_to_bow():
         assert bow[1] == 1
 
 def test_docs_to_bow():
-    """
-    TODO: add documentation
-    """
     docs_to_test = [
         ['kaart', 'klink', 'beeldscherm'],
         ['boekje', 'koptelefoon', 'gisteren']
@@ -101,6 +89,3 @@ def test_update_tfidf():
     old_tfidf = rex.tfidf_model
     rex.update_tfidf_model([])
     assert old_tfidf != rex.tfidf_model
-
-#
-# def test_extend
