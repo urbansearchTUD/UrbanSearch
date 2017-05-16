@@ -1,4 +1,5 @@
 import os
+import json
 
 from urbansearch.gathering import indices_selector
 import config
@@ -24,3 +25,4 @@ def test_relevant_indices_from_dir():
     directory = os.path.join(config.get('resources', 'test'), 'indices_dir/')
     relevant = ind_sel.relevant_indices_from_dir(directory)
     assert len(relevant) == 1
+    assert relevant[0]['digest'] == 'WPTH3FM5VR7UGLA5PZS5L5YI22TNIKXG'

@@ -20,44 +20,36 @@ class IndicesSelector(object):
         in the directory.
 
         :directory: Path to the directory
-        :returns: TODO
+        :returns: List of relevant indices, in python json format
         """
         relevant_indices = [self.relevant_indices_from_file(_file.path)
                             for _file in os.scandir(directory)
                             if _file.is_file()]
         return list(itertools.chain.from_iterable(relevant_indices))
 
-    def relevant_indices_from_file(self, filename):
-        """TODO: Docstring for function.
+    def relevant_indices_from_file(self, filepath):
+        """ Collect all indices from file and return files that are relevant.
+        An index is relevant if it contains at least one co-occurrence of
+        cities. Input file can be .gz or document containing string
+        representations of json.
 
-        :arg1: TODO
-        :returns: TODO
+        :filepath: Path to the file containing indices
+        :returns: List of relevant indices, in python JSON format
 
         """
         pd = self.page_downloader
         occ = self.occurrence_checker
 
         try:
-            if filename.endswith(".gz"):
-                pd.indices_from_gz_file(filename)
+            if filepath.endswith(".gz"):
+                indices = pd.indices_from_gz_file(filepath)
             else:
-                pd.indices_from_file(filename)
+                indices = pd.indices_from_file(filepath)
         except JSONDecodeError:
-            logger.error("File %s doesn't contain correct indices", filename)
+            logger.error("File %s doesn't contain correct indices", filepath)
 
         # Store all relevant indices in a list, using cooccurrence check
-        relevant_indices = [index for index in pd.indices
+        relevant_indices = [index for index in indices
                             if occ.check(pd.index_to_txt(index))]
 
         return relevant_indices
-
-
-ind_sel = IndicesSelector()
-relevant = ind_sel.relevant_indices_from_dir('/home/gijs/BEP/UrbanSearch/tests/resources/indices_dir/')
-print(len(relevant))
-test1 = (ind_sel.relevant_indices_from_file('/home/gijs/BEP/UrbanSearch/tests/resources/indices_dir/domain-nl-0000.gz'))
-test2 = (ind_sel.relevant_indices_from_file('/home/gijs/BEP/UrbanSearch/tests/resources/indices_dir/indices2.txt'))
-print(test1)
-print(test2)
-print(len(list(itertools.chain.from_iterable([test1, test2]))))
-
