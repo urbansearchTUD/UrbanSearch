@@ -1,0 +1,1 @@
+nl,tudelft)/ 20170323161043 {"url": "http://www.tudelft.nl/", "mime": "text/html", "status": "200", "digest": "WPTH3FM5VR7UGLA5PZS5L5YI22TNIKXG", "length": "6837", "offset": "727926652", "filename": "crawl-data/CC-MAIN-2017-13/segments/1490218187144.60/warc/CC-MAIN-20170322212947-00594-ip-10-233-31-227.ec2.internal.warc.gz"}

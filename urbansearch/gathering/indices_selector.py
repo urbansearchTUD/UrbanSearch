@@ -1,8 +1,12 @@
 import os
 import itertools
+import logging
+from json.decoder import JSONDecodeError
 
 from urbansearch.gathering import gathering
 from urbansearch.filtering import cooccurrence
+
+logger = logging.getLogger(__name__)
 
 
 class IndicesSelector(object):
@@ -18,8 +22,9 @@ class IndicesSelector(object):
         :directory: Path to the directory
         :returns: TODO
         """
-        relevant_indices = [self.relevant_indices_from_file(filename)
-                            for filename in os.scandir(directory)]
+        relevant_indices = [self.relevant_indices_from_file(_file.path)
+                            for _file in os.scandir(directory)
+                            if _file.is_file()]
         return list(itertools.chain.from_iterable(relevant_indices))
 
     def relevant_indices_from_file(self, filename):
@@ -32,10 +37,13 @@ class IndicesSelector(object):
         pd = self.page_downloader
         occ = self.occurrence_checker
 
-        if filename.endswith(".gz"):
-            pd.indices_from_gz_file(filename)
-        else:
-            pd.indices_from_file(filename)
+        try:
+            if filename.endswith(".gz"):
+                pd.indices_from_gz_file(filename)
+            else:
+                pd.indices_from_file(filename)
+        except JSONDecodeError:
+            logger.error("File %s doesn't contain correct indices", filename)
 
         # Store all relevant indices in a list, using cooccurrence check
         relevant_indices = [index for index in pd.indices
@@ -44,18 +52,12 @@ class IndicesSelector(object):
         return relevant_indices
 
 
-pd = gathering.PageDownloader()
-pd.indices_from_gz_file('/home/gijs/BEP/domain-nl-0000.gz')
-print(len(pd.indices))
-oc_chkr = cooccurrence.CoOccurrenceChecker()
 ind_sel = IndicesSelector()
-ind_sel.relevant_indices_from_file('/home/gijs/BEP/domain-nl-0000.gz')
+relevant = ind_sel.relevant_indices_from_dir('/home/gijs/BEP/UrbanSearch/tests/resources/indices_dir/')
+print(len(relevant))
+test1 = (ind_sel.relevant_indices_from_file('/home/gijs/BEP/UrbanSearch/tests/resources/indices_dir/domain-nl-0000.gz'))
+test2 = (ind_sel.relevant_indices_from_file('/home/gijs/BEP/UrbanSearch/tests/resources/indices_dir/indices2.txt'))
+print(test1)
+print(test2)
+print(len(list(itertools.chain.from_iterable([test1, test2]))))
 
-i = 0
-for index in pd.indices:
-    txt = pd.index_to_txt(index)
-    occ = oc_chkr.check(txt)
-    if occ:
-        print(occ)
-    i+=1
-    print(i)
