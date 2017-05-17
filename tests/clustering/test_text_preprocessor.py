@@ -108,3 +108,8 @@ def test_stem_past_regular():
     text = ['deelde', 'werkten', 'smeedde', 'vergrootte']
     expected = ['del', 'werk', 'smed', 'vergrot']
     assert expected == p.stem(text)
+
+def test_some_words():
+    text = []
+    expected = []
+    assert expected == p.stem(text)

@@ -25,6 +25,16 @@ class EnhancedDutchStemmer(DutchStemmer):
                                    # for adjectives ending -end (e.g groeiend)
                                    'nd')
 
+    def stem_superlative(self, word):
+        """
+        Changes superlatives to root form
+        :param word: 
+        :return: 
+        """
+        if word.endswith('ste'):
+            word = word[:-3]
+        return word
+
     def stem_verbs_past(self, word):
         """
         Removes words in the past that end with -de(n)
@@ -68,12 +78,12 @@ class EnhancedDutchStemmer(DutchStemmer):
             return word[:-1]
 
         # word ends with -etje(s)
-        if word.endswith('etjes'):
+        if word.endswith('etjes') and len(word)>5:
             if word.endswith('eetjes'):
                 return word[:-4]        # -tjes
             else:
                 return word[:-5]        # -etjes
-        if word.endswith('etje'):
+        if word.endswith('etje') and len(word)>4:
             if word.endswith('eetje'):
                 return word[:-3]        # -tje
             else:
@@ -141,6 +151,7 @@ class EnhancedDutchStemmer(DutchStemmer):
         :return: The stemmed word
         """
 
+        word = self.stem_superlative(word)
         word = self.stem_verbs_past(word)
         word = self.stem_double_consonants(word)
         word = self.stem_changed_consonant(word)
