@@ -87,8 +87,7 @@ class RelationExtractor(object):
         """
         TODO: documentation
         """
-        corpora.MmCorpus.serialize(filename, this.corpus)
-
+        corpora.MmCorpus.serialize(filename, self.corpus)
 
     def save_dictionary(self, filename):
         """
