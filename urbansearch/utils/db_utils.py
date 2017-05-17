@@ -24,7 +24,7 @@ def _get_session():
 
 def _get_cities():
     global _cities
-    if _cities is not None:
+    if _cities:
         return _cities
     else:
         with _get_session() as session:
