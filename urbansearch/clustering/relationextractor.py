@@ -75,25 +75,26 @@ class RelationExtractor(object):
         """
         TODO: documentation
         """
-        pass
+        corpora.MmCorpus(filename)
 
-    def load_dictionary(self):
+    def load_dictionary(self, filename):
         """
         TODO: documentation
         """
-        pass
+        self.dictionary.load(filename)
 
     def save_corpus(self, filename):
         """
         TODO: documentation
         """
-        pass
+        corpora.MmCorpus.serialize(filename, this.corpus)
+
 
     def save_dictionary(self, filename):
         """
         TODO: documentation
         """
-        pass
+        self.dictionary.save(filename)
 
     # def update_corpus(self, corpus):
     #     """
