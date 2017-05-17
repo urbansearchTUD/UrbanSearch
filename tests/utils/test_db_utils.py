@@ -4,7 +4,7 @@ from urbansearch.utils import db_utils
 
 
 # Cities available in the test database:
-# Amsterdam, Rotterdam, Den Haag
+# Amsterdam, Rotterdam, Den Haag and Appingedam
 
 # │{"latitude":52.3702157,"name":│
 # │"Amsterdam","longitude":4.8951│
@@ -48,7 +48,7 @@ def test_city_population():
 
 def test_city_distance_diff():
     small_dist = db_utils.city_distance('Den Haag', 'Rotterdam')
-    large_dist = db_utils.city_distance('Amsterdam', 'Rotterdam')
+    large_dist = db_utils.city_distance('Appingedam', 'Rotterdam')
     assert small_dist < large_dist
 
 
