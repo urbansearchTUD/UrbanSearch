@@ -36,7 +36,7 @@ def test_caching():
 
 def test_city_names():
     actual = db_utils.city_names()
-    expected = ['Amsterdam', 'Rotterdam', 'Den Haag']
+    expected = ['Amsterdam', 'Rotterdam', 'Den Haag', 'Appingedam']
     assert actual == expected
 
 

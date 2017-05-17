@@ -40,7 +40,11 @@ def _city_by_name(name):
 
 def _city_property(city, property_name):
     # Returns the property belonging to a node. Neo4j uses 'a' in Record objects for nodes.
-    return city['a'].properties[property_name]
+    # Tries to cast the property to float and falls back to strings.
+    try:
+        return float(city['a'].properties[property_name])
+    except ValueError:
+        return city['a'].properties[property_name]
 
 
 def city_names():
@@ -57,7 +61,7 @@ def city_population(name):
     :param name: The name of the city to look up
     :return: The population of the given city
     """
-    return _city_property(_city_by_name(name), 'population')
+    return int(_city_property(_city_by_name(name), 'population'))
 
 
 def city_distance(name_a, name_b):
