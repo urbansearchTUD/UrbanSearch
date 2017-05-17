@@ -1,0 +1,5 @@
+neo4j:
+  username: neo4j
+  password: neo4j
+  bolt_uri: 'bolt://127.0.0.1:7687'
+  host: '127.0.0.1'

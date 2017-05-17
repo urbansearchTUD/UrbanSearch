@@ -1,10 +1,23 @@
+sudo: required
+dist: trusty
+
 language: python
 cache: pip
 
 python:
   - 3.5
 
+env:
+  - NEO4J_VERSION="3.1.4"
+
+before_install:
+  - jdk_switcher use oraclejdk8
+
 install:
+  - wget dist.neo4j.org/neo4j-community-$NEO4J_VERSION-unix.tar.gz
+  - tar -xzf neo4j-community-$NEO4J_VERSION-unix.tar.gz
+  - neo4j-community-$NEO4J_VERSION/bin/neo4j-admin import --nodes:City test_neo4j_cities.csv
+  - neo4j-community-$NEO4J_VERSION/bin/neo4j start
   - pip install -r requirements.txt
   - pip install coveralls
 
