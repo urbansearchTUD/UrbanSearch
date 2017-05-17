@@ -5,11 +5,19 @@ from urbansearch.gathering import indices_selector
 import config
 
 
-def test_relevant_indices_from_gz_file():
+def test_irrelevant_indices_from_gz_file():
     ind_sel = indices_selector.IndicesSelector(cities=['Delft', 'De Bilt'])
     _file = os.path.join(config.get('resources', 'test'), 'domain-nl-0000.gz')
     relevant = ind_sel.relevant_indices_from_file(_file)
     assert len(relevant) == 0
+
+
+def test_relevant_indices_from_gz_file():
+    ind_sel = indices_selector.IndicesSelector(cities=['Rotterdam',
+                                                       'Wassenaar'])
+    _file = os.path.join(config.get('resources', 'test'), 'relevant.gz')
+    relevant = ind_sel.relevant_indices_from_file(_file)
+    assert len(relevant) == 1
 
 
 def test_relevant_indices_from_other_file():
