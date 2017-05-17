@@ -2,7 +2,10 @@ sudo: required
 dist: trusty
 
 language: python
-cache: pip
+cache:
+  pip: true
+  directories:
+    - cache
 
 python:
   - 3.5
@@ -12,10 +15,11 @@ env:
 
 before_install:
   - jdk_switcher use oraclejdk8
+  - mkdir -p cache
 
 install:
-  - wget dist.neo4j.org/neo4j-community-$NEO4J_VERSION-unix.tar.gz
-  - tar -xzf neo4j-community-$NEO4J_VERSION-unix.tar.gz
+  - if [ ! -f cache/neo4j-community-$NEO4J_VERSION-unix.tar.gz ]; then wget dist.neo4j.org/neo4j-community-$NEO4J_VERSION-unix.tar.gz -P cache; fi
+  - tar -xzf cache/neo4j-community-$NEO4J_VERSION-unix.tar.gz -C .
   - neo4j-community-$NEO4J_VERSION/bin/neo4j-admin import --nodes:City test_neo4j_cities.csv
   - neo4j-community-$NEO4J_VERSION/bin/neo4j start
   - pip install -r requirements.txt
@@ -27,7 +31,8 @@ before_script:
 
 script:
 #  - pytest -v --cov=urbansearch --cov-report term-missing tests/
-  - coverage run --source urbansearch/ setup.py test
+  - pytest --cov-report term-missing --cov urbansearch/ -v
+#  - coverage run --source urbansearch/ setup.py test
 
 after_success:
   - coveralls
