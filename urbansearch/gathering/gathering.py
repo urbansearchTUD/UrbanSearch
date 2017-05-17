@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup
 from urllib.parse import quote
 import config
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +23,8 @@ class PageDownloader(object):
         self.cc_data_prefix = config.get('gathering', 'cc_data')
         self.cc_index_url = config.get('gathering', 'cc_index')
         self.indices = []
+        # Cache the regular expression to filter http response code
+        re.compile('\'status\': \'(\w+)\',')
 
     def download_indices(self, url, collection):
         """
@@ -81,10 +84,17 @@ class PageDownloader(object):
     def _useful_responsecode(index):
         # Check responsecode of index to determine if it's useful to download
         # the part. HTTP 200 is useful, other than 200 will be discarded.
+
         if index is not None:
             return int(index['status']) == 200
         else:
             return False
+
+    @staticmethod
+    def _useful_str_responsecode(string):
+        if string:
+            return int(re.search('\"status\": \"(\w+)\",', string)
+                       .group(1)) == 200
 
     def _clean_indices(self, indices):
         # Removes useless entries with status code other than 200
@@ -138,8 +148,8 @@ class PageDownloader(object):
         with open(filename, 'r') as f:
             # Remove the garbage before { and parse to json and add to list
             indices = [json.loads('{' + x.split('{', 1)[-1]) for x in
-                       f.read().strip().split('\n')]
-            self._clean_indices(indices)
+                       f.read().strip().split('\n') 
+                       if self._useful_str_responsecode(x)]
             self.indices += indices
             return indices
 
@@ -154,8 +164,8 @@ class PageDownloader(object):
         with gzip.GzipFile(filename) as gz_obj:
             # Remove the garbage before { and parse to json and add to list
             indices = [json.loads('{' + x.split('{', 1)[-1]) for x in
-                       gz_obj.read().decode('utf-8').strip().split('\n')]
+                       gz_obj.read().decode('utf-8').strip().split('\n')
+                       if self._useful_str_responsecode(x)]
 
-            self._clean_indices(indices)
             self.indices += indices
             return indices
