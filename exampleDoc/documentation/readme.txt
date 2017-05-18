@@ -1,1 +1,0 @@
-autodocumentation generate with "pydoc -w ../../" (executed from this location)
