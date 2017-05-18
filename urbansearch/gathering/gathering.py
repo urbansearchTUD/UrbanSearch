@@ -6,9 +6,14 @@ import re
 from urllib.parse import quote
 
 import requests
+import io
+import os
 from bs4 import BeautifulSoup
+from multiprocessing import Process, Manager, JoinableQueue
+import timeit
 
 import config
+
 
 logger = logging.getLogger(__name__)
 
@@ -187,3 +192,72 @@ class PageDownloader(object):
 
             self.indices += indices
             return indices
+
+    def run_workers(self, no_of_workers, directory, queue, gz=True):
+        """
+        
+        :no_of_workers: Number of workers that will run
+        :queue: multiprocessing.Queue where the indices will be added to
+        """
+        files = [_file.path for _file in os.scandir(directory)
+                 if _file.is_file()]
+
+        div_files = self._divide_files(files, no_of_workers)
+        workers = [Process(target=self.worker, args=(queue, div_files[i], gz))
+                   for i in range(no_of_workers)]
+
+        for worker in workers:
+            worker.start()
+
+        # Wait for processes to finish
+        for worker in workers:
+            worker.join()
+
+    @staticmethod
+    def _divide_files(files, parts):
+        if files and parts > 0:
+            files_len = len(files)
+            if(parts > files_len):
+                part_len = 1
+            else:
+                part_len = files_len // parts
+            # Divide all files in 'equal' parts
+            div_files = [files[i * part_len:part_len * (i + 1)]
+                         for i in range(parts)]
+
+            # If number of data entries is odd, append last file to last list
+            if files_len % 2 != 0:
+                div_files[-1] += [files[-1]]
+
+            return div_files
+        return None
+
+    def worker(self, queue, files, gz):
+        """
+        Worker that will parse indices from files in file list and put the
+        results in a Queue. Can use plain text files containing indices or
+        .gz files containing indices.
+
+        :queue: multiprocessing.JoinableQueue to put results in
+        :files: List of filepaths to files that this worker will use
+        :gz: Use .gz files or not, default: True.
+        """
+        if gz:
+            for file in files:
+                for index in self.indices_from_gz_file(file):
+                    queue.put(index)
+        else:
+            for file in files:
+                for index in self.indices_from_file(file):
+                    queue.put(index)
+        print("Donee")
+
+pd = PageDownloader()
+man = Manager()
+q = man.Queue()
+start = timeit.default_timer()
+pd.run_workers(1, '/home/gijs/BEP/test/', q, gz=True)
+stop = timeit.default_timer()
+print(q.get_nowait())
+print(stop - start)
+print("DONE")
