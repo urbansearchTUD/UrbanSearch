@@ -1,3 +1,4 @@
+import logging
 import math
 
 from neo4j.v1 import GraphDatabase, basic_auth
@@ -8,6 +9,8 @@ import config
 _driver = None
 # Keep a global list of cities to prevent too many DB hits
 _cities = None
+
+logger = logging.getLogger(__name__)
 
 
 def _get_session():
@@ -108,3 +111,57 @@ def city_haversine_distance(name_a, name_b):
 
     # 6371 = Earth's radius
     return 2 * 6371 * math.asin(math.sqrt(a))
+
+
+def store_index(index, co_occurrences, topics=None):
+    """
+    Stores the provided index in Neo4j and creates relationships to all cities that occur in the document.
+    If a list of topics is provided, it also labels the index node with every topic.
+
+    The index should be a dictionary, containing at least:
+
+    `filename`: The location of the page pointed to
+    `offset`: The offset of the page
+    `length`: The content length of the page
+
+    :param index: The index dictionary
+    :param co_occurrences: A list of tuples, containing co-occurrences (e.g. `[('Amsterdam', 'Rotterdam')]`)
+    :param topics A list of topics. Defaults to None
+    :return: True iff the index has been successfully stored
+    """
+    # FIXME: duplicate city names -> only insert largest? if so, might as well remove duplicates completely
+    # FIXME: current situation: insert both
+
+    # Create a set of cities to remove duplicates
+    cities = {city for occurrence in co_occurrences for city in occurrence}
+
+    # Query needs the following parameters:
+    # City name 1, City name 2, string in syntax ':Topic1:Topic2:Topic3', int offset, int length
+
+    # Join all topics with ':', also add a leading ':' because there always is an Index label
+    topics = ':%s' % ':'.join(topic.capitalize() for topic in topics) if topics else ''
+    # Match cities by name and name results c<num>
+    match_template = 'MATCH (c%d:City { name: "%s" })'
+    match_query = '\n'.join(match_template % (i, city) for i, city in enumerate(cities))
+
+    # Create a node for the index if it doesn't exist
+    merge_query = 'MERGE (i:Index%s { filename: "%s", offset: %d, length: %d })' % (topics, index['filename'],
+                                                                                    index['offset'], index['length'])
+
+    # Create unique relations from city c<num> to the index
+    create_template = '(c%d)-[r%d:OCCURS_IN]->(i)'
+    create_query = 'CREATE UNIQUE %s' % ', '.join(create_template % (i, i) for i in range(len(cities)))
+
+    # Return the ids of the created relations
+    return_template = 'ID(c%d) AS id%d'
+    return_query = 'RETURN %s' % ', '.join(return_template % (i, i) for i in range(len(cities)))
+
+    query = '%s\n%s\n%s\n%s' % (match_query, merge_query, create_query, return_query)
+
+    with _get_session() as session:
+        results = [rel_id for result in session.run(query) for rel_id in result]
+
+    logger.debug('Constructed query: %s' % query)
+    logger.debug('Query resulted in:\n%s' % ', '.join(rel_id for rel_id in results))
+
+    return len(results) > 0
