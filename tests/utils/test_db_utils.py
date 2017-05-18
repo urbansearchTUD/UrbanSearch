@@ -1,5 +1,7 @@
 import time
 
+import pytest
+
 from urbansearch.utils import db_utils
 
 
@@ -20,6 +22,16 @@ from urbansearch.utils import db_utils
 #
 # NOTE: when running these tests locally, some will fail, since they are run against the production
 # database. Travis has it's own database, containing only what is mentioned above.
+
+@pytest.fixture
+def clean_neo4j(request):
+    # Cleans all created relations to index named 'test.gz'
+    def clean():
+        print('Cleaning database...')
+        db_utils.perform_query('MATCH ()-[r]->(n:Index {filename: "test.gz"}) DELETE r, n')
+        print('Done!')
+
+    request.addfinalizer(clean)
 
 
 def test_caching():
@@ -73,3 +85,37 @@ def test_city_haversine_distance_eq():
 def test_city_haversine_distance_num():
     dist = db_utils.city_haversine_distance('Rotterdam', 'Amsterdam')
     assert 55 < dist < 60
+
+
+def test_invalid_query():
+    assert db_utils.perform_query('MATCH (n:City)') is None
+
+
+@pytest.mark.usefixtures('clean_neo4j')
+def test_store_single_cooccurrence():
+    index = {'filename': 'test.gz', 'length': 10, 'offset': 12}
+    co_occurrences = [('Amsterdam', 'Rotterdam')]
+    topics = ['economy', 'tourism']
+    assert db_utils.store_index(index=index, co_occurrences=co_occurrences, topics=topics)
+
+
+@pytest.mark.usefixtures('clean_neo4j')
+def test_store_single_cooccurrence_no_topic():
+    index = {'filename': 'test.gz', 'length': 10, 'offset': 12}
+    co_occurrences = [('Amsterdam', 'Rotterdam')]
+    assert db_utils.store_index(index=index, co_occurrences=co_occurrences)
+
+
+@pytest.mark.usefixtures('clean_neo4j')
+def test_store_multi_cooccurrence():
+    index = {'filename': 'test.gz', 'length': 10, 'offset': 12}
+    co_occurrences = [('Amsterdam', 'Rotterdam'), ('Amsterdam', 'Appingedam'), ('Rotterdam', 'Appingedam')]
+    topics = ['economy', 'tourism']
+    assert db_utils.store_index(index=index, co_occurrences=co_occurrences, topics=topics)
+
+
+@pytest.mark.usefixtures('clean_neo4j')
+def test_store_multi_cooccurrences_no_topic():
+    index = {'filename': 'test.gz', 'length': 10, 'offset': 12}
+    co_occurrences = [('Amsterdam', 'Rotterdam'), ('Amsterdam', 'Appingedam'), ('Rotterdam', 'Appingedam')]
+    assert db_utils.store_index(index=index, co_occurrences=co_occurrences)

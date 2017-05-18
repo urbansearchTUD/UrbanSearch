@@ -1,7 +1,7 @@
 import logging
 import math
 
-from neo4j.v1 import GraphDatabase, basic_auth
+from neo4j.v1 import GraphDatabase, basic_auth, SessionError, CypherSyntaxError
 
 import config
 
@@ -48,6 +48,23 @@ def _city_property(city, property_name):
         return float(city['a'].properties[property_name])
     except ValueError:
         return city['a'].properties[property_name]
+
+
+def perform_query(query):
+    """
+    Utility method to run an arbitrary query.
+
+    Use with caution!
+
+    :param query: The query to execute
+    :return: The result of the query, as provided by Neo4j
+    """
+    try:
+        with _get_session() as session:
+            return [r for r in session.run(query)]
+    except (CypherSyntaxError, SessionError) as e:
+        logger.error('query: %s\nraised error: %s' % (query, e))
+        return None
 
 
 def city_names():
