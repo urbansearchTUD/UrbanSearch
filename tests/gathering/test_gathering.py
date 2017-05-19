@@ -1,6 +1,6 @@
 import json
 import os
-
+import requests
 import pytest
 
 import config
@@ -57,7 +57,8 @@ def test_indices_from_gz_file():
 
 
 def test_download_indices_exc():
-    with pytest.raises(json.decoder.JSONDecodeError):
+    with pytest.raises((json.decoder.JSONDecodeError, 
+                        requests.exceptions.ReadTimeout)):
         pd.download_indices("", "")
 
 

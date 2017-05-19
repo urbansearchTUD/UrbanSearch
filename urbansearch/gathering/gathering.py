@@ -36,19 +36,21 @@ class PageDownloader(object):
         """
         enc_url = quote(url, safe='')
         try:
+            raise requests.exceptions.ReadTimeout
             req_timeout = config.get('gathering', 'request_timeout')
             response = requests.get(self.cc_index_url + collection +
                                     '?url=' + enc_url +
                                     '&output=json', timeout=req_timeout)
             indices = [json.loads(x) for x in
-                       response.content.strip().decode('utf-8').split('\n')]
-            # TODO Benchmark to check forward scanning string for status is
-            # faster than removing after JSON (Speed improvement card)
-            self._clean_indices(indices)
+                       response.content.strip().decode('utf-8').split('\n')
+                       if self._useful_str_responsecode(x)]
             self.indices += indices
 
         except requests.exceptions.ReadTimeout:
             logger.warning("URL index request timed out")
+            # Catch these read exceptions in main application, or increase
+            # the timeout value if deemed necessary
+            raise
 
     def download_warc_part(self, index):
         """
