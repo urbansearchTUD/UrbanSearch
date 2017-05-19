@@ -156,29 +156,28 @@ def store_index(index, co_occurrences, topics=None):
     # City name 1, City name 2, string in syntax ':Topic1:Topic2:Topic3', int offset, int length
 
     # Join all topics with ':', also add a leading ':' because there always is an Index label
-    topics = ':%s' % ':'.join(topic.capitalize() for topic in topics) if topics else ''
+    topics = ':{}'.format(':'.join(topic.capitalize() for topic in topics)) if topics else ''
+
     # Match cities by name and name results c<num>
-    match_template = 'MATCH (c%d:City { name: "%s" })'
-    match_query = '\n'.join(match_template % (i, city) for i, city in enumerate(cities))
+    match_query = '\n'.join('MATCH (c{0}:City {{ name: "{1}" }})'.format(i, city) for i, city in enumerate(cities))
 
     # Create a node for the index if it doesn't exist
-    merge_query = 'MERGE (i:Index%s { filename: "%s", offset: %d, length: %d })' % (topics, index['filename'],
-                                                                                    index['offset'], index['length'])
+    merge_query = 'MERGE (i:Index{0} {{ filename: "{1}", offset: {2}, length: {3} }})'.format(topics, index['filename'],
+                                                                                              index['offset'],
+                                                                                              index['length'])
 
     # Create unique relations from city c<num> to the index
-    create_template = '(c%d)-[r%d:OCCURS_IN]->(i)'
-    create_query = 'CREATE UNIQUE %s' % ', '.join(create_template % (i, i) for i in range(len(cities)))
+    create_query = 'CREATE UNIQUE {0}'.format(
+        ', '.join('(c{0})-[r{0}:OCCURS_IN]->(i)'.format(i) for i in range(len(cities))))
 
     # Return the ids of the created relations
-    return_template = 'ID(c%d) AS id%d'
-    return_query = 'RETURN %s' % ', '.join(return_template % (i, i) for i in range(len(cities)))
+    return_query = 'RETURN {0}'.format(', '.join('ID(c{0}) AS id{0}'.format(i) for i in range(len(cities))))
 
-    query = '%s\n%s\n%s\n%s' % (match_query, merge_query, create_query, return_query)
+    query = '{0}\n{1}\n{2}\n{3}'.format(match_query, merge_query, create_query, return_query)
 
-    with _get_session() as session:
-        results = [rel_id for result in session.run(query) for rel_id in result]
+    results = perform_query(query)
 
-    logger.debug('Constructed query: %s' % query)
-    logger.debug('Query resulted in:\n%s' % ', '.join(rel_id for rel_id in results))
+    logger.debug('Constructed query: {}'.format(query))
+    logger.debug('Query resulted in:\n{}'.format(', '.join(rel_id for result in results for rel_id in result)))
 
     return len(results) > 0
