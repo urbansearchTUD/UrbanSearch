@@ -7,98 +7,139 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 CONFIG_PATH = os.path.join(os.path.expanduser('~'), '.config', 'urbansearch')
 CONFIG_FILE = 'urbansearch.yml'
-DEFAULTS_FILE = 'defaults.yml'
-CONFIG = {}
 
-LOGGER = None
+# The configuration parameters. They can all be overridden in the YAML config file.
+# For Neo4j, it is required to override the settings since they have been left empty
+# for security purposes.
+CONFIG = {
+    'neo4j': {
+        'host': '',
+        'bolt_uri': '',
+        'username': '',
+        'password': '',
+    },
+    'resources': {
+        'category_links': os.path.join(BASE_DIR, 'urbansearch', 'resources', 'category_links'),
+        'models': os.path.join(BASE_DIR, 'urbansearch', 'resources', 'models'),
+        'test': os.path.join(BASE_DIR, 'tests', 'resources'),
+    },
+    'gathering': {
+        'cc_data': 'https://commoncrawl.s3.amazonaws.com/',
+        'cc_index': 'http://index.commoncrawl.org/',
+        'request_timeout': 2,
+    },
+    'logging': {
+        'version': 1,
+        'formatters': {
+            'default': {
+                'format': '[%(levelname)s %(module)s] %(asctime)s || %(message)s',
+            },
+        },
+        'handlers': {
+            'file': {
+                'level': 'DEBUG',
+                'class': 'logging.handlers.RotatingFileHandler',
+                'filename': os.path.join(BASE_DIR, 'urbansearch.log'),
+                'maxBytes': 10000000,
+                'backupCount': 5,
+                'formatter': 'default',
+            },
+            'console': {
+                'level': 'WARN',
+                'class': 'logging.StreamHandler',
+                'formatter': 'default',
+            },
+        },
+        'loggers': {
+            'urbansearch': {
+                'handlers': ['file', 'console'],
+                'level': 'DEBUG',
+                'propagate': True,
+            },
+            'config': {
+                'handlers': ['file'],
+                'level': 'DEBUG',
+                'propagate': True,
+            },
+            'clustering': {
+                'handlers': ['file'],
+                'level': 'INFO',
+                'propagate': True,
+            },
+            'filtering': {
+                'handlers': ['file'],
+                'level': 'INFO',
+                'propagate': True,
+            },
+            'gathering': {
+                'handlers': ['file'],
+                'level': 'INFO',
+                'propagate': True,
+            },
+        },
+    },
+}
 
+# Keep track of whether the system has been configured
+_app_state = False
+_cfg_err = None
 
-def _merge(a, b):
-    # Merges two dictionaries and allows for nested dictionaries
-    for k, v in a.items():
-        if k in b:
-            if isinstance(v, dict):
-                a[k] = _merge(v, b[k])
-            else:
-                a[k] = b[k]
-    return a
-
-
-def _load_default_config():
-    # Might (but should never) throw an error if the defaults file is
-    # badly configured
-    with open(os.path.join(BASE_DIR, DEFAULTS_FILE)) as f:
-        return yaml.load(f)
-
-
-def _load_custom_config():
-    # Try to load existing config or create a new empty settings file
-    try:
-        with open(os.path.join(CONFIG_PATH, CONFIG_FILE), 'r+') as f:
-            # Concatenate config, override defaults with YAML values
-            return yaml.load(f)
-    except FileNotFoundError:
-        # Create settings directory if it does not exist
-        if not os.path.exists(CONFIG_PATH):
-            os.makedirs(CONFIG_PATH)
-
-
-def _load_config():
-    # Fills the global CONFIG dictionary using default and custom config
-    # Returns an error if the custom config is invalid
-    global CONFIG
-    try:
-        cfg = _load_default_config()
-        custom_cfg = _load_custom_config()
+# Try to load existing config or create a new settings file including all parameters, but with empty values
+try:
+    with open(os.path.join(CONFIG_PATH, CONFIG_FILE), 'r+') as f:
+        # Concatenate config, override defaults with YAML values
+        custom_cfg = yaml.load(f)
         if custom_cfg:
-            CONFIG = _merge(cfg, custom_cfg)
-        else:
-            CONFIG = cfg
-    except yaml.YAMLError as exc:
-        # Try to point to the line that threw an error
-        if hasattr(exc, 'problem_mark'):
-            mark = exc.problem_mark
-            return 'Error in YAML at position: ({}:{})'.format(mark.line + 1,
-                                                               mark.column + 1)
+            CONFIG = {**CONFIG, **custom_cfg}
+        _app_state = True
+except FileNotFoundError:
+    # Create settings directory if it does not exist
+    if not os.path.exists(CONFIG_PATH):
+        os.makedirs(CONFIG_PATH)
+    # Fill the config file with the default CONFIG dict
+    with open(os.path.join(CONFIG_PATH, CONFIG_FILE), 'w') as f:
+        yaml.dump(CONFIG, f, default_flow_style=False)
+except yaml.YAMLError as exc:
+    # Try to point to the line that threw an error
+    if hasattr(exc, 'problem_mark'):
+        mark = exc.problem_mark
+        err = 'Error in YAML at position: (%s:%s)' % (mark.line + 1, mark.column + 1)
 
+# Now configure logging
+logging.config.dictConfig(CONFIG['logging'])
 
-def _get_config():
-    # Loads the config if necessary and returns it
-    if not bool(CONFIG):
-        global LOGGER
-        err = _load_config()
+# And logging is ready to use
+logger = logging.getLogger(__name__)
 
-        # Now configure logging
-        logging.config.dictConfig(CONFIG['logging'])
-
-        # And logging is ready to use
-        LOGGER = logging.getLogger('config')
-
-        # If an error occurred during YAML parsing, log it
-        if err:
-            LOGGER.error(err)
-        else:
-            LOGGER.info('Configuration has been successfully loaded')
-    return CONFIG
+# If an error occurred during YAML parsing, log it
+if _cfg_err:
+    logger.error(_cfg_err)
+else:
+    logger.info('Configuration has been successfully loaded')
 
 
 def get(entity, param):
     """
-    Returns the configuration value belonging to a specified entity
-    (e.g. neo4j) and parameter (e.g. host).
+    Returns the configuration value belonging to a specified entity (e.g. neo4j) and parameter (e.g. host).
+
+    Raises a SystemError if the system has not been configured.
+    Raises a ValueError if a requested parameter is not configured.
 
     :param entity: The configuration entity
     :param param: The configuration parameter
     :return: The configuration value
-    :raises ValueError if a requested parameter is not configured
     """
+    if not _app_state:
+        msg = 'No configuration present in %s' % os.path.join(CONFIG_PATH, CONFIG_FILE)
+        logger.error(msg)
+        raise SystemError(msg)
+
     try:
-        value = _get_config()[entity][param]
-        LOGGER.debug('Found config: {}:{} => {}'.format(entity, param, value))
-        return _get_config()[entity][param]
+        value = CONFIG[entity][param]
+        logger.debug('Found config: %s:%s => %s' % (entity, param, str(value)))
+        return CONFIG[entity][param]
     except KeyError:
         # Should _never_ happen in production!
-        msg = 'Parameter {} is not present for entity {}!'.format(param,
-                                                                  entity)
-        LOGGER.critical(msg)
+        msg = 'Parameter %s is not present for entity %s!' % (param, entity)
+        logger.critical(msg)
         raise ValueError(msg)
