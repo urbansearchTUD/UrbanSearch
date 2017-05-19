@@ -1,4 +1,5 @@
 from gensim import corpora, models
+
 from .decorators import list_required
 
 
@@ -56,16 +57,20 @@ class RelationExtractor(object):
         """
         TODO: documentation
         """
-        if self.tfidf_model:
-            return self.tfidf_model[self.doc_to_bow(doc)]
+        if not self.tfidf_model:
+            self.init_tfidf_model()
+
+        return self.tfidf_model[self.doc_to_bow(doc)]
 
     @list_required
     def extract_lda(self, doc):
         """
         TODO: documentation
         """
-        if self.lda_model:
-            return self.lda_model[self.doc_to_bow(doc)]
+        if not self.lda_model:
+            self.init_lda_model()
+
+        return self.lda_model[self.doc_to_bow(doc)]
 
     def init_lda_model(self):
         """
@@ -83,7 +88,8 @@ class RelationExtractor(object):
 
         return self.tfidf_model
 
-    def load_corpus(self, filename):
+    @staticmethod
+    def load_corpus(filename):
         """
         TODO: documentation
         """
