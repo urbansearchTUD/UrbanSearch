@@ -11,7 +11,6 @@ new_texts = [
     ['kaart', 'pet', 'lamp', 'klink', 'honkbalknuppel'],
 ]
 
-rex = relationextractor.RelationExtractor()
 rex_filled = relationextractor.RelationExtractor(texts)
 
 
@@ -49,6 +48,7 @@ def test_doc_to_bow():
 
 
 def test_docs_to_bow():
+    rex = relationextractor.RelationExtractor()
     docs_to_test = [
         ['kaart', 'klink', 'beeldscherm'],
         ['boekje', 'koptelefoon', 'gisteren']
@@ -57,6 +57,7 @@ def test_docs_to_bow():
 
 
 def test_extend_corpus():
+    rex = relationextractor.RelationExtractor()
     corpus_length = len(rex.corpus)
     rex.extend_corpus([])
     assert len(rex.corpus) == corpus_length + 1
@@ -65,21 +66,19 @@ def test_extend_corpus():
 def test_init_tfidf_model_no_corpus():
     rex = relationextractor.RelationExtractor()
     tfidf = rex.init_tfidf_model()
-    assert tfidf == None
+    assert tfidf is None
 
 
 def test_init_tfidf_model():
     rex = relationextractor.RelationExtractor(texts)
     tfidf = rex.init_tfidf_model()
-    assert tfidf != None
+    assert tfidf is not None
 
 
 def test_extract_tfidf():
     rex = relationextractor.RelationExtractor(texts)
-    tfidf = rex.init_tfidf_model()
 
     non_corpus_text = ['bla', 'blu', 'doggy']
-
     empty = rex.extract_tfidf(non_corpus_text)
     assert len(empty) == 0
 
@@ -93,8 +92,6 @@ def test_extract_tfidf():
 
 def test_update_tfidf():
     rex = relationextractor.RelationExtractor(texts)
-    tfidf = rex.init_tfidf_model()
-
     old_tfidf = rex.tfidf_model
     rex.update_tfidf_model([])
     assert old_tfidf != rex.tfidf_model
