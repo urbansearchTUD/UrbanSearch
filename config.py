@@ -19,6 +19,8 @@ CONFIG = {
         'password': '',
     },
     'resources': {
+        'category_links': os.path.join(BASE_DIR, 'urbansearch', 'resources', 'category_links'),
+        'models': os.path.join(BASE_DIR, 'urbansearch', 'resources', 'models'),
         'test': os.path.join(BASE_DIR, 'tests', 'resources'),
     },
     'gathering': {
