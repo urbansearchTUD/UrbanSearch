@@ -1,5 +1,4 @@
 import os
-import json
 
 from urbansearch.gathering import indices_selector
 import config

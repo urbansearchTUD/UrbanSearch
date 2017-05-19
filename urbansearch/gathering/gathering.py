@@ -1,18 +1,19 @@
 import gzip
-import json
-import requests
 import io
-from bs4 import BeautifulSoup
-from urllib.parse import quote
-import config
+import json
 import logging
 import re
+from urllib.parse import quote
+
+import requests
+from bs4 import BeautifulSoup
+
+import config
 
 logger = logging.getLogger(__name__)
 
 
 class PageDownloader(object):
-
     """
     PageDownloader class. Creates object for a downloader with functions
     to download pages for a certain url. Also contains functions to parse
@@ -69,7 +70,7 @@ class PageDownloader(object):
         end = start + length - 1
         try:
             response = requests.get(self.cc_data_prefix + index['filename'],
-                                    headers={'Range': 'bytes={}-{}'.format(start, end)}, 
+                                    headers={'Range': 'bytes={}-{}'.format(start, end)},
                                     timeout=req_timeout)
         except requests.exceptions.ReadTimeout:
             logger.warning("Timeout while downloading warc part")
@@ -150,7 +151,7 @@ class PageDownloader(object):
         with open(filename, 'r') as f:
             # Remove the garbage before { and parse to json and add to list
             indices = [json.loads('{' + x.split('{', 1)[-1]) for x in
-                       f.read().strip().split('\n') 
+                       f.read().strip().split('\n')
                        if self._useful_str_responsecode(x)]
             self.indices += indices
             return indices
