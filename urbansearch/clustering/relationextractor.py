@@ -1,5 +1,5 @@
 from gensim import corpora, models
-from .decorators import list_required
+from decorators import list_required
 
 
 class RelationExtractor(object):
