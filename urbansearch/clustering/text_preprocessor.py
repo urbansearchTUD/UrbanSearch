@@ -16,7 +16,7 @@ class PreProcessor:
         :param text: String
         :return: Dictionary
         """
-        text = self.strip_punctuations(text)  # expects string
+        text = self.clean_text(text)  # expects string
         text = self.tokenize(text)  # transfers to array
         text = self.strip_words(text)  # expects array
         return text
@@ -31,13 +31,13 @@ class PreProcessor:
                 word not in stopwords.words(self.lang) and 2 < len(word) < 37]
 
     @staticmethod
-    def strip_punctuations(text):
+    def clean_text(text):
         """
         removes everything except letters and spaces
         :param text: String
         :return: String
         """
-        return re.sub('[^\w\s]|_/g', '', text)
+        return re.sub('[^\w\s]|_|\d', '', text)
 
     def tokenize(self, text):
         """
