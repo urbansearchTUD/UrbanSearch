@@ -4,7 +4,6 @@ import re
 from collections import Counter
 
 from nltk.corpus import stopwords
-from nltk.stem.snowball import SnowballStemmer, DutchStemmer
 from nltk.tokenize import word_tokenize
 
 
@@ -15,7 +14,7 @@ class PreProcessor:
 
     def pre_process(self, text):
         """
-        stripping, tokenizing, stemming and counting
+        stripping and tokenizing
         :param text: String
         :return: Dictionary
         """
