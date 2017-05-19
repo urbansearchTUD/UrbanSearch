@@ -22,4 +22,4 @@ class Links2Tfidf(object):
 				rex.extend_dictionary(doc)
 
 			self.rex.init_tfidf_model()
-			self.rex.save(self.filename)
+			self.rex.tfidf_model.save(self.filename)
