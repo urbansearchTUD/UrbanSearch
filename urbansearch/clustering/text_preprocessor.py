@@ -1,7 +1,6 @@
-# Tokenizes, Stems, removes stop words and counts
+# Tokenizes, removes stop words
 
 import re
-from collections import Counter
 
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
@@ -10,7 +9,6 @@ from nltk.tokenize import word_tokenize
 class PreProcessor:
     def __init__(self, lang='dutch'):
         self.lang = lang
-
 
     def pre_process(self, text):
         """
@@ -30,7 +28,7 @@ class PreProcessor:
         :return: String list
         """
         return [word for word in text if
-                word not in stopwords.words(self.lang)]
+                word not in stopwords.words(self.lang) and 2 < len(word) < 37]
 
     @staticmethod
     def strip_punctuations(text):
@@ -41,11 +39,10 @@ class PreProcessor:
         """
         return re.sub('[^\w\s]|_/g', '', text)
 
-    @staticmethod
-    def tokenize(text):
+    def tokenize(self, text):
         """
         splits the String in a list of tokens (consisting of all words)
         :param text: String
         :return: String list
         """
-        return word_tokenize(text)
+        return word_tokenize(text.lower(), language=self.lang)

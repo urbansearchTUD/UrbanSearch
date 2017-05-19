@@ -9,6 +9,12 @@ def test_strip_words():
     assert expected == p.strip_words(text)
 
 
+def test_strip_words_size():
+    text = ['aa', 'bbb', 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc']
+    expected = ['bbb']
+    assert p.strip_words(text) == expected
+
+
 def test_strip_punctuations():
     text = 'a, . cd ; f'
     expected = 'a  cd  f'
@@ -20,3 +26,9 @@ def test_tokenize():
     text = 'een twee drie'
     expected = ['een', 'twee', 'drie']
     assert expected == p.tokenize(text)
+
+
+def test_full_preprocessing():
+    text = 'Een is oke. Dit niet: twee, drie.'
+    expected = ['oke', 'twee', 'drie']
+    assert expected == p.pre_process(text)
