@@ -146,38 +146,26 @@ def store_index(index, co_occurrences, topics=None):
     :param topics A list of topics. Defaults to None
     :return: True iff the index has been successfully stored
     """
-    # FIXME: duplicate city names -> only insert largest? if so, might as well remove duplicates completely
-    # FIXME: current situation: insert both
-
     # Create a set of cities to remove duplicates
     cities = {city for occurrence in co_occurrences for city in occurrence}
-
-    # Query needs the following parameters:
-    # City name 1, City name 2, string in syntax ':Topic1:Topic2:Topic3', int offset, int length
 
     # Join all topics with ':', also add a leading ':' because there always is an Index label
     topics = ':{}'.format(':'.join(topic.capitalize() for topic in topics)) if topics else ''
 
-    # Match cities by name and name results c<num>
-    match_query = '\n'.join('MATCH (c{0}:City {{ name: "{1}" }})'.format(i, city) for i, city in enumerate(cities))
-
     # Create a node for the index if it doesn't exist
-    merge_query = 'MERGE (i:Index{0} {{ filename: "{1}", offset: {2}, length: {3} }})'.format(topics, index['filename'],
-                                                                                              index['offset'],
-                                                                                              index['length'])
+    index_result = perform_query('''
+        MERGE (i:Index{0} {{ filename: '{1}', offset: {2}, length: {3} }})
+        RETURN ID(i) AS id
+    '''.format(topics, index['filename'], index['offset'], index['length']))
+    index_id = index_result[0]['id']
 
-    # Create unique relations from city c<num> to the index
-    create_query = 'CREATE UNIQUE {0}'.format(
-        ', '.join('(c{0})-[r{0}:OCCURS_IN]->(i)'.format(i) for i in range(len(cities))))
+    # For every city in the co-occurrence list, create a relationship to the index node
+    created_relations = []
+    for city in cities:
+        create_relation_result = perform_query('''
+            MATCH (i:Index) WHERE ID(i)={0}
+            CREATE UNIQUE (c:City {{ name: "{1}" }})-[r:OCCURS_IN]->(i) RETURN ID(r) AS id
+        '''.format(index_id, city))
+        created_relations.append(create_relation_result[0]['id'])
 
-    # Return the ids of the created relations
-    return_query = 'RETURN {0}'.format(', '.join('ID(c{0}) AS id{0}'.format(i) for i in range(len(cities))))
-
-    query = '{0}\n{1}\n{2}\n{3}'.format(match_query, merge_query, create_query, return_query)
-
-    results = perform_query(query)
-
-    logger.debug('Constructed query: {}'.format(query))
-    logger.debug('Query resulted in:\n{}'.format(', '.join(rel_id for result in results for rel_id in result)))
-
-    return len(results) > 0
+    return len(created_relations) == len(cities)
