@@ -29,6 +29,7 @@ install:
 before_script:
   - mkdir -p ~/.config/urbansearch
   - cp test_config.yml ~/.config/urbansearch/urbansearch.yml
+  - sudo rm /usr/share/google/boto/boto_plugins/*
 
 script:
 #  - pytest -v --cov=urbansearch --cov-report term-missing tests/
