@@ -26,7 +26,7 @@ class UrbanSearchTest(test):
     def run_tests(self):
         # import here, cause outside the eggs aren't loaded
         import pytest
-        errno = pytest.main(['-v'])
+        errno = pytest.main(['-v', 'tests/'])
         sys.exit(errno)
 
 
@@ -40,6 +40,7 @@ setup(
     author_email='',
     description='',
     tests_require=['pytest'],
+    test_suite='tests/',
     cmdclass={
         'install': UrbanSearchInstall,
         'test': UrbanSearchTest,
