@@ -1,17 +1,19 @@
 import gzip
-import json
-import requests
 import io
-from bs4 import BeautifulSoup
-from urllib.parse import quote
-import config
+import json
 import logging
+import re
+from urllib.parse import quote
+
+import requests
+from bs4 import BeautifulSoup
+
+import config
 
 logger = logging.getLogger(__name__)
 
 
 class PageDownloader(object):
-
     """
     PageDownloader class. Creates object for a downloader with functions
     to download pages for a certain url. Also contains functions to parse
@@ -22,6 +24,8 @@ class PageDownloader(object):
         self.cc_data_prefix = config.get('gathering', 'cc_data')
         self.cc_index_url = config.get('gathering', 'cc_index')
         self.indices = []
+        # Cache the regular expression to filter http response code
+        re.compile('\'status\': \'(\w+)\',')
 
     def download_indices(self, url, collection):
         """
@@ -33,19 +37,21 @@ class PageDownloader(object):
         """
         enc_url = quote(url, safe='')
         try:
+            raise requests.exceptions.ReadTimeout
             req_timeout = config.get('gathering', 'request_timeout')
             response = requests.get(self.cc_index_url + collection +
                                     '?url=' + enc_url +
                                     '&output=json', timeout=req_timeout)
             indices = [json.loads(x) for x in
-                       response.content.strip().decode('utf-8').split('\n')]
-            # TODO Benchmark to check forward scanning string for status is
-            # faster than removing after JSON (Speed improvement card)
-            self._clean_indices(indices)
+                       response.content.strip().decode('utf-8').split('\n')
+                       if self._useful_str_responsecode(x)]
             self.indices += indices
 
         except requests.exceptions.ReadTimeout:
             logger.warning("URL index request timed out")
+            # Catch these read exceptions in main application, or increase
+            # the timeout value if deemed necessary
+            raise
 
     def download_warc_part(self, index):
         """
@@ -64,7 +70,7 @@ class PageDownloader(object):
         end = start + length - 1
         try:
             response = requests.get(self.cc_data_prefix + index['filename'],
-                                    headers={'Range': 'bytes={}-{}'.format(start, end)}, 
+                                    headers={'Range': 'bytes={}-{}'.format(start, end)},
                                     timeout=req_timeout)
         except requests.exceptions.ReadTimeout:
             logger.warning("Timeout while downloading warc part")
@@ -81,10 +87,17 @@ class PageDownloader(object):
     def _useful_responsecode(index):
         # Check responsecode of index to determine if it's useful to download
         # the part. HTTP 200 is useful, other than 200 will be discarded.
+
         if index is not None:
             return int(index['status']) == 200
         else:
             return False
+
+    @staticmethod
+    def _useful_str_responsecode(string):
+        if string:
+            return int(re.search('\"status\": \"(\w+)\",', string)
+                       .group(1)) == 200
 
     def _clean_indices(self, indices):
         # Removes useless entries with status code other than 200
@@ -138,8 +151,8 @@ class PageDownloader(object):
         with open(filename, 'r') as f:
             # Remove the garbage before { and parse to json and add to list
             indices = [json.loads('{' + x.split('{', 1)[-1]) for x in
-                       f.read().strip().split('\n')]
-            self._clean_indices(indices)
+                       f.read().strip().split('\n')
+                       if self._useful_str_responsecode(x)]
             self.indices += indices
             return indices
 
@@ -154,8 +167,8 @@ class PageDownloader(object):
         with gzip.GzipFile(filename) as gz_obj:
             # Remove the garbage before { and parse to json and add to list
             indices = [json.loads('{' + x.split('{', 1)[-1]) for x in
-                       gz_obj.read().decode('utf-8').strip().split('\n')]
+                       gz_obj.read().decode('utf-8').strip().split('\n')
+                       if self._useful_str_responsecode(x)]
 
-            self._clean_indices(indices)
             self.indices += indices
             return indices
