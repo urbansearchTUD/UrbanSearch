@@ -5,6 +5,8 @@ neo4j:
   password: ''
 resources:
   test: tests/resources
+  category_links: urbansearch/resources/category_links
+  models: urbansearch/resources/models
 gathering:
   cc_data: https://commoncrawl.s3.amazonaws.com/
   cc_index: http://index.commoncrawl.org/
