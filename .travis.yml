@@ -32,8 +32,8 @@ before_script:
 
 script:
 #  - pytest -v --cov=urbansearch --cov-report term-missing tests/
-  - pytest --cov-report term-missing --cov urbansearch/ -v
-#  - coverage run --source urbansearch/ setup.py test
+#  - pytest --cov-report term-missing --cov urbansearch/ -v
+  - coverage run --source urbansearch/ setup.py test
 
 after_success:
   - coveralls
