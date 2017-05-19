@@ -15,10 +15,10 @@ def test_strip_words_size():
     assert p.strip_words(text) == expected
 
 
-def test_strip_punctuations():
-    text = 'a, . cd ; f'
-    expected = 'a  cd  f'
-    result = p.strip_punctuations(text)
+def test_clean_text():
+    text = 'a, . cd ; f 23213'
+    expected = 'a  cd  f '
+    result = p.clean_text(text)
     assert result == expected
 
 
