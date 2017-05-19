@@ -6,10 +6,9 @@ import re
 from urllib.parse import quote
 
 import requests
-import io
 import os
 from bs4 import BeautifulSoup
-from multiprocessing import Process, Manager, JoinableQueue
+from multiprocessing import Process, Manager, cpu_count
 import timeit
 
 import config
@@ -19,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class PageDownloader(object):
+
     """
     PageDownloader class. Creates object for a downloader with functions
     to download pages for a certain url. Also contains functions to parse
@@ -193,12 +193,25 @@ class PageDownloader(object):
             self.indices += indices
             return indices
 
-    def run_workers(self, no_of_workers, directory, queue, gz=True):
-        """
-        
+    def run_workers(self, no_of_workers, directory, queue, gz=True, opt=False):
+        """ Run workers to process indices from a directory with files
+        in parallel. All parsed indices will be added to the queue.
+
         :no_of_workers: Number of workers that will run
+        :directory: Path to directory containing files
         :queue: multiprocessing.Queue where the indices will be added to
+        :gz: Files are in .gz format. Default: True.
+        :opt: Determine optimal number of workers and ignore no_of_workers
+        parameter
         """
+        if opt:
+            try:
+                no_of_workers = (cpu_count() * 2) + 1
+            except NotImplementedError:
+                logger.error("Cannot determine number of CPU's,"
+                             + "defaulting to 1 worker")
+                no_of_workers = 1
+
         files = [_file.path for _file in os.scandir(directory)
                  if _file.is_file()]
 
@@ -252,11 +265,20 @@ class PageDownloader(object):
                     queue.put(index)
         print("Donee")
 
+    def _worker_indices_from_gz_file(self, filename):
+        with gzip.GzipFile(filename) as gz_obj:
+            # Remove the garbage before { and parse to json and add to list
+            indices = [json.loads('{' + x.split('{', 1)[-1]) for x in
+                       gz_obj.read().decode('utf-8').strip().split('\n')]
+
+            self._clean_indices(indices)
+            return indices
+
 pd = PageDownloader()
 man = Manager()
 q = man.Queue()
 start = timeit.default_timer()
-pd.run_workers(1, '/home/gijs/BEP/test/', q, gz=True)
+pd.run_workers(9, '/home/gijs/BEP/newindexes/', q, gz=True)
 stop = timeit.default_timer()
 print(q.get_nowait())
 print(stop - start)
