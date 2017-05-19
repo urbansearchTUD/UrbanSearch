@@ -76,7 +76,7 @@ def test_init_tfidf_model():
 
 def test_extract_tfidf():
     rex = relationextractor.RelationExtractor(texts)
-    tfidf = rex.init_tfidf_model()
+    rex.init_tfidf_model()
 
     non_corpus_text = ['bla', 'blu', 'doggy']
 
