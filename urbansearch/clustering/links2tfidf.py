@@ -1,13 +1,16 @@
 import config
 import os
+import time
+
 from link2doc import Link2Doc
 from relationextractor import RelationExtractor
+from tfidfmodelmanager import TFIDFModelManager
 
 CATEGORY_LINKS_DIRECTORY = config.get('resources', 'category_links')
 MODELS_DIRECTORY = config.get('resources', 'models')
 
 
-class Links2Tfidf(object):
+class Links2TFIDF(object):
 	"""
 	Links2Tfidf class. Expects a filename containing links
 	that are collected by the CategoryLinksCollector. Requests the
@@ -15,30 +18,40 @@ class Links2Tfidf(object):
 	documents
 	"""
 
-	def __init__(self, filename):
+	def __init__(self, category):
 		"""
 		Class constructor
 
-		:param filename: The filename of the document containing the links associated to a category
+		:param category: The category of the document containing the links
 		"""
-		self.filename = os.path.join(CATEGORY_LINKS_DIRECTORY, filename)
+		self.category = category
 		self.rex = RelationExtractor()
+		self.tmm = TFIDFModelManager(category)
 
 	def createModel(self):
 		"""
 		Creates a TF-IDF model with the file supplied in the constructor
 
-		:return: A TF-IDF model for the supplied links
+		:return: A TF-IDF model built up using the vocabulary
+		collected from the supplied links
 		"""
 		l2d = Link2Doc()
 
-		with open(self.filename) as f:
+		with open(os.path.join(CATEGORY_LINKS_DIRECTORY,
+							   self.category + '.txt')) as f:
 			for line in f:
 				print('********************')
 				print(line)
 				print('********************')
 				doc = l2d.get_doc(line)
-				self.rex.extend_dictionary(doc)
+				start = time.time()
+				self.tmm.extend_dictionary(doc)
+				print("TIME TO EXTEND DICT + CORPUS:")
+				end = time.time()
+				print(end - start)
 
 			# self.rex.init_tfidf_model()
-			# self.rex.tfidf_model.save(self.filename)
+			# self.rex.tfidf_model.save(os.path.join(MODELS_DIRECTORY,
+			# 									   self.category + '.mm'))
+			self.tmm.init_model()
+			self.tmm.save()
