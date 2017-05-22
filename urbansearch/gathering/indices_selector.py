@@ -2,10 +2,11 @@ import os
 import itertools
 import logging
 from json.decoder import JSONDecodeError
+from multiprocessing import Process, cpu_count
 
 from urbansearch.gathering import gathering
 from urbansearch.filtering import cooccurrence
-
+from urbansearch.utils import process_utils
 logger = logging.getLogger(__name__)
 
 
@@ -39,7 +40,6 @@ class IndicesSelector(object):
         """
         pd = self.page_downloader
         occ = self.occurrence_checker
-
         try:
             if filepath.endswith(".gz"):
                 indices = pd.indices_from_gz_file(filepath)
@@ -50,7 +50,61 @@ class IndicesSelector(object):
             indices = None
 
         # Store all relevant indices in a list, using cooccurrence check
-        relevant_indices = [index for index in indices
-                            if occ.check(pd.index_to_txt(index))]
-
+        # relevant_indices = [index for index in indices
+        #                    if occ.check(pd.index_to_txt(index))]
+        # Uncomment and remove lines below if progress is not interesting
+        relevant_indices = []
+        i = 0
+        n = len(indices)
+        for index in indices:
+            i += 1
+            if i % 10 == 0:
+                logger.info("Index %s/%s of file %s", i, n, filepath)
+            if occ.check(pd.index_to_txt(index)):
+                relevant_indices.append(index)
         return relevant_indices
+
+    def run_workers(self, no_of_workers, directory, queue, opt=False):
+        """ Run workers to process indices from a directory with files
+        in parallel. All parsed indices will be added to the queue.
+
+        :no_of_workers: Number of workers that will run
+        :directory: Path to directory containing files
+        :queue: multiprocessing.Queue where the indices will be added to
+        :opt: Determine optimal number of workers and ignore no_of_workers
+        parameter
+        """
+        if opt:
+            try:
+                no_of_workers = (cpu_count() * 2) + 1
+            except NotImplementedError:
+                logger.error("Cannot determine number of CPU's,"
+                             + "defaulting to 1 worker")
+                no_of_workers = 1
+
+        files = [_file.path for _file in os.scandir(directory)
+                 if _file.is_file()]
+
+        div_files = process_utils._divide_files(files, no_of_workers)
+        workers = [Process(target=self.worker, args=(queue, div_files[i],))
+                   for i in range(no_of_workers)]
+
+        for worker in workers:
+            worker.start()
+
+        # Wait for processes to finish
+        for worker in workers:
+            worker.join()
+
+    def worker(self, queue, files):
+        """
+        Worker that will parse indices from files in file list and put the
+        results in a Queue. Can use plain text files containing indices or
+        .gz files containing indices.
+
+        :queue: multiprocessing.JoinableQueue to put results in
+        :files: List of filepaths to files that this worker will use
+        """
+        for file in files:
+            for index in self.relevant_indices_from_file(file):
+                queue.put(index)
