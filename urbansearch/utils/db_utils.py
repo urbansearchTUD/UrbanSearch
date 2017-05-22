@@ -185,8 +185,105 @@ def store_index(index, co_occurrences, topics=None):
     return len(created_relations) == len(cities)
 
 
-# Join all topics with ':', also add a leading ':'
-# because there always is an Index label
-# To limit branch points a second method is made for this.
 def _join_topics(topics):
+    # Join all topics with ':', also add a leading ':'
+    # because there always is an Index label
+    # To limit branch points a second method is made for this.
     return ':{}'.format(':'.join(topic.capitalize() for topic in topics))
+
+
+def _get_default_ic_rel_dict():
+    # Returns a default dictionary containing the supported categories.
+    return {
+        'commuting': -1,
+        'shopping': -1,
+        'leisure': -1,
+        'moving': -1,
+        'business': -1,
+        'education': -1,
+        'collaboration': -1,
+        'transportation': -1,
+        'other': -1
+    }
+
+
+def get_ic_rel(city_a, city_b, rel_name='RELATES_TO'):
+    """
+    Retrieves the relation scores for city A and city B, as a dictionary.
+    See `store_ic_rel` for a list of supported categories.
+
+    :param city_a: The name of city A
+    :param city_b: The name of city B
+    :param rel_name: The name of the relation. Defaults to 'RELATES_TO'.
+    Should not be adjusted in normal cases.
+    :return: A dictionary containing the relationship scores for different
+    categories or None if no relation exists.
+    """
+    property_str = ', '.join('r.{0} AS {0}'.format(k) for k in
+                             _get_default_ic_rel_dict().keys())
+    query = '''
+        MATCH (n:City) WHERE n.name = '{0}'
+        MATCH (m:City) WHERE m.name = '{1}'
+        MATCH (n)-[r:{2}]-(m)
+        RETURN {3}
+        '''.format(city_a, city_b, rel_name, property_str)
+    result = perform_query(query)
+    return {k: v for k, v in result[0].items()} if result else None
+
+
+def store_ic_rel(city_a, city_b, scores=None, rel_name='RELATES_TO'):
+    """
+    Stores a relationship from city A to city B with given scores.
+    If any scores exist, they are updated, preserving any existing scores
+    that are not being updated.
+
+    The scores parameter is a dictionary and it's values default to -1.
+    The following score types are supported:
+
+    - commuting
+    - shopping
+    - leisure
+    - moving
+    - business
+    - education
+    - collaboration
+    - transportation
+    - other
+
+    :param city_a: The name of city A
+    :param city_b: The name of city B
+    :param scores: A dictionary of scores, with each score defaulting to -1
+    :param rel_name: The name of the relation, defaulting to 'RELATES_TO'.
+        Should not need to be adjusted in normal cases.
+    :return: True iff the intercity relation has been succesfully stored
+    :raises ValueError iff the passed scores dict contains a non-existing
+    score type
+    """
+    default_scores = _get_default_ic_rel_dict()
+    current_scores = get_ic_rel(city_a, city_b, rel_name)
+
+    if scores:
+        # Fill in the passed scores
+        if current_scores:
+            scores = {**default_scores, **current_scores, **scores}
+        else:
+            scores = {**default_scores, **scores}
+
+        if len(scores) > len(default_scores):
+            raise ValueError('Invalid score type given!')
+    else:
+        scores = default_scores
+
+    # Convert to comma separated string
+    scores = ', '.join('{0}: {1}'.format(k, v) for k, v in scores.items())
+
+    rel_query = """
+        MATCH (a:City) WHERE a.name = '{0}'
+        MATCH (b:City) WHERE b.name = '{1}'
+        CREATE UNIQUE (a)-[r:{2} {{ {3} }}]-(b)
+        RETURN ID(r) AS id
+    """.format(city_a, city_b, rel_name, scores)
+
+    logger.debug(rel_query)
+
+    return 'id' in perform_query(rel_query)[0]
