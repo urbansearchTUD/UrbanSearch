@@ -26,6 +26,7 @@ class CategoryLinksCollector(object):
         self.url_parameters = {
             'key': GOOGLE_API_KEY,
             'cx': GOOGLE_CSE_ID,
+            'fileType': 'html',
             'num': GOOGLE_CSE_LINK_LIMIT,
             'cr': COUNTRY_CODE_NETHERLANDS
         }
