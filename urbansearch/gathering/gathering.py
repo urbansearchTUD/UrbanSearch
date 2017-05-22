@@ -3,17 +3,14 @@ import io
 import json
 import logging
 import re
-from urllib.parse import quote
-
-import requests
 import os
+import requests
+from urllib.parse import quote
 from bs4 import BeautifulSoup
-from multiprocessing import Process, Manager, cpu_count
-import timeit
+from multiprocessing import Process, cpu_count
 
 import config
-
-
+from urbansearch.utils import process_utils
 logger = logging.getLogger(__name__)
 
 
@@ -84,8 +81,8 @@ class PageDownloader(object):
                                         'Range': 'bytes={}-{}'.format(start,
                                                                       end)},
                                     timeout=req_timeout)
-        except requests.exceptions.ReadTimeout:
-            logger.warning("Timeout while downloading warc part")
+        except requests.exceptions.RequestException as e:
+            logger.warning("Exception while downloading warc part: %s", e)
             return None
 
         # Response is compressed gz data, uncompress this using gzip
@@ -215,7 +212,7 @@ class PageDownloader(object):
         files = [_file.path for _file in os.scandir(directory)
                  if _file.is_file()]
 
-        div_files = self._divide_files(files, no_of_workers)
+        div_files = process_utils._divide_files(files, no_of_workers)
         workers = [Process(target=self.worker, args=(queue, div_files[i], gz))
                    for i in range(no_of_workers)]
 
@@ -225,25 +222,6 @@ class PageDownloader(object):
         # Wait for processes to finish
         for worker in workers:
             worker.join()
-
-    @staticmethod
-    def _divide_files(files, parts):
-        if files and parts > 0:
-            files_len = len(files)
-            if(parts > files_len):
-                part_len = 1
-            else:
-                part_len = files_len // parts
-            # Divide all files in 'equal' parts
-            div_files = [files[i * part_len:part_len * (i + 1)]
-                         for i in range(parts)]
-
-            # If number of data entries is odd, append last file to last list
-            if files_len % 2 != 0:
-                div_files[-1] += [files[-1]]
-
-            return div_files
-        return None
 
     def worker(self, queue, files, gz):
         """
@@ -257,29 +235,18 @@ class PageDownloader(object):
         """
         if gz:
             for file in files:
-                for index in self.indices_from_gz_file(file):
+                for index in self._worker_indices_from_gz_file(file):
                     queue.put(index)
         else:
             for file in files:
                 for index in self.indices_from_file(file):
                     queue.put(index)
-        print("Donee")
 
     def _worker_indices_from_gz_file(self, filename):
         with gzip.GzipFile(filename) as gz_obj:
             # Remove the garbage before { and parse to json and add to list
-            indices = [json.loads('{' + x.split('{', 1)[-1]) for x in
-                       gz_obj.read().decode('utf-8').strip().split('\n')]
-
-            self._clean_indices(indices)
+            # TODO Strip JSON to minimal information
+            indices = [json.loads(x) for x in
+                       gz_obj.read().decode('utf-8').strip().split('\n')
+                       if self._useful_str_responsecode(x)]
             return indices
-
-pd = PageDownloader()
-man = Manager()
-q = man.Queue()
-start = timeit.default_timer()
-pd.run_workers(9, '/home/gijs/BEP/newindexes/', q, gz=True)
-stop = timeit.default_timer()
-print(q.get_nowait())
-print(stop - start)
-print("DONE")
