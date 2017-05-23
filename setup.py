@@ -29,6 +29,10 @@ class UrbanSearchTest(test):
         errno = pytest.main(['-v', 'tests/'])
         sys.exit(errno)
 
+cmd = {
+        'install': UrbanSearchInstall,
+        'test': UrbanSearchTest,
+    }
 
 setup(
     name='UrbanSearch',
@@ -41,8 +45,5 @@ setup(
     description='',
     tests_require=['pytest'],
     test_suite='tests/',
-    cmdclass={
-        'install': UrbanSearchInstall,
-        'test': UrbanSearchTest,
-    }
+    cmdclass=cmd,
 )
