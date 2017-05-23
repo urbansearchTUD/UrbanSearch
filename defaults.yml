@@ -7,6 +7,9 @@ resources:
   test: tests/resources
   category_links: urbansearch/resources/category_links
   models: urbansearch/resources/models
+  validation_sets: urbansearch/resources/validation_sets
+  test_sets: urbansearch/resources/test_sets
+  training_sets: urbansearch/resources/training_sets
 gathering:
   cc_data: https://commoncrawl.s3.amazonaws.com/
   cc_index: http://index.commoncrawl.org/
