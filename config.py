@@ -14,7 +14,7 @@ neo4jConfig = {
         'bolt_uri': '',
         'username': '',
         'password': '',
-    },
+    }
 
 gatherLog = {
                 'handlers': ['file'],
@@ -67,7 +67,7 @@ consoleHandler = {
                 'level': 'WARN',
                 'class': 'logging.StreamHandler',
                 'formatter': 'default',
-            },
+            }
 
 handler = {
             'file': fileHandler,
