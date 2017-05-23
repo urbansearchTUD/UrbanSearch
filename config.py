@@ -8,6 +8,37 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 CONFIG_PATH = os.path.join(os.path.expanduser('~'), '.config', 'urbansearch')
 CONFIG_FILE = 'urbansearch.yml'
 
+gatherLog = {
+                'handlers': ['file'],
+                'level': 'INFO',
+                'propagate': True,
+            }
+
+filterLog = {
+                'handlers': ['file'],
+                'level': 'INFO',
+                'propagate': True,
+            }
+
+clusterLog = {
+                'handlers': ['file'],
+                'level': 'INFO',
+                'propagate': True,
+            }
+
+configLog = {
+                'handlers': ['file'],
+                'level': 'DEBUG',
+                'propagate': True,
+            }
+
+urbansearchLog = {
+                'handlers': ['file', 'console'],
+                'level': 'DEBUG',
+                'propagate': True,
+            }
+
+
 # The configuration parameters. They can all be overridden in the YAML config file.
 # For Neo4j, it is required to override the settings since they have been left empty
 # for security purposes.
@@ -49,34 +80,16 @@ CONFIG = {
             },
         },
         'loggers': {
-            'urbansearch': {
-                'handlers': ['file', 'console'],
-                'level': 'DEBUG',
-                'propagate': True,
-            },
-            'config': {
-                'handlers': ['file'],
-                'level': 'DEBUG',
-                'propagate': True,
-            },
-            'clustering': {
-                'handlers': ['file'],
-                'level': 'INFO',
-                'propagate': True,
-            },
-            'filtering': {
-                'handlers': ['file'],
-                'level': 'INFO',
-                'propagate': True,
-            },
-            'gathering': {
-                'handlers': ['file'],
-                'level': 'INFO',
-                'propagate': True,
-            },
+            'urbansearch': urbansearchLog,
+            'config': configLog,
+            'clustering': clusterLog,
+            'filtering': filterLog,
+            'gathering': gatherLog,
         },
     },
 }
+
+
 
 # Keep track of whether the system has been configured
 _app_state = False
