@@ -37,7 +37,6 @@ class PageDownloader(object):
         """
         enc_url = quote(url, safe='')
         try:
-            raise requests.exceptions.ReadTimeout
             req_timeout = config.get('gathering', 'request_timeout')
             response = requests.get(self.cc_index_url + collection +
                                     '?url=' + enc_url +
