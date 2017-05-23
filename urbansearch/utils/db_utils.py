@@ -104,7 +104,7 @@ def city_distance(name_a, name_b):
     lat_diff = _city_property(
         city_a, 'latitude') - _city_property(city_b, 'latitude')
     lon_diff = _city_property(
-        ity_a, 'longitude') - _city_property(city_b, 'longitude')
+        city_a, 'longitude') - _city_property(city_b, 'longitude')
 
     return math.sqrt(lat_diff ** 2 + lon_diff ** 2)
 
