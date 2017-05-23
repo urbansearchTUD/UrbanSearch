@@ -104,7 +104,7 @@ def city_distance(name_a, name_b):
     lat_diff = _city_property(
         city_a, 'latitude') - _city_property(city_b, 'latitude')
     lon_diff = _city_property(
-        city_a, 'longitude') - _city_property(city_b, 'longitude')
+        ity_a, 'longitude') - _city_property(city_b, 'longitude')
 
     return math.sqrt(lat_diff ** 2 + lon_diff ** 2)
 
@@ -162,7 +162,7 @@ def store_index(index, co_occurrences, topics=None):
 
     # Join all topics with ':', also add a leading ':'
     # because there always is an Index label
-    topics = _join_topics() if topics else ''
+    topics = _join_topics(topics) if topics else ''
 
     # Create a node for the index if it doesn't exist
     index_result = perform_query('''
