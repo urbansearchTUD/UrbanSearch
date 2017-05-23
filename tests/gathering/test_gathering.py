@@ -2,6 +2,7 @@ import json
 import os
 import requests
 import pytest
+from multiprocessing import Manager
 
 import config
 from urbansearch.gathering import gathering
@@ -72,6 +73,15 @@ def test_download_indices():
     assert cur_size < len(pd.indices)
 
 
+def test_worker_indices_from_gz_file():
+    ind = pd._worker_indices_from_gz_file(os.path.join(config.get('resources', 'test'),
+                                               'domain-nl-0000.gz'))
+    assert (len(ind)) == 1
+    exp = 'crawl-data/CC-MAIN-2017-17/segments/1492917125532.90/crawldiagnostics'\
+          '/CC-MAIN-20170423031205-00548-ip-10-145-167-34.ec2.internal.warc.gz'
+    assert ind[0]['filename'] == exp
+
+
 def test_download_warc_part_none():
     assert pd.download_warc_part(None) is None
 
@@ -85,3 +95,41 @@ def test_index_to_txt():
     result = pd.index_to_txt(ind[0])
     assert type(result) == str
     assert result == exp
+
+
+def test_run_worker():
+    man = Manager()
+    queue = man.Queue()
+    directory = os.path.join(config.get('resources', 'test'), 'indices_dir/')
+    files = [_file.path for _file in os.scandir(directory)
+             if _file.is_file() and _file.path.endswith('.gz')]
+    pd.worker(queue, files, True)
+    index = queue.get_nowait()
+    assert index is not None
+    assert int(index['offset']) == 727926652
+
+
+def test_run_2_workers():
+    man = Manager()
+    queue = man.Queue()
+    directory = os.path.join(config.get('resources', 'test'), 'indices_dir/')
+    pd.run_workers(2, directory, queue)
+    index = queue.get_nowait()
+    index2 = queue.get_nowait()
+    assert index is not None
+    assert index2 is not None
+    assert int(index['offset']) == 727926652
+    assert int(index2['offset']) == 808
+
+
+def test_opt_workers():
+    man = Manager()
+    queue = man.Queue()
+    directory = os.path.join(config.get('resources', 'test'), 'indices_dir/')
+    pd.run_workers(1, directory, queue, opt=True)
+    index = queue.get_nowait()
+    index2 = queue.get_nowait()
+    assert index is not None
+    assert index2 is not None
+    assert int(index['offset']) == 727926652
+    assert int(index2['offset']) == 808
