@@ -8,6 +8,14 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 CONFIG_PATH = os.path.join(os.path.expanduser('~'), '.config', 'urbansearch')
 CONFIG_FILE = 'urbansearch.yml'
 
+
+neo4jConfig = {
+        'host': '',
+        'bolt_uri': '',
+        'username': '',
+        'password': '',
+    },
+
 gatherLog = {
                 'handlers': ['file'],
                 'level': 'INFO',
@@ -38,69 +46,72 @@ urbansearchLog = {
                 'propagate': True,
             }
 
+log = {
+            'urbansearch': urbansearchLog,
+            'config': configLog,
+            'clustering': clusterLog,
+            'filtering': filterLog,
+            'gathering': gatherLog,
+        }
 
-# The configuration parameters. They can all be overridden in the YAML config file.
-# For Neo4j, it is required to override the settings since they have been left empty
-# for security purposes.
-CONFIG = {
-    'neo4j': {
-        'host': '',
-        'bolt_uri': '',
-        'username': '',
-        'password': '',
-    },
-    'resources': {
-        'category_links': os.path.join(BASE_DIR, 'urbansearch', 'resources', 'category_links'),
-        'models': os.path.join(BASE_DIR, 'urbansearch', 'resources', 'models'),
-        'test': os.path.join(BASE_DIR, 'tests', 'resources'),
-        'validation_sets': os.path.join(BASE_DIR, 'urbansearch', 'resources', 'validation_sets'),
-        'test_sets': os.path.join(BASE_DIR, 'urbansearch', 'resources', 'test_sets'),
-        'training_sets': os.path.join(BASE_DIR, 'urbansearch', 'resources', 'training_sets'),
-    },
-    'gathering': {
-        'cc_data': 'https://commoncrawl.s3.amazonaws.com/',
-        'cc_index': 'http://index.commoncrawl.org/',
-        'request_timeout': 2,
-    },
-    'logging': {
-        'version': 1,
-        'formatters': {
-            'default': {
-                'format': '[%(levelname)s %(module)s] %(asctime)s || %(message)s',
-            },
-        },
-        'handlers': {
-            'file': {
+fileHandler = {
                 'level': 'DEBUG',
                 'class': 'logging.handlers.RotatingFileHandler',
                 'filename': os.path.join(BASE_DIR, 'urbansearch.log'),
                 'maxBytes': 10000000,
                 'backupCount': 5,
                 'formatter': 'default',
-            },
-            'console': {
+            }
+
+consoleHandler = {
                 'level': 'WARN',
                 'class': 'logging.StreamHandler',
                 'formatter': 'default',
             },
-        },
-        'loggers': {
-            'urbansearch': urbansearchLog,
-            'config': configLog,
-            'clustering': clusterLog,
-            'filtering': filterLog,
-            'gathering': gatherLog,
-        },
-    },
-}
 
+handler = {
+            'file': fileHandler,
+            'console': consoleHandler
+        }
+
+loggingInfo = {
+        'version': 1,
+        'formatters': {
+            'default': {
+                'format': '[%(levelname)s %(module)s] %(asctime)s || '
+                          '%(message)s',
+            },
+        },
+        'handlers': handler,
+        'loggers': log,
+    }
+
+
+# The configuration parameters.
+# They can all be overridden in the YAML config file.
+# For Neo4j, it is required to override the settings
+# since they have been left empty
+# for security purposes.
+CONFIG = {
+    'neo4j': neo4jConfig,
+    'resources': {
+        'test': os.path.join(BASE_DIR, 'tests', 'resources'),
+    },
+    'gathering': {
+        'cc_data': 'https://commoncrawl.s3.amazonaws.com/',
+        'cc_index': 'http://index.commoncrawl.org/',
+        'request_timeout': 2,
+    },
+    'logging': loggingInfo,
+}
 
 
 # Keep track of whether the system has been configured
 _app_state = False
 _cfg_err = None
 
-# Try to load existing config or create a new settings file including all parameters, but with empty values
+# Try to load existing config or create a new settings file
+# including all parameters, but with empty values
 try:
     with open(os.path.join(CONFIG_PATH, CONFIG_FILE), 'r+') as f:
         # Concatenate config, override defaults with YAML values
@@ -119,7 +130,8 @@ except yaml.YAMLError as exc:
     # Try to point to the line that threw an error
     if hasattr(exc, 'problem_mark'):
         mark = exc.problem_mark
-        err = 'Error in YAML at position: (%s:%s)' % (mark.line + 1, mark.column + 1)
+        err = 'Error in YAML at position: (%s:%s)' % \
+              (mark.line + 1, mark.column + 1)
 
 # Now configure logging
 logging.config.dictConfig(CONFIG['logging'])
@@ -136,7 +148,8 @@ else:
 
 def get(entity, param):
     """
-    Returns the configuration value belonging to a specified entity (e.g. neo4j) and parameter (e.g. host).
+    Returns the configuration value belonging to a specified entity
+    (e.g. neo4j) and parameter (e.g. host).
 
     Raises a SystemError if the system has not been configured.
     Raises a ValueError if a requested parameter is not configured.
@@ -146,7 +159,8 @@ def get(entity, param):
     :return: The configuration value
     """
     if not _app_state:
-        msg = 'No configuration present in %s' % os.path.join(CONFIG_PATH, CONFIG_FILE)
+        msg = 'No configuration present in %s' % \
+              os.path.join(CONFIG_PATH, CONFIG_FILE)
         logger.error(msg)
         raise SystemError(msg)
 

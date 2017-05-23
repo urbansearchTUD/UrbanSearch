@@ -20,8 +20,10 @@ def _get_session():
         return _driver.session()
 
     # If no driver is present, create a new one
-    _driver = GraphDatabase.driver(config.get('neo4j', 'bolt_uri'),
-                                   auth=basic_auth(config.get('neo4j', 'username'), config.get('neo4j', 'password')))
+    _driver = GraphDatabase.driver(
+        config.get('neo4j', 'bolt_uri'),
+        auth=basic_auth(config.get('neo4j', 'username'),
+                        config.get('neo4j', 'password')))
     return _driver.session()
 
 
@@ -31,7 +33,8 @@ def _get_cities():
         return _cities
     else:
         with _get_session() as session:
-            # Records need to be copied due to the scope of the session variable
+            # Records need to be copied
+            # due to the scope of the session variable
             _cities = [c for c in session.run('MATCH (a:City) RETURN a')]
             return _cities
 
@@ -42,7 +45,8 @@ def _city_by_name(name):
 
 
 def _city_property(city, property_name):
-    # Returns the property belonging to a node. Neo4j uses 'a' in Record objects for nodes.
+    # Returns the property belonging to a node.
+    # Neo4j uses 'a' in Record objects for nodes.
     # Tries to cast the property to float and falls back to strings.
     try:
         return float(city['a'].properties[property_name])
@@ -86,7 +90,8 @@ def city_population(name):
 
 def city_distance(name_a, name_b):
     """
-    Calculates the relative distance between two cities A and B, calculated using Pythagorem on the
+    Calculates the relative distance between two cities A and B,
+    calculated using Pythagorem on the
     latitude and longitude difference between the cities.
 
     :param name_a: The name of city A
@@ -96,8 +101,10 @@ def city_distance(name_a, name_b):
     city_a = _city_by_name(name_a)
     city_b = _city_by_name(name_b)
 
-    lat_diff = _city_property(city_a, 'latitude') - _city_property(city_b, 'latitude')
-    lon_diff = _city_property(city_a, 'longitude') - _city_property(city_b, 'longitude')
+    lat_diff = _city_property(
+        city_a, 'latitude') - _city_property(city_b, 'latitude')
+    lon_diff = _city_property(
+        city_a, 'longitude') - _city_property(city_b, 'longitude')
 
     return math.sqrt(lat_diff ** 2 + lon_diff ** 2)
 
@@ -106,8 +113,9 @@ def city_haversine_distance(name_a, name_b):
     """
     Calculates the haversine distance between two cities, in kilometres.
 
-    The haversine distance in this case is the absolute distance between two cities, taking into account
-    the fact that Earth is a sphere.
+    The haversine distance in this case is
+    the absolute distance between two cities,
+    taking into account the fact that Earth is a sphere.
 
     :param name_a: The name of city A
     :param name_b: The name of city B
@@ -132,8 +140,10 @@ def city_haversine_distance(name_a, name_b):
 
 def store_index(index, co_occurrences, topics=None):
     """
-    Stores the provided index in Neo4j and creates relationships to all cities that occur in the document.
-    If a list of topics is provided, it also labels the index node with every topic.
+    Stores the provided index in Neo4j and creates relationships
+    to all cities that occur in the document.
+    If a list of topics is provided,
+    it also labels the index node with every topic.
 
     The index should be a dictionary, containing at least:
 
@@ -142,15 +152,17 @@ def store_index(index, co_occurrences, topics=None):
     `length`: The content length of the page
 
     :param index: The index dictionary
-    :param co_occurrences: A list of tuples, containing co-occurrences (e.g. `[('Amsterdam', 'Rotterdam')]`)
+    :param co_occurrences: A list of tuples,
+           containing co-occurrences (e.g. `[('Amsterdam', 'Rotterdam')]`)
     :param topics A list of topics. Defaults to None
     :return: True iff the index has been successfully stored
     """
     # Create a set of cities to remove duplicates
     cities = {city for occurrence in co_occurrences for city in occurrence}
 
-    # Join all topics with ':', also add a leading ':' because there always is an Index label
-    topics = ':{}'.format(':'.join(topic.capitalize() for topic in topics)) if topics else ''
+    # Join all topics with ':', also add a leading ':'
+    # because there always is an Index label
+    topics = _join_topics() if topics else ''
 
     # Create a node for the index if it doesn't exist
     index_result = perform_query('''
@@ -159,13 +171,22 @@ def store_index(index, co_occurrences, topics=None):
     '''.format(topics, index['filename'], index['offset'], index['length']))
     index_id = index_result[0]['id']
 
-    # For every city in the co-occurrence list, create a relationship to the index node
+    # For every city in the co-occurrence list,
+    # create a relationship to the index node
     created_relations = []
     for city in cities:
         create_relation_result = perform_query('''
             MATCH (i:Index) WHERE ID(i)={0}
-            CREATE UNIQUE (c:City {{ name: "{1}" }})-[r:OCCURS_IN]->(i) RETURN ID(r) AS id
+            CREATE UNIQUE (c:City {{ name: "{1}" }})-[r:OCCURS_IN]->(i)
+            RETURN ID(r) AS id
         '''.format(index_id, city))
         created_relations.append(create_relation_result[0]['id'])
 
     return len(created_relations) == len(cities)
+
+
+# Join all topics with ':', also add a leading ':'
+# because there always is an Index label
+# To limit branch points a second method is made for this.
+def _join_topics(topics):
+    return ':{}'.format(':'.join(topic.capitalize() for topic in topics))

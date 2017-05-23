@@ -76,17 +76,24 @@ class PageDownloader(object):
         end = start + length - 1
         try:
             response = requests.get(self.cc_data_prefix + index['filename'],
-                                    headers={'Range': 'bytes={}-{}'.format(start, end)},
+                                    headers={
+                                        'Range': 'bytes={}-{}'.format(
+                                            start, end)},
                                     timeout=req_timeout)
         except requests.exceptions.ReadTimeout:
             logger.warning("Timeout while downloading warc part")
             return None
 
         # Response is compressed gz data, uncompress this using gzip
+        data = self._uncompress_gz(response)
+
+        return data
+
+    @staticmethod
+    def _uncompress_gz(response):
         compressed_gz = io.BytesIO(response.content)
         with gzip.GzipFile(fileobj=compressed_gz) as gz_obj:
             data = gz_obj.read()
-
         return data
 
     @staticmethod
