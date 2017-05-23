@@ -47,6 +47,7 @@ class IndicesSelector(object):
                 indices = pd.indices_from_file(filepath)
         except JSONDecodeError:
             logger.error("File %s doesn't contain correct indices", filepath)
+            indices = None
 
         # Store all relevant indices in a list, using cooccurrence check
         relevant_indices = [index for index in indices
