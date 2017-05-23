@@ -1,6 +1,6 @@
 import sys
-import nltk
 
+import nltk
 from setuptools import setup, find_packages
 from setuptools.command.install import install
 from setuptools.command.test import test
@@ -29,10 +29,11 @@ class UrbanSearchTest(test):
         errno = pytest.main(['-v', 'tests/'])
         sys.exit(errno)
 
-cmd = {
-        'install': UrbanSearchInstall,
-        'test': UrbanSearchTest,
-    }
+
+commands = {
+    'install': UrbanSearchInstall,
+    'test': UrbanSearchTest,
+}
 
 setup(
     name='UrbanSearch',
@@ -45,5 +46,5 @@ setup(
     description='',
     tests_require=['pytest'],
     test_suite='tests/',
-    cmdclass=cmd,
+    cmdclass=commands,
 )
