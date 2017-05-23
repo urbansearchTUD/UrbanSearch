@@ -8,84 +8,93 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 CONFIG_PATH = os.path.join(os.path.expanduser('~'), '.config', 'urbansearch')
 CONFIG_FILE = 'urbansearch.yml'
 
+_neo4j_config = {
+    'host': '',
+    'bolt_uri': '',
+    'username': '',
+    'password': '',
+}
 
-neo4jConfig = {
-        'host': '',
-        'bolt_uri': '',
-        'username': '',
-        'password': '',
+_resources_config = {
+    'test': os.path.join(BASE_DIR, 'tests', 'resources'),
+}
+
+_gathering_config = {
+    'cc_data': 'https://commoncrawl.s3.amazonaws.com/',
+    'cc_index': 'http://index.commoncrawl.org/',
+    'request_timeout': 2,
+}
+
+_gathering_logger = {
+    'handlers': ['file'],
+    'level': 'INFO',
+    'propagate': True,
+}
+
+_filtering_logger = {
+    'handlers': ['file'],
+    'level': 'INFO',
+    'propagate': True,
+}
+
+_clustering_logger = {
+    'handlers': ['file'],
+    'level': 'INFO',
+    'propagate': True,
+}
+
+_config_logger = {
+    'handlers': ['file'],
+    'level': 'DEBUG',
+    'propagate': True,
+}
+
+_urbansearch_logger = {
+    'handlers': ['file', 'console'],
+    'level': 'DEBUG',
+    'propagate': True,
+}
+
+_loggers = {
+    'urbansearch': _urbansearch_logger,
+    'config': _config_logger,
+    'clustering': _clustering_logger,
+    'filtering': _filtering_logger,
+    'gathering': _gathering_logger,
+}
+
+_file_handler = {
+    'level': 'DEBUG',
+    'class': 'logging.handlers.RotatingFileHandler',
+    'filename': os.path.join(BASE_DIR, 'urbansearch.log'),
+    'maxBytes': 10000000,
+    'backupCount': 5,
+    'formatter': 'default',
+}
+
+_console_handler = {
+    'level': 'WARN',
+    'class': 'logging.StreamHandler',
+    'formatter': 'default',
+}
+
+_handlers = {
+    'file': _file_handler,
+    'console': _console_handler
+}
+
+_formatters = {
+    'default': {
+        'format': '[%(levelname)s %(module)s] %(asctime)s || %(message)s',
     }
+}
 
-gatherLog = {
-                'handlers': ['file'],
-                'level': 'INFO',
-                'propagate': True,
-            }
-
-filterLog = {
-                'handlers': ['file'],
-                'level': 'INFO',
-                'propagate': True,
-            }
-
-clusterLog = {
-                'handlers': ['file'],
-                'level': 'INFO',
-                'propagate': True,
-            }
-
-configLog = {
-                'handlers': ['file'],
-                'level': 'DEBUG',
-                'propagate': True,
-            }
-
-urbansearchLog = {
-                'handlers': ['file', 'console'],
-                'level': 'DEBUG',
-                'propagate': True,
-            }
-
-log = {
-            'urbansearch': urbansearchLog,
-            'config': configLog,
-            'clustering': clusterLog,
-            'filtering': filterLog,
-            'gathering': gatherLog,
-        }
-
-fileHandler = {
-                'level': 'DEBUG',
-                'class': 'logging.handlers.RotatingFileHandler',
-                'filename': os.path.join(BASE_DIR, 'urbansearch.log'),
-                'maxBytes': 10000000,
-                'backupCount': 5,
-                'formatter': 'default',
-            }
-
-consoleHandler = {
-                'level': 'WARN',
-                'class': 'logging.StreamHandler',
-                'formatter': 'default',
-            }
-
-handler = {
-            'file': fileHandler,
-            'console': consoleHandler
-        }
-
-loggingInfo = {
-        'version': 1,
-        'formatters': {
-            'default': {
-                'format': '[%(levelname)s %(module)s] %(asctime)s || '
-                          '%(message)s',
-            },
-        },
-        'handlers': handler,
-        'loggers': log,
-    }
-
+_logging_config = {
+    'version': 1,
+    'formatters': _formatters,
+    'handlers': _handlers,
+    'loggers': _loggers,
+}
 
 # The configuration parameters.
 # They can all be overridden in the YAML config file.
@@ -93,18 +102,11 @@ loggingInfo = {
 # since they have been left empty
 # for security purposes.
 CONFIG = {
-    'neo4j': neo4jConfig,
-    'resources': {
-        'test': os.path.join(BASE_DIR, 'tests', 'resources'),
-    },
-    'gathering': {
-        'cc_data': 'https://commoncrawl.s3.amazonaws.com/',
-        'cc_index': 'http://index.commoncrawl.org/',
-        'request_timeout': 2,
-    },
-    'logging': loggingInfo,
+    'neo4j': _neo4j_config,
+    'resources': _resources_config,
+    'gathering': _gathering_config,
+    'logging': _logging_config,
 }
-
 
 # Keep track of whether the system has been configured
 _app_state = False
@@ -130,8 +132,8 @@ except yaml.YAMLError as exc:
     # Try to point to the line that threw an error
     if hasattr(exc, 'problem_mark'):
         mark = exc.problem_mark
-        err = 'Error in YAML at position: (%s:%s)' % \
-              (mark.line + 1, mark.column + 1)
+        err = 'Error in YAML at position: ({}:{})'.format(mark.line + 1,
+                                                          mark.column + 1)
 
 # Now configure logging
 logging.config.dictConfig(CONFIG['logging'])
@@ -159,17 +161,18 @@ def get(entity, param):
     :return: The configuration value
     """
     if not _app_state:
-        msg = 'No configuration present in %s' % \
-              os.path.join(CONFIG_PATH, CONFIG_FILE)
+        msg = 'No configuration present in {}'.format(
+            os.path.join(CONFIG_PATH, CONFIG_FILE))
         logger.error(msg)
         raise SystemError(msg)
 
     try:
         value = CONFIG[entity][param]
-        logger.debug('Found config: %s:%s => %s' % (entity, param, str(value)))
+        logger.debug('Found config: {}:{} => {}'.format(entity, param, value))
         return CONFIG[entity][param]
     except KeyError:
         # Should _never_ happen in production!
-        msg = 'Parameter %s is not present for entity %s!' % (param, entity)
+        msg = 'Parameter {} is not present for entity {}!'.format(param,
+                                                                  entity)
         logger.critical(msg)
         raise ValueError(msg)
