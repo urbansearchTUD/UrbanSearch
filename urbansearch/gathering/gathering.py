@@ -77,8 +77,8 @@ class PageDownloader(object):
         try:
             response = requests.get(self.cc_data_prefix + index['filename'],
                                     headers={
-                                        'Range': 'bytes={}-{}'.format(
-                                            start, end)},
+                                        'Range': 'bytes={}-{}'.format(start,
+                                                                      end)},
                                     timeout=req_timeout)
         except requests.exceptions.ReadTimeout:
             logger.warning("Timeout while downloading warc part")
