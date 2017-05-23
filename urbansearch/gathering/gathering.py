@@ -82,7 +82,8 @@ class PageDownloader(object):
                                                                       end)},
                                     timeout=req_timeout)
         except requests.exceptions.RequestException as e:
-            logger.warning("Exception while downloading warc part: %s", e)
+            logger.warning("Exception while downloading warc part: {0}"
+                           .format(e))
             return None
 
         # Response is compressed gz data, uncompress this using gzip
@@ -212,7 +213,7 @@ class PageDownloader(object):
         files = [_file.path for _file in os.scandir(directory)
                  if _file.is_file()]
 
-        div_files = process_utils._divide_files(files, no_of_workers)
+        div_files = process_utils.divide_files(files, no_of_workers)
         workers = [Process(target=self.worker, args=(queue, div_files[i], gz))
                    for i in range(no_of_workers)]
 
@@ -235,8 +236,9 @@ class PageDownloader(object):
         """
         if gz:
             for file in files:
-                for index in self._worker_indices_from_gz_file(file):
-                    queue.put(index)
+                if file.endswith('.gz'):
+                    for index in self._worker_indices_from_gz_file(file):
+                        queue.put(index)
         else:
             for file in files:
                 for index in self.indices_from_file(file):
@@ -246,7 +248,12 @@ class PageDownloader(object):
         with gzip.GzipFile(filename) as gz_obj:
             # Remove the garbage before { and parse to json and add to list
             # TODO Strip JSON to minimal information
-            indices = [json.loads(x) for x in
-                       gz_obj.read().decode('utf-8').strip().split('\n')
-                       if self._useful_str_responsecode(x)]
+            indices = []
+            try:
+                indices = [json.loads(x) for x in
+                           gz_obj.read().decode('utf-8').strip().split('\n')
+                           if self._useful_str_responsecode(x)]
+            except OSError as e:
+                logger.error("File {0} failed to read: {1}".format(filename,
+                                                                   e))
             return indices
