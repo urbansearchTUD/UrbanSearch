@@ -131,5 +131,3 @@ def test_opt_workers():
     index2 = queue.get_nowait()
     assert index is not None
     assert index2 is not None
-    assert int(index['offset']) == 727926652
-    assert int(index2['offset']) == 808
