@@ -191,7 +191,7 @@ class PageDownloader(object):
             self.indices += indices
             return indices
 
-    def run_workers(self, no_of_workers, directory, queue, gz=True, opt=False):
+    def run_workers(self, no_of_workers, directory, queue, gz=True):
         """ Run workers to process indices from a directory with files
         in parallel. All parsed indices will be added to the queue.
 
@@ -202,7 +202,7 @@ class PageDownloader(object):
         :opt: Determine optimal number of workers and ignore no_of_workers
         parameter
         """
-        if opt:
+        if(no_of_workers==0):
             try:
                 no_of_workers = (cpu_count() * 2) + 1
             except NotImplementedError:
