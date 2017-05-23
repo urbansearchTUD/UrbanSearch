@@ -35,9 +35,16 @@ class PageDownloader(object):
         :param url: The url in string format
         :param collection: Name of the collection, e.g CC-Main-2015-27-index
         """
+        if not url or not collection:
+            logger.warn('Invalid url/collection passed: {0} {1}'.format(url, collection))
+            raise ValueError('A valid url to query on and an index collection must be specified.')
+
         enc_url = quote(url, safe='')
         try:
             req_timeout = config.get('gathering', 'request_timeout')
+            logger.debug(self.cc_index_url + collection +
+                                    '?url=' + enc_url +
+                                    '&output=json')
             response = requests.get(self.cc_index_url + collection +
                                     '?url=' + enc_url +
                                     '&output=json', timeout=req_timeout)
@@ -87,16 +94,19 @@ class PageDownloader(object):
         # Check responsecode of index to determine if it's useful to download
         # the part. HTTP 200 is useful, other than 200 will be discarded.
 
-        if index is not None:
+        if index is not None and 'status' in index:
             return int(index['status']) == 200
         else:
             return False
 
     @staticmethod
     def _useful_str_responsecode(string):
-        if string:
-            return int(re.search('\"status\": \"(\w+)\",', string)
-                       .group(1)) == 200
+        if not string:
+            return False
+
+        # None if no match is found
+        status_code = re.search('\"status\": \"(\w+)\",', string)
+        return status_code and int(status_code.group(1)) == 200
 
     def _clean_indices(self, indices):
         # Removes useless entries with status code other than 200

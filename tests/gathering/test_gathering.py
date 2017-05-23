@@ -56,10 +56,20 @@ def test_indices_from_gz_file():
     assert ind[0]['digest'] == "3I42H3S6NNFQ2MSVX7XZKYAYSCX5QBYJ"
 
 
-def test_download_indices_exc():
-    with pytest.raises((json.decoder.JSONDecodeError, 
-                        requests.exceptions.ReadTimeout)):
-        pd.download_indices("", "")
+def test_download_indices_exc_empty_url():
+    with pytest.raises(ValueError):
+        pd.download_indices('', 'test_index')
+
+
+def test_download_indices_exc_empty_collection():
+    with pytest.raises(ValueError):
+        pd.download_indices('some.url', '')
+
+
+def test_download_indices():
+    cur_size = len(pd.indices)
+    pd.download_indices('google.nl', 'CC-MAIN-2017-17-index')
+    assert cur_size < len(pd.indices)
 
 
 def test_download_warc_part_none():
