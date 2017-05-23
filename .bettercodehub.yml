@@ -1,0 +1,6 @@
+exclude:
+- /config.py
+- /setup.py
+component_depth: 1
+languages:
+- python

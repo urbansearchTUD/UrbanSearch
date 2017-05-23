@@ -31,8 +31,6 @@ class UrbanSearchTest(test):
 
 
 commands = {
-    'install': UrbanSearchInstall,
-    'test': UrbanSearchTest,
 }
 
 setup(
@@ -46,5 +44,8 @@ setup(
     description='',
     tests_require=['pytest'],
     test_suite='tests/',
-    cmdclass=commands,
+    cmdclass={
+        'install': UrbanSearchInstall,
+        'test': UrbanSearchTest
+    },
 )
