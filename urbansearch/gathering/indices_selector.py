@@ -42,11 +42,12 @@ class IndicesSelector(object):
         occ = self.occurrence_checker
         try:
             if filepath.endswith(".gz"):
-                indices = pd.indices_from_gz_file(filepath)
+                indices = pd._worker_indices_from_gz_file(filepath)
             else:
                 indices = pd.indices_from_file(filepath)
         except JSONDecodeError:
-            logger.error("File %s doesn't contain correct indices", filepath)
+            logger.error("File {0} doesn't contain correct indices"
+                         .format(filepath))
             indices = None
 
         # Store all relevant indices in a list, using cooccurrence check
@@ -59,7 +60,7 @@ class IndicesSelector(object):
         for index in indices:
             i += 1
             if i % 10 == 0:
-                logger.info("Index %s/%s of file %s", i, n, filepath)
+                logger.info("Index {0}/{1} of file {2}".format(i, n, filepath))
             if occ.check(pd.index_to_txt(index)):
                 relevant_indices.append(index)
         return relevant_indices
@@ -76,7 +77,8 @@ class IndicesSelector(object):
         """
         if opt:
             try:
-                no_of_workers = (cpu_count() * 2) + 1
+                # Spawn a large number of workers because of downloading
+                no_of_workers = cpu_count() * 8
             except NotImplementedError:
                 logger.error("Cannot determine number of CPU's,"
                              + "defaulting to 1 worker")
@@ -85,7 +87,7 @@ class IndicesSelector(object):
         files = [_file.path for _file in os.scandir(directory)
                  if _file.is_file()]
 
-        div_files = process_utils._divide_files(files, no_of_workers)
+        div_files = process_utils.divide_files(files, no_of_workers)
         workers = [Process(target=self.worker, args=(queue, div_files[i],))
                    for i in range(no_of_workers)]
 

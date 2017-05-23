@@ -65,6 +65,22 @@ def test_run_2_workers():
     assert index2['digest'] == 'WPTH3FM5VR7UGLA5PZS5L5YI22TNIKXG'
 
 
+def test_run_odd_workers():
+    ind_sel = indices_selector.IndicesSelector(cities=['Delft', 'De Bilt'])
+    man = Manager()
+    queue = man.Queue()
+    directory = os.path.join(config.get('resources', 'test'), 'indices_dir/')
+    ind_sel.run_workers(3, directory, queue)
+    index = queue.get_nowait()
+    index2 = queue.get_nowait()
+    assert index is not None
+    assert index2 is not None
+    exp = 'crawl-data/CC-MAIN-2017-13/segments/1490218187144.60/warc/'\
+          'CC-MAIN-20170322212947-00594-ip-10-233-31-227.ec2.internal.warc.gz'
+    assert index['filename'] == exp
+    assert index2['filename'] == exp
+
+
 def test_run_opt_workers():
     ind_sel = indices_selector.IndicesSelector(cities=['Delft', 'De Bilt'])
     man = Manager()
