@@ -36,15 +36,14 @@ class PageDownloader(object):
         :param collection: Name of the collection, e.g CC-Main-2015-27-index
         """
         if not url or not collection:
-            logger.warn('Invalid url/collection passed: {0} {1}'.format(url, collection))
-            raise ValueError('A valid url to query on and an index collection must be specified.')
+            logger.warn('Invalid url/collection passed: {0} {1}'.format(
+                url, collection))
+            raise ValueError('A valid url to query on and an index '
+                             'collection must be specified.')
 
         enc_url = quote(url, safe='')
         try:
             req_timeout = config.get('gathering', 'request_timeout')
-            logger.debug(self.cc_index_url + collection +
-                                    '?url=' + enc_url +
-                                    '&output=json')
             response = requests.get(self.cc_index_url + collection +
                                     '?url=' + enc_url +
                                     '&output=json', timeout=req_timeout)

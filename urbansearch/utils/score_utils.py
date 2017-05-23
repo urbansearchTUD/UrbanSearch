@@ -3,7 +3,8 @@ from . import db_utils
 
 def gravity_model_score(city_a, city_b):
     """
-    Calculates the relationship strength between two cities based on the gravity model, defined as:
+    Calculates the relationship strength between two cities based
+    on the gravity model, defined as:
 
     (populationA * populationB) / distanceAB^2
 
