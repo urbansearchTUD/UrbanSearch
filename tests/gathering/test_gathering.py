@@ -106,7 +106,8 @@ def test_run_worker():
     pd.worker(queue, files, True)
     index = queue.get_nowait()
     assert index is not None
-    assert int(index['offset']) == 727926652
+    # Order is unknown, so allow both possibilities
+    assert int(index['offset']) in [727926652, 808]
 
 
 def test_run_2_workers():
@@ -118,8 +119,9 @@ def test_run_2_workers():
     index2 = queue.get_nowait()
     assert index is not None
     assert index2 is not None
-    assert int(index['offset']) == 727926652
-    assert int(index2['offset']) == 808
+    # Order is unknown, so allow both possibilities
+    assert int(index['offset']) in [727926652, 808]
+    assert int(index2['offset']) in [727926652, 808]
 
 
 def test_opt_workers():
