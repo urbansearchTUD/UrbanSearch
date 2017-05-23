@@ -29,10 +29,6 @@ class UrbanSearchTest(test):
         errno = pytest.main(['-v', 'tests/'])
         sys.exit(errno)
 
-
-commands = {
-}
-
 setup(
     name='UrbanSearch',
     version='0.1',
