@@ -88,8 +88,7 @@ class IndicesSelector(object):
                              + "defaulting to 1 worker")
                 no_of_workers = 1
 
-        files = [_file.path for _file in os.scandir(directory)
-                 if _file.is_file()]
+        files = _get_file_pahts()
 
         div_files = process_utils.divide_files(files, no_of_workers)
         workers = [Process(target=self.worker, args=(queue, div_files[i],))
@@ -101,6 +100,10 @@ class IndicesSelector(object):
         # Wait for processes to finish
         for worker in workers:
             worker.join()
+
+    @staticmethod
+    def _get_file_paths(self):
+        return [_file.path for _file in os.scandir(directory) if _file.is_file()]
 
     def worker(self, queue, files):
         """
