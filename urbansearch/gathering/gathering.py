@@ -198,7 +198,7 @@ class PageDownloader(object):
             self.indices += indices
             return indices
 
-    def run_workers(self, no_of_workers, directory, queue, gz=True, opt=False):
+    def run_workers(self, no_of_workers, directory, queue, gz=True):
         """ Run workers to process indices from a directory with files
         in parallel. All parsed indices will be added to the queue.
 
@@ -209,7 +209,7 @@ class PageDownloader(object):
         :opt: Determine optimal number of workers and ignore no_of_workers
         parameter
         """
-        if opt:
+        if (no_of_workers==0):
             try:
                 no_of_workers = (cpu_count() * 2) + 1
             except NotImplementedError:
@@ -217,8 +217,7 @@ class PageDownloader(object):
                              + "defaulting to 1 worker")
                 no_of_workers = 1
 
-        files = [_file.path for _file in os.scandir(directory)
-                 if _file.is_file()]
+        files = _get_file_paths()
 
         div_files = process_utils.divide_files(files, no_of_workers)
         workers = [Process(target=self.worker, args=(queue, div_files[i], gz))
@@ -230,6 +229,10 @@ class PageDownloader(object):
         # Wait for processes to finish
         for worker in workers:
             worker.join()
+
+    @staticmethod
+    def _get_file_paths(self):
+        return [_file.path for _file in os.scandir(directory) if _file.is_file()]
 
     def worker(self, queue, files, gz):
         """
