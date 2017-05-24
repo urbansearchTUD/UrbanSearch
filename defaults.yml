@@ -1,0 +1,55 @@
+neo4j:
+  host: ''
+  bolt_uri: ''
+  username: ''
+  password: ''
+resources:
+  test: tests/resources
+gathering:
+  cc_data: https://commoncrawl.s3.amazonaws.com/
+  cc_index: http://index.commoncrawl.org/
+  request_timeout: 2
+logging:
+  version: 1
+  formatters:
+    default:
+      format: "[%(levelname)s %(module)s] %(asctime)s || %(message)s"
+  handlers:
+    file:
+      level: DEBUG
+      class: logging.handlers.RotatingFileHandler
+      filename: urbansearch.log
+      maxBytes: 10000000
+      backupCount: 5
+      formatter: default
+    console:
+      level: WARN
+      class: logging.StreamHandler
+      formatter: default
+  loggers:
+    urbansearch:
+      handlers:
+        - file
+        - console
+      level: DEBUG
+      propagate: true
+    config:
+      handlers:
+        - file
+      level: DEBUG
+      propagate: true
+    clustering:
+      handlers:
+        - file
+      level: INFO
+      propagate: true
+    filtering:
+      handlers:
+        - file
+      level: INFO
+      propagate: true
+    gathering:
+      handlers:
+        - file
+      level: INFO
+      propagate: true
