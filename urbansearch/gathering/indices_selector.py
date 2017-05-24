@@ -28,6 +28,7 @@ class IndicesSelector(object):
                             if _file.is_file()]
         return list(itertools.chain.from_iterable(relevant_indices))
 
+    @staticmethod
     def _get_indices(pd, filepath):
         try:
             if filepath.endswith(".gz"):
