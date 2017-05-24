@@ -37,11 +37,7 @@ class PageDownloader(object):
         :param url: The url in string format
         :param collection: Name of the collection, e.g CC-Main-2015-27-index
         """
-        if not url or not collection:
-            logger.warn('Invalid url/collection passed: {0} {1}'.format(
-                url, collection))
-            raise ValueError('A valid url to query on and an index '
-                             'collection must be specified.')
+        _check_url_and_collection(url, collection)
 
         enc_url = quote(url, safe='')
         try:
@@ -50,7 +46,7 @@ class PageDownloader(object):
                                     '?url=' + enc_url +
                                     '&output=json', timeout=req_timeout)
             indices = [json.loads(x) for x in
-                       response.content.strip().decode('utf-8').split('\n')
+                       response.content.strip().descode('utf-8').split('\n')
                        if self._useful_str_responsecode(x)]
             self.indices += indices
 
@@ -59,6 +55,17 @@ class PageDownloader(object):
             # Catch these read exceptions in main application, or increase
             # the timeout value if deemed necessary
             raise
+
+    def _check_url_and_collection(self, url, collection):
+        """
+        :param url: The url in string format
+        :param collection: Name of the collection, e.g CC-Main-2015-27-index
+        """
+        if not url or not collection:
+            logger.warn('Invalid url/collection passed: {0} {1}'.format(
+                url, collection))
+            raise ValueError('A valid url to query on and an index '
+                             'collection must be specified.')
 
     def download_warc_part(self, index):
         """
