@@ -242,14 +242,21 @@ class PageDownloader(object):
         :gz: Use .gz files or not, default: True.
         """
         if gz:
-            for file in files:
-                if file.endswith('.gz'):
-                    for index in self._worker_indices_from_gz_file(file):
-                        queue.put(index)
+            _gz_workers(queue, files)
         else:
-            for file in files:
-                for index in self.indices_from_file(file):
+            _file_workers(queue, files)
+
+    def _gz_workers(self, queue, files):
+        for file in files:
+            if file.endswith('.gz'):
+                for index in self._worker_indices_from_gz_file(file):
                     queue.put(index)
+
+    def _file_workers(self, queue, files):
+        for file in files:
+            for index in self.indices_from_file(file):
+                queue.put(index)
+
 
     def _worker_indices_from_gz_file(self, filename):
         with gzip.GzipFile(filename) as gz_obj:
