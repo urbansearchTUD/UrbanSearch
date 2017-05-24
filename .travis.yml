@@ -32,7 +32,6 @@ before_script:
   - sudo rm /usr/share/google/boto/boto_plugins/*
 
 script:
-#  - pytest -v --cov=urbansearch --cov-report term-missing tests/
 #  - pytest --cov-report term-missing --cov urbansearch/ -v
   - coverage run --source urbansearch/ setup.py test
 
