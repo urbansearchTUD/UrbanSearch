@@ -40,15 +40,7 @@ class IndicesSelector(object):
         """
         pd = self.page_downloader
         occ = self.occurrence_checker
-        try:
-            if filepath.endswith(".gz"):
-                indices = pd._worker_indices_from_gz_file(filepath)
-            else:
-                indices = pd.indices_from_file(filepath)
-        except JSONDecodeError:
-            logger.error("File {0} doesn't contain correct indices"
-                         .format(filepath))
-            indices = None
+        indeces = _get_indeces(pd, filepath)
 
         # Store all relevant indices in a list, using cooccurrence check
         # relevant_indices = [index for index in indices
@@ -64,6 +56,18 @@ class IndicesSelector(object):
             if occ.check(pd.index_to_txt(index)):
                 relevant_indices.append(index)
         return relevant_indices
+
+    def _get_indeces(self, pd, filepath):
+        try:
+            if filepath.endswith(".gz"):
+                indices = pd._worker_indices_from_gz_file(filepath)
+            else:
+                indices = pd.indices_from_file(filepath)
+        except JSONDecodeError:
+            logger.error("File {0} doesn't contain correct indices"
+                         .format(filepath))
+            indices = None
+        return indices
 
     def run_workers(self, no_of_workers, directory, queue, opt=False):
         """ Run workers to process indices from a directory with files
