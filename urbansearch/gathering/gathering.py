@@ -200,7 +200,7 @@ class PageDownloader(object):
             return indices
 
     @staticmethod
-    def _get_file_paths(self):
+    def _get_file_paths(directory):
         return [_file.path for _file in os.scandir(directory) if _file.is_file()]
 
     def run_workers(self, no_of_workers, directory, queue, gz=True):
@@ -222,7 +222,7 @@ class PageDownloader(object):
                              + "defaulting to 1 worker")
                 no_of_workers = 1
 
-        files = _get_file_paths()
+        files = _get_file_paths(directory)
 
         div_files = process_utils.divide_files(files, no_of_workers)
         workers = [Process(target=self.worker, args=(queue, div_files[i], gz))
@@ -250,13 +250,13 @@ class PageDownloader(object):
         else:
             _file_workers(queue, files)
 
-    def _gz_workers(self, queue, files):
+    def _gz_workers(queue, files):
         for file in files:
             if file.endswith('.gz'):
                 for index in self._worker_indices_from_gz_file(file):
                     queue.put(index)
 
-    def _file_workers(self, queue, files):
+    def _file_workers(queue, files):
         for file in files:
             for index in self.indices_from_file(file):
                 queue.put(index)

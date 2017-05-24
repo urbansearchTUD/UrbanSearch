@@ -70,7 +70,7 @@ class IndicesSelector(object):
         return relevant_indices
 
     @staticmethod
-    def _get_file_paths(self):
+    def _get_file_paths(directory):
         return [_file.path for _file in os.scandir(directory) if _file.is_file()]
 
     def run_workers(self, no_of_workers, directory, queue, opt=False):
@@ -92,7 +92,7 @@ class IndicesSelector(object):
                              + "defaulting to 1 worker")
                 no_of_workers = 1
 
-        files = _get_file_paths()
+        files = _get_file_paths(directory)
 
         div_files = process_utils.divide_files(files, no_of_workers)
         workers = [Process(target=self.worker, args=(queue, div_files[i],))
