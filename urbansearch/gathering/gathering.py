@@ -29,7 +29,7 @@ class PageDownloader(object):
         # Cache the regular expression to filter http response code
         re.compile('\'status\': \'(\w+)\',')
 
-    def download_indices(url, collection):
+    def download_indices(self, url, collection):
         """
         Download indices corresponding to url from Common Crawl collection.
         Store indices in this PageDownloader object.
@@ -37,7 +37,7 @@ class PageDownloader(object):
         :param url: The url in string format
         :param collection: Name of the collection, e.g CC-Main-2015-27-index
         """
-        _check_url_and_collection(url, collection)
+        self._check_url_and_collection(url, collection)
 
         enc_url = quote(url, safe='')
         try:
@@ -224,7 +224,7 @@ class PageDownloader(object):
 
         files = self._get_file_paths(directory)
 
-        div_files = process_utils.divide_files(files, no_of_workers)
+        div_files = process_utils.divide_files(self, files, no_of_workers)
         workers = [Process(target=self.worker, args=(queue, div_files[i], gz))
                    for i in range(no_of_workers)]
 
@@ -250,13 +250,13 @@ class PageDownloader(object):
         else:
             self._file_workers(queue, files)
 
-    def _gz_workers(queue, files):
+    def _gz_workers(self, queue, files):
         for file in files:
             if file.endswith('.gz'):
                 for index in self._worker_indices_from_gz_file(file):
                     queue.put(index)
 
-    def _file_workers(queue, files):
+    def _file_workers(self, queue, files):
         for file in files:
             for index in self.indices_from_file(file):
                 queue.put(index)
