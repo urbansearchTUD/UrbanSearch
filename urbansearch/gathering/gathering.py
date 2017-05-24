@@ -29,7 +29,7 @@ class PageDownloader(object):
         # Cache the regular expression to filter http response code
         re.compile('\'status\': \'(\w+)\',')
 
-    def download_indices(self, url, collection):
+    def download_indices(url, collection):
         """
         Download indices corresponding to url from Common Crawl collection.
         Store indices in this PageDownloader object.
@@ -56,7 +56,8 @@ class PageDownloader(object):
             # the timeout value if deemed necessary
             raise
 
-    def _check_url_and_collection(self, url, collection):
+    @staticmethod
+    def _check_url_and_collection(url, collection):
         """
         :param url: The url in string format
         :param collection: Name of the collection, e.g CC-Main-2015-27-index
