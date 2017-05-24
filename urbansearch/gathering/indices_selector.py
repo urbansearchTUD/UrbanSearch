@@ -28,6 +28,18 @@ class IndicesSelector(object):
                             if _file.is_file()]
         return list(itertools.chain.from_iterable(relevant_indices))
 
+    def _get_indices(self, pd, filepath):
+        try:
+            if filepath.endswith(".gz"):
+                indices = pd._worker_indices_from_gz_file(filepath)
+            else:
+                indices = pd.indices_from_file(filepath)
+        except JSONDecodeError:
+            logger.error("File {0} doesn't contain correct indices"
+                         .format(filepath))
+            indices = None
+        return indices
+
     def relevant_indices_from_file(self, filepath):
         """ Collect all indices from file and return files that are relevant.
         An index is relevant if it contains at least one co-occurrence of
@@ -40,7 +52,7 @@ class IndicesSelector(object):
         """
         pd = self.page_downloader
         occ = self.occurrence_checker
-        indeces = _get_indeces(pd, filepath)
+        indices = _get_indices(pd, filepath)
 
         # Store all relevant indices in a list, using cooccurrence check
         # relevant_indices = [index for index in indices
@@ -57,17 +69,9 @@ class IndicesSelector(object):
                 relevant_indices.append(index)
         return relevant_indices
 
-    def _get_indeces(self, pd, filepath):
-        try:
-            if filepath.endswith(".gz"):
-                indices = pd._worker_indices_from_gz_file(filepath)
-            else:
-                indices = pd.indices_from_file(filepath)
-        except JSONDecodeError:
-            logger.error("File {0} doesn't contain correct indices"
-                         .format(filepath))
-            indices = None
-        return indices
+    @staticmethod
+    def _get_file_paths(self):
+        return [_file.path for _file in os.scandir(directory) if _file.is_file()]
 
     def run_workers(self, no_of_workers, directory, queue, opt=False):
         """ Run workers to process indices from a directory with files
@@ -88,7 +92,7 @@ class IndicesSelector(object):
                              + "defaulting to 1 worker")
                 no_of_workers = 1
 
-        files = _get_file_pahts()
+        files = _get_file_paths()
 
         div_files = process_utils.divide_files(files, no_of_workers)
         workers = [Process(target=self.worker, args=(queue, div_files[i],))
@@ -101,9 +105,6 @@ class IndicesSelector(object):
         for worker in workers:
             worker.join()
 
-    @staticmethod
-    def _get_file_paths(self):
-        return [_file.path for _file in os.scandir(directory) if _file.is_file()]
 
     def worker(self, queue, files):
         """

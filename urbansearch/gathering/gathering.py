@@ -198,6 +198,10 @@ class PageDownloader(object):
             self.indices += indices
             return indices
 
+    @staticmethod
+    def _get_file_paths(self):
+        return [_file.path for _file in os.scandir(directory) if _file.is_file()]
+
     def run_workers(self, no_of_workers, directory, queue, gz=True):
         """ Run workers to process indices from a directory with files
         in parallel. All parsed indices will be added to the queue.
@@ -229,10 +233,6 @@ class PageDownloader(object):
         # Wait for processes to finish
         for worker in workers:
             worker.join()
-
-    @staticmethod
-    def _get_file_paths(self):
-        return [_file.path for _file in os.scandir(directory) if _file.is_file()]
 
     def worker(self, queue, files, gz):
         """
