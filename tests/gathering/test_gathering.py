@@ -102,7 +102,7 @@ def test_index_to_txt():
     assert result == exp
 
 
-def test_run_worker():
+def test_run_worker_gz():
     man = Manager()
     queue = man.Queue()
     directory = os.path.join(config.get('resources', 'test'), 'indices_dir/')
@@ -113,6 +113,18 @@ def test_run_worker():
     assert index is not None
     # Order is unknown, so allow both possibilities
     assert int(index['offset']) in [727926652, 808]
+
+
+def test_run_worker():
+    man = Manager()
+    queue = man.Queue()
+    directory = os.path.join(config.get('resources', 'test'), 'indices_dir/')
+    files = [_file.path for _file in os.scandir(directory)
+             if _file.is_file() and not _file.path.endswith('.gz')]
+    pd.worker(queue, files, False)
+    index = queue.get_nowait()
+    assert index is not None
+    assert int(index['offset']) == 727926652
 
 
 def test_run_2_workers():
