@@ -60,9 +60,10 @@ def test_run_2_workers():
     index2 = queue.get_nowait()
     assert index is not None
     assert index2 is not None
-    assert int(index['status']) == 200
-    assert index['digest'] == 'WPTH3FM5VR7UGLA5PZS5L5YI22TNIKXG'
-    assert index2['digest'] == 'WPTH3FM5VR7UGLA5PZS5L5YI22TNIKXG'
+    exp = 'crawl-data/CC-MAIN-2017-13/segments/1490218187144.60/warc/'\
+          'CC-MAIN-20170322212947-00594-ip-10-233-31-227.ec2.internal.warc.gz'
+    assert index['filename'] == exp
+    assert index2['filename'] == exp
 
 
 def test_run_odd_workers():
@@ -91,6 +92,7 @@ def test_run_opt_workers():
     index2 = queue.get_nowait()
     assert index is not None
     assert index2 is not None
-    assert int(index['status']) == 200
-    assert index['digest'] == 'WPTH3FM5VR7UGLA5PZS5L5YI22TNIKXG'
-    assert index2['digest'] == 'WPTH3FM5VR7UGLA5PZS5L5YI22TNIKXG'
+    exp = 'crawl-data/CC-MAIN-2017-13/segments/1490218187144.60/warc/'\
+          'CC-MAIN-20170322212947-00594-ip-10-233-31-227.ec2.internal.warc.gz'
+    assert index['filename'] == exp
+    assert index2['filename'] == exp
