@@ -27,5 +27,5 @@ def divide_files(files, parts):
 
 def _check_files_and_parts(files, parts):
     if (not files and parts <= 0) or len(files) <= 0:
-        return false
+        return True
 
