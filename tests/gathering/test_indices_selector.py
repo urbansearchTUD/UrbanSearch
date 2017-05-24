@@ -33,7 +33,8 @@ def test_relevant_indices_from_dir():
     directory = os.path.join(config.get('resources', 'test'), 'indices_dir/')
     relevant = ind_sel.relevant_indices_from_dir(directory)
     assert len(relevant) == 2
-    assert relevant[0]['digest'] == 'WPTH3FM5VR7UGLA5PZS5L5YI22TNIKXG'
+    # Order doesn't matter
+    assert int(relevant[0]['offset']) in [727926652, 808]
 
 
 def test_run_worker():
@@ -46,8 +47,8 @@ def test_run_worker():
     ind_sel.worker(queue, files)
     index = queue.get_nowait()
     assert index is not None
-    assert int(index['status']) == 200
-    assert index['digest'] == 'WPTH3FM5VR7UGLA5PZS5L5YI22TNIKXG'
+    # Order doesn't matter
+    assert int(index['offset']) in [727926652, 808]
 
 
 def test_run_2_workers():
