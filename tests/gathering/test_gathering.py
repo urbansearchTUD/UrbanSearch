@@ -138,3 +138,28 @@ def test_opt_workers():
     index2 = queue.get_nowait()
     assert index is not None
     assert index2 is not None
+
+
+def test_remove_keys_empty():
+    d = {}
+    assert pd._remove_keys(d) == d
+
+
+def test_remove_key():
+    d = {'Ajax': 'Kampioen'}
+    assert pd._remove_keys(d) == {}
+
+
+def test_remove_keys():
+    d = {'Ajax': 'Kampioen',
+         'length': '1',
+         'offset': '2',
+         'Feyenoord': 'Niet',
+         'filename': 'henk'
+         }
+
+    exp = {'length': '1',
+           'offset': '2',
+           'filename': 'henk'
+           }
+    assert pd._remove_keys(d) == exp

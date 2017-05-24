@@ -246,14 +246,20 @@ class PageDownloader(object):
 
     def _worker_indices_from_gz_file(self, filename):
         with gzip.GzipFile(filename) as gz_obj:
-            # Remove the garbage before { and parse to json and add to list
-            # TODO Strip JSON to minimal information
             indices = []
             try:
-                indices = [json.loads(x) for x in
+                # Strips JSON to minimal information (length, offset & name)
+                indices = [json.loads(x, object_hook=self._remove_keys)
+                           for x in
                            gz_obj.read().decode('utf-8').strip().split('\n')
                            if self._useful_str_responsecode(x)]
             except OSError as e:
                 logger.error("File {0} failed to read: {1}".format(filename,
                                                                    e))
             return indices
+
+    @staticmethod
+    def _remove_keys(json_dict):
+        # Strip all key-value pairs other than length, offset & name
+        return {k: v for k, v in json_dict.items()
+                if k in ['length', 'offset', 'filename']}
