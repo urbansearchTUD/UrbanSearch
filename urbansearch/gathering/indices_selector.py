@@ -28,7 +28,7 @@ class IndicesSelector(object):
                             if _file.is_file()]
         return list(itertools.chain.from_iterable(relevant_indices))
 
-    def _get_indices(self, pd, filepath):
+    def _get_indices(pd, filepath):
         try:
             if filepath.endswith(".gz"):
                 indices = pd._worker_indices_from_gz_file(filepath)
@@ -52,7 +52,7 @@ class IndicesSelector(object):
         """
         pd = self.page_downloader
         occ = self.occurrence_checker
-        indices = _get_indices(pd, filepath)
+        indices = self._get_indices(pd, filepath)
 
         # Store all relevant indices in a list, using cooccurrence check
         # relevant_indices = [index for index in indices
@@ -92,7 +92,7 @@ class IndicesSelector(object):
                              + "defaulting to 1 worker")
                 no_of_workers = 1
 
-        files = _get_file_paths(directory)
+        files = self._get_file_paths(directory)
 
         div_files = process_utils.divide_files(files, no_of_workers)
         workers = [Process(target=self.worker, args=(queue, div_files[i],))

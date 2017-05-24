@@ -222,7 +222,7 @@ class PageDownloader(object):
                              + "defaulting to 1 worker")
                 no_of_workers = 1
 
-        files = _get_file_paths(directory)
+        files = self._get_file_paths(directory)
 
         div_files = process_utils.divide_files(files, no_of_workers)
         workers = [Process(target=self.worker, args=(queue, div_files[i], gz))
@@ -246,9 +246,9 @@ class PageDownloader(object):
         :gz: Use .gz files or not, default: True.
         """
         if gz:
-            _gz_workers(queue, files)
+            self._gz_workers(queue, files)
         else:
-            _file_workers(queue, files)
+            self._file_workers(queue, files)
 
     def _gz_workers(queue, files):
         for file in files:
