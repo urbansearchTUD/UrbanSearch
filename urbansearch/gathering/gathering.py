@@ -224,7 +224,7 @@ class PageDownloader(object):
 
         files = self._get_file_paths(directory)
 
-        div_files = process_utils.divide_files(self, files, no_of_workers)
+        div_files = process_utils.divide_files(files, no_of_workers)
         workers = [Process(target=self.worker, args=(queue, div_files[i], gz))
                    for i in range(no_of_workers)]
 
