@@ -6,7 +6,7 @@ from multiprocessing import Process, cpu_count
 
 from urbansearch.gathering import gathering
 from urbansearch.filtering import cooccurrence
-from urbansearch.utils import process_utils
+from urbansearch.utils import process_utils, db_utils
 logger = logging.getLogger(__name__)
 
 
@@ -28,13 +28,14 @@ class IndicesSelector(object):
                             if _file.is_file()]
         return list(itertools.chain.from_iterable(relevant_indices))
 
-    def relevant_indices_from_file(self, filepath):
+    def relevant_indices_from_file(self, filepath, to_database=False):
         """ Collect all indices from file and return files that are relevant.
         An index is relevant if it contains at least one co-occurrence of
         cities. Input file can be .gz or document containing string
         representations of json.
 
         :filepath: Path to the file containing indices
+        :to_database: Store the indices and co-occurrences in the database
         :returns: List of relevant indices, in python JSON format
 
         """
@@ -61,8 +62,11 @@ class IndicesSelector(object):
             i += 1
             if i % 10 == 0:
                 logger.info("Index {0}/{1} of file {2}".format(i, n, filepath))
-            if occ.check(pd.index_to_txt(index)):
+            co_occ = occ.check(pd.index_to_txt(index))
+            if co_occ:
                 relevant_indices.append(index)
+                if to_database:
+                    db_utils.store_index(index, co_occ, None)
         return relevant_indices
 
     def run_workers(self, no_of_workers, directory, queue, opt=False):
