@@ -1,4 +1,4 @@
-from nltk.corpus import stopwords
+from nltk.corpus.stopwords import words
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.feature_selection import f_classif, SelectPercentile
 from sklearn.naive_bayes import MultinomialNB
@@ -13,11 +13,12 @@ class MNBModelManager(ModelManager):
     Naive Bayes classifier as its default classifier.
     """
 
-    __init__(self, filename=None):
+    def __init__(self, filename=None):
         super().__init__(filename)
 
         if not filename:
-            self.clf = Pipeline([('tfidf', TfidfVectorizer(stop_words=stopwords.words('dutch'))),
-                                 ('anova', SelectPercentile(f_classif)),
-                                 ('clf', MultinomialNB())
+            self.clf = Pipeline([
+                ('tfidf', TfidfVectorizer(stop_words=words('dutch'))),
+                ('anova', SelectPercentile(f_classif)),
+                ('clf', MultinomialNB())
             ])
