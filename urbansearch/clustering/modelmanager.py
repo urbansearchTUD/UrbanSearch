@@ -1,138 +1,114 @@
 import config
 import os
-from gensim import corpora, models
+import pickle
 
-from decorators import list_required
-
-CORPUS_DIRECTORY = config.get('resources', 'corpus')
-DICTIONARY_DIRECTORY = config.get('resources', 'dictionaries')
 MODELS_DIRECTORY = config.get('resources', 'models')
+TEST_SETS_DIRECTORY = config.get('resources', 'test_sets')
+TRAINING_SETS_DIRECTORY = config.get('resources', 'training_sets')
+VALIDATION_SETS_DIRECTORY = config.get('resources', 'validation_sets')
 
 
 class ModelManager(object):
     """
-    Base class for model specific manager objects.
-    Combines dictionary, corpus and (un)trained model to one functional class.
+    ModelManager base class.
+    Should only be used to load saved models from disk.
+    If a filename is passed this file will be used to load a pickeled
+    classifier from that location on disk.
     """
 
-    def __init__(self, name, texts=None, load=False):
-        """
-        TODO: documentation
-        """
-        self.name = name
-        self.corpus = []
-        self.dictionary = corpora.Dictionary()
-        self.NUM_OF_TOPICS = 20
+    def __init__(self, filename=None):
+        super(ModelManager, self).__init__()
+        self.x_train = []
+        self.y_train = []
+        self.x_validate = []
+        self.y_validate = []
+        self.x_test = []
+        self.y_test = []
 
-        if texts:
-            self.extend_dictionary(texts, multiple=True)
+        if filename:
+            self.clf = self.load(filename)
 
+    def load(self, filename):
+        """
+        Load the classifier from the supplied file
 
-    @list_required
-    def doc_to_bow(self, doc):
+        :param filename: the file containing the pickeled classifier instance
+        :return: a scikit classifier object
         """
-        TODO: documentation
-        """
-        return self.dictionary.doc2bow(doc)
+        with open(os.path.join(MODELS_DIRECTORY, filename), 'rb') as f:
+            return pickle.load(f)
 
-    @list_required
-    def docs_to_bow(self, docs):
+    def load_trainingset(self, filename):
         """
-        TODO: documentation
-        """
-        return [self.doc_to_bow(doc) for doc in docs]
+        Load a trainingset from the file and set the objects trainingset arrays
 
-    @list_required
-    def extend_corpus(self, doc):
+        :param filename: filename containing the trainingset
         """
-        TODO: documentation
-        """
-        corpus = self.corpus
-        corpus.append(doc)
-        return corpus
+        with open(os.path.join(TRAINING_SETS_DIRECTORY, filename), 'rb') as f:
+            data = pickle.load(f)
+            self.x_train = data['inputs']
+            self.y_train = data['outputs']
 
-    @list_required
-    def extend_dictionary(self, doc, multiple=False):
+    def load_testset(self, filename):
         """
-        TODO: documentation
-        """
-        if multiple:
-            for text in doc:
-                self.extend_corpus(self.dictionary.doc2bow(text,
-                                                           allow_update=True))
-        else:
-            self.extend_corpus(self.dictionary.doc2bow(doc, allow_update=True))
+        Load a trainingset from the file and set the objects trainingset arrays
 
-    @list_required
-    def extract_lda(self, doc):
+        :param filename: filename containing the trainingset
         """
-        TODO: documentation
-        """
-        if self.lda_model:
-            return self.lda_model[self.doc_to_bow(doc)]
+        with open(os.path.join(TEST_SETS_DIRECTORY, filename), 'rb') as f:
+            data = pickle.load(f)
+            self.x_test = data['inputs']
+            self.y_test = data['outputs']
 
-    def init_lda_model(self):
+    def load_validateset(self, filename):
         """
-        TODO: documentation and add functionality for LDA if desired
-        """
-        self.lda_model = models.LdaMulticore(self.corpus,
-                                             num_topics=self.NUM_OF_TOPICS)
+        Load a trainingset from the file and set the objects trainingset arrays
 
-    def load(self):
+        :param filename: filename containing the trainingset
         """
-        TODO: documentation and add functionality for LDA if desired
-        """
-        try:
-            print('laden')
-            self.corpus = self.load_corpus(os.path.join(CORPUS_DIRECTORY, self.name + '.mm'))
-            self.dictionary = self.load_dictionary(os.path.join(DICTIONARY_DIRECTORY, self.name + '.txt'))
-            print('laden klaar')
-        except:
-            raise Exception('No such file found; <Category> : ' + self.category)
+        with open(os.path.join(VALIDATION_SETS_DIRECTORY, filename),
+                  'rb') as f:
+            data = pickle.load(f)
+            self.x_validate = data['documents']
+            self.y_validate = data['categories']
 
-    def load_corpus(self, filename):
+    def predict(self, files):
         """
-        TODO: documentation
-        """
-        return corpora.MmCorpus(filename)
+        Predict the category of the passed file
 
-    def load_dictionary(self, filename):
+        :param files: the files for which we want to predict the category.
+        :return: A list of categories for the passed in files.
         """
-        TODO: documentation
-        """
-        return self.dictionary.load(filename)
+        if self.clf:
+            return self.clf.predict(files)
 
-    def load_lda(self, filename):
+    def save(self, filename):
         """
-        TODO: documentation
-        """
-        self.lda_model.load(filename)
+        Pickle the clf dictionary using the highest protocol available.
 
-    def save(self):
-        self.save_dictionary(os.path.join(DICTIONARY_DIRECTORY, self.name + '.txt'))
-        self.save_corpus(os.path.join(CORPUS_DIRECTORY, self.name + '.mm'))
+        :param filename: The filename where the pickeled classifier should be
+        stored.
+        """
+        with open(os.path.join(MODELS_DIRECTORY, filename), 'wb') as f:
+            pickle.dump(self.clf, f, pickle.HIGHEST_PROTOCOL)
 
-    def save_corpus(self, filename):
+    def test(self):
         """
-        TODO: documentation
+        Test the objects classifier
         """
-        corpora.MmCorpus.serialize(filename, self.corpus)
+        if self.clf and self.x_test:
+            self.predict(self.x_test)
 
-    def save_dictionary(self, filename):
+    def train(self):
         """
-        TODO: documentation
+        Train the objects classifier
         """
-        self.dictionary.save(filename)
+        if self.clf and self.x_train and self.y_train:
+            self.clf.fit_transform(self.x_train, self.y_train)
 
-    def save_lda(self, filename):
+    def validate(self):
         """
-        TODO: documentation
+        Validate the objects classifier
         """
-        self.lda_model.save(filename)
-
-    # def update_corpus(self, corpus):
-    #     """
-    #     TODO: documentation
-    #     """
-    #     self.corpus = corpus
-    #     self.update_tfidf_model(corpus)
+        if self.clf and self.x_validate:
+            self.predict(self.x_validate)

@@ -20,10 +20,11 @@ CONFIG = {
     },
     'resources': {
         'category_links': os.path.join(BASE_DIR, 'urbansearch', 'resources', 'category_links'),
-        'corpus': os.path.join(BASE_DIR, 'urbansearch', 'resources', 'category_corpus'),
-        'dictionaries': os.path.join(BASE_DIR, 'urbansearch', 'resources', 'category_dicts'),
         'models': os.path.join(BASE_DIR, 'urbansearch', 'resources', 'models'),
         'test': os.path.join(BASE_DIR, 'tests', 'resources'),
+        'validation_sets': os.path.join(BASE_DIR, 'urbansearch', 'resources', 'validation_sets'),
+        'test_sets': os.path.join(BASE_DIR, 'urbansearch', 'resources', 'test_sets'),
+        'training_sets': os.path.join(BASE_DIR, 'urbansearch', 'resources', 'training_sets'),
     },
     'gathering': {
         'cc_data': 'https://commoncrawl.s3.amazonaws.com/',
