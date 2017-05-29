@@ -1,16 +1,24 @@
+import logging
 from multiprocessing import Manager
 from argparse import ArgumentParser
-from urbansearch.gathering import indices_selector
-import logging
-LOGGER = logging.getLogger(__name__)
+from flask import Flask, request
 
-def main():
+from urbansearch.gathering import indices_selector
+
+LOGGER = logging.getLogger(__name__)
+app = Flask(__name__)
+
+
+@app.route('/workers', methods=['GET'])
+def selection_workers():
     LOGGER.info("Started..")
     ind_sel = indices_selector.IndicesSelector()
     man = Manager()
     queue = man.Queue()
-    directory = '/home/gijs/BEP/test/'
-    ind_sel.run_workers(64, directory, queue)
+    workers = int(request.args.get('workers', 0))
+    directory = request.args.get('directory')
+    ind_sel.run_workers(workers, directory, queue)
+    return "Workers done"
 
 
 def parse_arguments():
