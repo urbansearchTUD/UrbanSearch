@@ -11,6 +11,7 @@ pytest
 pytest-cov
 PyYAML
 requests
+flask
 
 #
 ####### Requirements with Version Specifiers ######
