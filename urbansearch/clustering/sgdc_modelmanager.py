@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 from nltk.corpus import stopwords as sw
+=======
+from nltk.corpus import stopwords
+>>>>>>> new modelmanager tests are WIP
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.feature_selection import f_classif, SelectPercentile
 from sklearn.linear_model import SGDClassifier
