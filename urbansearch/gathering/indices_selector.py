@@ -40,7 +40,6 @@ class IndicesSelector(object):
 
         """
         pd = self.page_downloader
-        occ = self.occurrence_checker
         try:
             if filepath.endswith(".gz"):
                 indices = pd._worker_indices_from_gz_file(filepath)
@@ -55,18 +54,26 @@ class IndicesSelector(object):
         # relevant_indices = [index for index in indices
         #                    if occ.check(pd.index_to_txt(index))]
         # Uncomment and remove lines below if progress is not interesting
+        return self._relevant_indices(indices, to_database)
+
+    def _relevant_indices(self, indices, to_database):
+        pd = self.page_downloader
+        occ = self.occurrence_checker
         relevant_indices = []
         i = 0
         n = len(indices)
+
         for index in indices:
             i += 1
             if i % 10 == 0:
-                logger.info("Index {0}/{1} of file {2}".format(i, n, filepath))
+                # TODO Create clean progress indicator
+                logger.info("Index {0}/{1} of file".format(i, n))
             co_occ = occ.check(pd.index_to_txt(index))
             if co_occ:
                 relevant_indices.append(index)
                 if to_database:
                     db_utils.store_index(index, co_occ, None)
+
         return relevant_indices
 
     def run_workers(self, no_of_workers, directory, queue, opt=False):
