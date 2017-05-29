@@ -35,17 +35,14 @@ class ClassifyText(object):
         elif type == MNB:
             self.mm = MNBModelManager(filename=MAIN_CLASSIFIER_FILE)
 
-    def predict(self, text, pre_process=False):
+    def predict(self, text, pre_processor=False):
         """
         Predict the class of the supplied text
 
         :param :text the text that needs to be classified
         :return: a prediction of the category for the passed text
         """
-        if pre_process:
-            text = self.preprocess(text)
+        if pre_processor:
+            text = pre_processor(text)
 
         return self.mm.predict(text)
-
-    def preprocess(self, text):
-        pass
