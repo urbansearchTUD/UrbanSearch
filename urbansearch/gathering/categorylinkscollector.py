@@ -17,6 +17,9 @@ OFFSET = 10
 
 class CategoryLinksCollector(object):
     def __init__(self, queries, filename):
+        """
+        
+        """
         if isinstance(queries, list) and isinstance(queries[0], tuple):
             self.queries = queries
         else:
@@ -32,9 +35,17 @@ class CategoryLinksCollector(object):
         }
 
     def add_query(self, query):
+        """
+        Add a query to the objects list of queries.
+
+        :param: query the query ot be added to the list of queries
+        """
         self.queries.append(query)
 
     def collect_urls(self, query):
+        """
+
+        """
         self.set_query(query[0])
         limit = query[1] if query[1] <= MAX_NUMBER_OF_LINKS else MAX_NUMBER_OF_LINKS
 
@@ -44,9 +55,15 @@ class CategoryLinksCollector(object):
             offset += OFFSET
 
     def set_query(self, query):
+        """
+
+        """
         self.url_parameters['q'] = 'allintext: ' + query
 
     def execute_search(self, offset):
+        """
+
+        """
         self.url_parameters['start'] = offset
         r = requests.get(GOOGLE_CSE_URL, params=self.url_parameters)
         json = r.json()
@@ -58,14 +75,23 @@ class CategoryLinksCollector(object):
             print(r.json())
 
     def parse_urls(self, items):
+        """
+
+        """
         for item in items:
             self.write_to_file(item['link'])
 
     def run(self):
+        """
+        Runs all the supplied queries.
+        """
         for q in self.queries:
             self.collect_urls(q)
 
         self.file.close()
 
     def write_to_file(self, url):
+        """
+
+        """
         self.file.write(url + '\n')
