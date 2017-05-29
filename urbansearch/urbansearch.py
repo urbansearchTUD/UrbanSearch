@@ -3,7 +3,7 @@ from multiprocessing import Manager
 from argparse import ArgumentParser
 from flask import Flask, request
 
-from urbansearch.gathering import indices_selector
+from urbansearch.gathering import indices_selector, gathering
 
 LOGGER = logging.getLogger(__name__)
 app = Flask(__name__)
@@ -11,7 +11,6 @@ app = Flask(__name__)
 
 @app.route('/workers', methods=['GET'])
 def selection_workers():
-    LOGGER.info("Started..")
     ind_sel = indices_selector.IndicesSelector()
     man = Manager()
     queue = man.Queue()
@@ -19,6 +18,15 @@ def selection_workers():
     directory = request.args.get('directory')
     ind_sel.run_workers(workers, directory, queue)
     return "Workers done"
+
+
+@app.route('/download_indices', methods=['GET'])
+def download_indices_for_url():
+    pd = gathering.PageDownloader()
+    url = request.args.get('url')
+    collection = request.args.get('collection')
+    pd.download_indices(url, collection)
+    return str(pd.indices)
 
 
 def parse_arguments():
