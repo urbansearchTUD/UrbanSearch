@@ -1,9 +1,9 @@
 import config
 import os
 
-from .mnb_modelmanager import MNBModelManager
-from .sgdc_modelmanager import SGDCModelManager
-from .text_preprocessor import PreProcessor
+from urbansearch.clustering.mnb_modelmanager import MNBModelManager
+from urbansearch.clustering.sgdc_modelmanager import SGDCModelManager
+from urbansearch.clustering.text_preprocessor import PreProcessor
 
 MAIN_CLASSIFIER_FILE = 'sgdcmodel.pickle'
 MNB = 'mnb'
