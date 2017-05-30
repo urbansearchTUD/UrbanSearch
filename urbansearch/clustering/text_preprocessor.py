@@ -12,6 +12,7 @@ class PreProcessor:
 
     def pre_process(self, text):
         text = self.clean_text(text)
+        return text
 
     def pre_process_to_array(self, text):
         """
