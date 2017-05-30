@@ -25,8 +25,7 @@ class ModelManager(object):
         self.x_test = []
         self.y_test = []
 
-        if filename:
-            self.clf = self.load(filename)
+        self.clf = self.load(filename) if filename else None
 
     def load(self, filename):
         """
@@ -60,7 +59,7 @@ class ModelManager(object):
             self.x_test = data['inputs']
             self.y_test = data['outputs']
 
-    def load_validateset(self, filename):
+    def load_validationset(self, filename):
         """
         Load a trainingset from the file and set the objects trainingset arrays
 
@@ -82,6 +81,17 @@ class ModelManager(object):
         if self.clf:
             return self.clf.predict(files)
 
+    def probabilities(self, files):
+        """
+        Get the probabilities of the passed file belonging to the available
+        categories.
+
+        :param files: the files for which we want to predict the category.
+        :return: A list of probabilities for the passed in files per category.
+        """
+        if self.clf:
+            return self.clf.predict_proba(files)
+
     def save(self, filename):
         """
         Pickle the clf dictionary using the highest protocol available.
@@ -89,8 +99,9 @@ class ModelManager(object):
         :param filename: The filename where the pickeled classifier should be
         stored.
         """
-        with open(os.path.join(MODELS_DIRECTORY, filename), 'wb') as f:
-            pickle.dump(self.clf, f, pickle.HIGHEST_PROTOCOL)
+        if self.clf:
+            with open(os.path.join(MODELS_DIRECTORY, filename), 'wb') as f:
+                pickle.dump(self.clf, f, pickle.HIGHEST_PROTOCOL)
 
     def test(self):
         """

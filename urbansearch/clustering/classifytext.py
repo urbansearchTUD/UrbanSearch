@@ -45,4 +45,16 @@ class ClassifyText(object):
         if pre_processor:
             text = pre_processor(text)
 
-        return self.mm.predict(text)
+        return self.mm.predict([text])
+
+    def probability_per_category(self, text, pre_processor=False):
+        """
+        Predict the class of the supplied text
+
+        :param :text the text that needs to be classified
+        :return: a prediction of the category for the passed text
+        """
+        if pre_processor:
+            text = pre_processor(text)
+
+        return self.mm.probabilities([text])
