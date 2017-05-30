@@ -76,7 +76,8 @@ class IndicesSelector(object):
 
         return relevant_indices
 
-    def run_workers(self, num_workers, directory, queue, opt=False):
+    def run_workers(self, no_of_workers, directory, queue, opt=False, 
+                    join=True):
         """ Run workers to process indices from a directory with files
         in parallel. All parsed indices will be added to the queue.
 
@@ -99,9 +100,12 @@ class IndicesSelector(object):
         for worker in workers:
             worker.start()
 
-        # Wait for processes to finish
-        for worker in workers:
-            worker.join()
+        if join:
+            # Wait for processes to finish
+            for worker in workers:
+                worker.join()
+        else:
+            return workers
 
     def worker(self, queue, files):
         """
