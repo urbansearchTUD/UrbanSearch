@@ -5,6 +5,10 @@ neo4j:
   password: ''
 resources:
   test: tests/resources
+  models: ''
+  test_sets: ''
+  training_sets: ''
+  validation_sets: ''
 gathering:
   cc_data: https://commoncrawl.s3.amazonaws.com/
   cc_index: http://index.commoncrawl.org/
@@ -28,6 +32,12 @@ logging:
       formatter: default
   loggers:
     urbansearch:
+      handlers:
+        - file
+        - console
+      level: DEBUG
+      propagate: true
+    workers:
       handlers:
         - file
         - console
