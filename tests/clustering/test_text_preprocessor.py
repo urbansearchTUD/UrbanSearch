@@ -30,5 +30,10 @@ def test_tokenize():
 
 def test_full_preprocessing():
     text = 'Een is oke. Dit niet: twee, drie.'
+    expected = 'Een is oke Dit niet twee drie'
+    assert expected == p.pre_process(text)
+
+def test_full_preprocessing_to_array():
+    text = 'Een is oke. Dit niet: twee, drie.'
     expected = ['oke', 'twee', 'drie']
     assert expected == p.pre_process_to_array(text)
