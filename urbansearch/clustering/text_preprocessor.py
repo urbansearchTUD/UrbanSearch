@@ -11,6 +11,9 @@ class PreProcessor:
         self.lang = lang
 
     def pre_process(self, text):
+        text = self.clean_text(text)
+
+    def pre_process_to_array(self, text):
         """
         stripping and tokenizing
         :param text: String
