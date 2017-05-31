@@ -5,8 +5,7 @@ from .mnb_modelmanager import MNBModelManager
 from .sgdc_modelmanager import SGDCModelManager
 from .text_preprocessor import PreProcessor
 
-MAIN_CLASSIFIER_FILE = os.path.join(config.get('resources', 'models'),
-                                    'sgdcmodel.pickle')
+MAIN_CLASSIFIER_FILE = 'sgdcmodel.pickle'
 MNB = 'mnb'
 SGDC = 'sgdc'
 
