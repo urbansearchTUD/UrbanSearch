@@ -1,9 +1,9 @@
 import config
 import os
 
-from mnb_modelmanager import MNBModelManager
-from sgdc_modelmanager import SGDCModelManager
-from text_preprocessor import PreProcessor
+from .mnb_modelmanager import MNBModelManager
+from .sgdc_modelmanager import SGDCModelManager
+from .text_preprocessor import PreProcessor
 
 MAIN_CLASSIFIER_FILE = os.path.join(config.get('resources', 'models'),
                                     'sgdcmodel.pickle')
@@ -28,7 +28,6 @@ class ClassifyText(object):
         the default is "sgdc".
         """
         super(ClassifyText, self).__init__()
-        self.pp = PreProcessor()
 
         if not type or type == SGDC:
             self.mm = SGDCModelManager(filename=MAIN_CLASSIFIER_FILE)
@@ -57,4 +56,5 @@ class ClassifyText(object):
         if pre_processor:
             text = pre_processor(text)
 
-        return self.mm.probabilities([text])
+        return dict(zip(self.mm.clf.classes_,
+                        self.mm.probabilities([text])[0]))
