@@ -55,10 +55,13 @@ class Workers(object):
                 index = queue.get_nowait()
                 txt = self.pd.index_to_txt(index)
                 category = self.ct.predict(txt, self.prepr.pre_process)
+                prob = self.ct.probability_per_category(txt,
+                                                        self.prepr.pre_process)
                 LOGGER.info("Category: {0} for index {1}".format(str(category),
                                                                  index))
+                LOGGER.info("Probabilities: {0} for index {1}".format(str(prob),
+                                                                      index))
             except Empty:
-                # LOGGER.debug("Queue for classifying is empty")
                 pass
 
     def set_producers_done(self):

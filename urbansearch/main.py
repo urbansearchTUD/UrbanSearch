@@ -2,7 +2,6 @@ import logging
 from multiprocessing import Manager
 from argparse import ArgumentParser
 from flask import Flask, request
-from itertools import chain
 from urbansearch.gathering import indices_selector, gathering
 from urbansearch import workers
 
@@ -30,13 +29,12 @@ def download_indices_for_url():
     return str(pd.indices)
 
 
-def classify_documents_from_indices():
+@app.route('/classify_documents', methods=['GET'])
+def classify_documents_from_indices(pworkers=1, cworkers=1, directory=None):
     # pworkers = int(request.args.get('pworkers', 0))
     # cworkers = int(request.args.get('cworkers', 0))
     # directory = request.args.get('directory')
-    pworkers = 4
-    cworkers = 2
-    directory = '/home/gijs/BEP/test2/'
+    directory='/home/gijs/BEP/test3/'
     ind_sel = indices_selector.IndicesSelector()
     cworker = workers.Workers()
     man = Manager()
