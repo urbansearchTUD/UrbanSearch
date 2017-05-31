@@ -11,6 +11,7 @@ pytest
 pytest-cov
 PyYAML
 requests
+scikit-learn
 
 #
 ####### Requirements with Version Specifiers ######
