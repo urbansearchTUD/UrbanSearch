@@ -52,7 +52,7 @@ class Workers(object):
 
         while not queue.empty() or not producers_done.is_set():
             try:
-                index = queue.get_nowait()
+                index, co_occ = queue.get_nowait()
                 txt = self.pd.index_to_txt(index)
                 category = self.ct.predict(txt, self.prepr.pre_process)
                 prob = self.ct.probability_per_category(txt,

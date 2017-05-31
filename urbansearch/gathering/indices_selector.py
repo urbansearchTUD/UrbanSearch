@@ -128,5 +128,5 @@ class IndicesSelector(object):
         :files: List of filepaths to files that this worker will use
         """
         for file in files:
-            for index in self.relevant_indices_from_file(file):
+            for index in self.relevant_indices_from_file(file, worker=True):
                 queue.put(index)
