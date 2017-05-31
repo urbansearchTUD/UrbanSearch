@@ -20,8 +20,9 @@ from urbansearch.utils import db_utils
 # │"Den Haag","longitude":4.30069│
 # │99,"population":"495010"}
 #
-# NOTE: when running these tests locally, some will fail, since they are run against the production
-# database. Travis has it's own database, containing only what is mentioned above.
+# NOTE: when running these tests locally, some will fail, since they are run
+# against the production database. Travis has it's own database, containing
+# only what is mentioned above.
 
 @pytest.fixture
 def clean_neo4j_index(request):
