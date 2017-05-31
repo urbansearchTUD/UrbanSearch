@@ -177,7 +177,8 @@ def store_index(index, co_occurrences, topics=None):
     for city in cities:
         create_relation_result = perform_query('''
             MATCH (i:Index) WHERE ID(i)={0}
-            CREATE UNIQUE (c:City {{ name: "{1}" }})-[r:OCCURS_IN]->(i)
+            MATCH (c:City {{ name: "{1}" }})
+            MERGE (c)-[r:OCCURS_IN]-(i)
             RETURN ID(r) AS id
         '''.format(index_id, city))
         created_relations.append(create_relation_result[0]['id'])
@@ -227,6 +228,7 @@ def get_ic_rel(city_a, city_b, rel_name='RELATES_TO'):
         MATCH (n)-[r:{2}]-(m)
         RETURN {3}
         '''.format(city_a, city_b, rel_name, property_str)
+
     result = perform_query(query)
     return {k: v for k, v in result[0].items()} if result else None
 
@@ -278,9 +280,9 @@ def store_ic_rel(city_a, city_b, scores=None, rel_name='RELATES_TO'):
     scores = ', '.join('{0}: {1}'.format(k, v) for k, v in scores.items())
 
     rel_query = """
-        MATCH (a:City) WHERE a.name = '{0}'
-        MATCH (b:City) WHERE b.name = '{1}'
-        CREATE UNIQUE (a)-[r:{2} {{ {3} }}]-(b)
+        MATCH (a:City {{ name: '{0}' }})
+        MATCH (b:City {{ name: '{1}' }})
+        MERGE (a)-[r:{2} {{ {3} }}]-(b)
         RETURN ID(r) AS id
     """.format(city_a, city_b, rel_name, scores)
 
