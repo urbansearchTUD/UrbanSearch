@@ -1,14 +1,13 @@
-from nltk.corpus import stopwords
+from nltk.corpus import stopwords as sw
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.feature_selection import f_classif, SelectPercentile
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import Pipeline
 
-from urbansearch.clustering.modelmanager import ModelManager
+from .modelmanager import ModelManager
 
 
 class MNBModelManager(ModelManager):
-
     """
     An implementation of the ModelManager base class which uses a Multinomial
     Naive Bayes classifier as its default classifier.
@@ -19,7 +18,7 @@ class MNBModelManager(ModelManager):
 
         if not filename:
             self.clf = Pipeline([
-                ('tfidf', TfidfVectorizer(stop_words=stopwords.words('dutch'))),
+                ('tfidf', TfidfVectorizer(stop_words=sw.words('dutch'))),
                 ('anova', SelectPercentile(f_classif)),
                 ('clf', MultinomialNB())
             ])

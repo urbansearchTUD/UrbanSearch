@@ -1,6 +1,7 @@
 import config
 import os
 import pickle
+
 MODELS_DIRECTORY = config.get('resources', 'models')
 TEST_SETS_DIRECTORY = config.get('resources', 'test_sets')
 TRAINING_SETS_DIRECTORY = config.get('resources', 'training_sets')

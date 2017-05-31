@@ -1,10 +1,10 @@
-from nltk.corpus import stopwords
+from nltk.corpus import stopwords as sw
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.feature_selection import f_classif, SelectPercentile
 from sklearn.linear_model import SGDClassifier
 from sklearn.pipeline import Pipeline
 
-from urbansearch.clustering.modelmanager import ModelManager
+from .modelmanager import ModelManager
 
 
 class SGDCModelManager(ModelManager):
@@ -18,7 +18,7 @@ class SGDCModelManager(ModelManager):
 
         if not filename:
             self.clf = Pipeline([
-                ('tfidf', TfidfVectorizer(stop_words=stopwords.words('dutch'))),
+                ('tfidf', TfidfVectorizer(stop_words=sw.words('dutch'))),
                 ('anova', SelectPercentile(f_classif)),
                 ('clf', SGDClassifier(alpha=0.0001,
                                       average=False,

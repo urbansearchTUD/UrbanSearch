@@ -1,12 +1,11 @@
 import config
 import os
 
-from urbansearch.clustering.mnb_modelmanager import MNBModelManager
-from urbansearch.clustering.sgdc_modelmanager import SGDCModelManager
-from urbansearch.clustering.text_preprocessor import PreProcessor
+from .mnb_modelmanager import MNBModelManager
+from .sgdc_modelmanager import SGDCModelManager
+from .text_preprocessor import PreProcessor
 
-MAIN_CLASSIFIER_FILE = os.path.join(config.get('resources', 'models'),
-                                    'sgdcmodel.pickle')
+MAIN_CLASSIFIER_FILE = 'sgdcmodel.default.pickle'
 MNB = 'mnb'
 SGDC = 'sgdc'
 
