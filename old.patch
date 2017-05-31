@@ -1,0 +1,266 @@
+diff --git a/tests/clustering/test_mnb_modelmanager.py b/tests/clustering/test_mnb_modelmanager.py
+index e69de29..9d49fda 100644
+--- a/tests/clustering/test_mnb_modelmanager.py
++++ b/tests/clustering/test_mnb_modelmanager.py
+@@ -0,0 +1,19 @@
++from sklearn.linear_model import SGDClassifier
++from sklearn.naive_bayes import MultinomialNB
++from sklearn.pipeline import Pipeline
++
++from urbansearch.clustering import modelmanager
++from urbansearch.clustering import mnb_modelmanager
++
++
++def test_init_no_file():
++    mm = mnb_modelmanager.MNBModelManager()
++    assert isinstance(mm, mnb_modelmanager.MNBModelManager)
++    assert isinstance(mm.clf, Pipeline)
++    assert isinstance(mm.clf.named_steps['clf'], MultinomialNB)
++
++def test_init():
++    mm = mnb_modelmanager.MNBModelManager('sgdcmodel.pickle')
++    assert isinstance(mm, modelmanager.ModelManager)
++    assert isinstance(mm.clf, Pipeline)
++    assert isinstance(mm.clf.named_steps['clf'], SGDClassifier)
+diff --git a/tests/clustering/test_modelmanager.py b/tests/clustering/test_modelmanager.py
+index e69de29..1c5f01a 100644
+--- a/tests/clustering/test_modelmanager.py
++++ b/tests/clustering/test_modelmanager.py
+@@ -0,0 +1,81 @@
++import config
++import os
++import pickle
++from numpy import ndarray
++from sklearn.pipeline import Pipeline
++from unittest.mock import patch
++
++from urbansearch.clustering import modelmanager
++
++TEST_FILENAME = 'test_file.pickle'
++MODELS_DIRECTORY = config.get('resources', 'models')
++TEST_SETS_DIRECTORY = config.get('resources', 'test_sets')
++TRAINING_SETS_DIRECTORY = config.get('resources', 'training_sets')
++VALIDATION_SETS_DIRECTORY = config.get('resources', 'validation_sets')
++
++def test_init_no_file():
++    mm = modelmanager.ModelManager()
++    assert mm.clf == None
++
++def test_init():
++    mm = modelmanager.ModelManager(filename='sgdcmodel.pickle')
++    assert mm.clf != None
++    assert isinstance(mm.clf, Pipeline)
++
++def test_load(filename='sgdcmodel.pickle'):
++    mm = modelmanager.ModelManager()
++    assert mm.clf == None
++    mm.clf = mm.load('sgdcmodel.pickle')
++    assert isinstance(mm.clf, Pipeline)
++
++@patch.object(pickle, 'load')
++def test_load_trainingset(mock_method):
++    mm = modelmanager.ModelManager()
++    mm.load_trainingset(TEST_FILENAME)
++    assert mock_method.call_count == 1
++
++@patch.object(pickle, 'load')
++def test_load_testset(mock_method):
++    mm = modelmanager.ModelManager()
++    mm.load_testset(TEST_FILENAME)
++    assert mock_method.call_count == 1
++
++@patch.object(pickle, 'load')
++def test_load_validationset(mock_method):
++    mm = modelmanager.ModelManager()
++    mm.load_validationset(TEST_FILENAME)
++    assert mock_method.call_count == 1
++
++def test_predict():
++    mm = modelmanager.ModelManager(filename='sgdcmodel.pickle')
++    prediction = mm.predict(['ssdfsaf dsfsadfds dsfsdafsd'])
++    assert prediction
++    assert isinstance(prediction[0], str)
++
++def test_predict_no_clf():
++    mm = modelmanager.ModelManager()
++    prediction = mm.predict(['ssdfsaf dsfsadfds dsfsdafsd'])
++    assert prediction == None
++
++def test_propabilities():
++    mm = modelmanager.ModelManager(filename='sgdcmodel.pickle')
++    prediction = mm.probabilities(['ssdfsaf dsfsadfds dsfsdafsd'])
++    assert prediction != None
++    assert isinstance(prediction[0], ndarray)
++
++def test_propabilities_no_clf():
++    mm = modelmanager.ModelManager()
++    prediction = mm.probabilities(['ssdfsaf dsfsadfds dsfsdafsd'])
++    assert prediction == None
++
++@patch.object(pickle, 'dump')
++def test_save_no_clf(mock_method):
++    mm = modelmanager.ModelManager()
++    mm.save(TEST_FILENAME)
++    assert mock_method.call_count == 0
++
++@patch.object(pickle, 'dump')
++def test_save(mock_method):
++    mm = modelmanager.ModelManager(filename='sgdcmodel.pickle')
++    mm.save(TEST_FILENAME)
++    assert mock_method.call_count == 1
+diff --git a/tests/clustering/test_sgdc_modelmanager.py b/tests/clustering/test_sgdc_modelmanager.py
+index e69de29..c34dcba 100644
+--- a/tests/clustering/test_sgdc_modelmanager.py
++++ b/tests/clustering/test_sgdc_modelmanager.py
+@@ -0,0 +1,18 @@
++from sklearn.linear_model import SGDClassifier
++from sklearn.pipeline import Pipeline
++
++from urbansearch.clustering import modelmanager
++from urbansearch.clustering import sgdc_modelmanager
++
++
++def test_init_no_file():
++    mm = sgdc_modelmanager.SGDCModelManager()
++    assert isinstance(mm, sgdc_modelmanager.SGDCModelManager)
++    assert isinstance(mm.clf, Pipeline)
++    assert isinstance(mm.clf.named_steps['clf'], SGDClassifier)
++
++def test_init():
++    mm = sgdc_modelmanager.SGDCModelManager('sgdcmodel.pickle')
++    assert isinstance(mm, modelmanager.ModelManager)
++    assert isinstance(mm.clf, Pipeline)
++    assert isinstance(mm.clf.named_steps['clf'], SGDClassifier)
+diff --git a/urbansearch/clustering/link2doc.py b/urbansearch/clustering/link2doc.py
+index 34177b0..d7c7c3e 100644
+--- a/urbansearch/clustering/link2doc.py
++++ b/urbansearch/clustering/link2doc.py
+@@ -2,44 +2,46 @@ import requests
+ import time
+ from bs4 import BeautifulSoup
+ 
+-from text_preprocessor import PreProcessor
++from .text_preprocessor import PreProcessor
++
++UNWANTED_TAGS = ['head', 'script', 'link', 'meta', 'img', 'style']
+ 
+ class Link2Doc(object):
++    """
++    A Link2Doc object can fetch and process the contents of a page that is
++    requested with the supplied link to the get_doc function
++    """
++
+     def __init__(self):
+         self.pp = PreProcessor()
+ 
+     def get_doc(self, link):
++        """
++        Gets a page and processes it to a string. Unwanted HTML tags get
++        stripped by the strip_crap parser.
++
++        :param link: The link to fetch the content from
++        :return: String containing the content of the requested page
++        """
+         try:
+-            start = time.time()
+-            print('***************')
+-            print(link)
+-            print('***************')
+             r = requests.get(link)
+-            print('***************')
+-            print('STATUS CODE')
+-            print(r.status_code)
+-            print('***************')
++
+             if not r.status_code == requests.codes.ok:
+-                return []
++                return ''
++
+             soup = BeautifulSoup(r.text, 'html.parser')
+-            self.strip_crap(soup)
+-            doc = self.pp.pre_process(soup.get_text())
+-            print('***************')
+-            print(doc)
+-            print('***************')
+-            end = time.time()
+-            print('DONE WITH REQUEST + PROCESSING (ms):')
+-            print(end - start)
+-            return doc
++            self.strip_unwanted_tags(soup)
++
++            return self.pp.pre_process(soup.get_text())
+         except:
+-            print('***************')
+-            print('***************')
+-            print('***************')
+-            print('Exception raised')
+-            print('***************')
+-            print('***************')
+-            print('***************')
+-            return []
+-
+-    def strip_crap(self, soup):
+-        [ e.decompose() for e in soup.findAll(['head', 'script', 'link', 'meta']) ]
++            return ''
++
++    def strip_unwanted_tags(self, soup):
++        """
++        Strips the crap from a HTML document.
++
++        :param soup: A BeautifulSoup object which is gonna get its crap s
++        stripped
++        :return: Stripped soup object
++        """
++        [ e.decompose() for e in soup.findAll(UNWANTED_TAGS) ]
+diff --git a/urbansearch/clustering/mnb_modelmanager.py b/urbansearch/clustering/mnb_modelmanager.py
+index f734a76..0d3b4ff 100644
+--- a/urbansearch/clustering/mnb_modelmanager.py
++++ b/urbansearch/clustering/mnb_modelmanager.py
+@@ -1,10 +1,10 @@
+-from nltk.corpus.stopwords import words
++from nltk.corpus import stopwords as sw
+ from sklearn.feature_extraction.text import TfidfVectorizer
+ from sklearn.feature_selection import f_classif, SelectPercentile
+ from sklearn.naive_bayes import MultinomialNB
+ from sklearn.pipeline import Pipeline
+ 
+-from modelmanager import ModelManager
++from .modelmanager import ModelManager
+ 
+ 
+ class MNBModelManager(ModelManager):
+@@ -18,7 +18,7 @@ class MNBModelManager(ModelManager):
+ 
+         if not filename:
+             self.clf = Pipeline([
+-                ('tfidf', TfidfVectorizer(stop_words=words('dutch'))),
++                ('tfidf', TfidfVectorizer(stop_words=sw.words('dutch'))),
+                 ('anova', SelectPercentile(f_classif)),
+                 ('clf', MultinomialNB())
+             ])
+diff --git a/urbansearch/clustering/sgdc_modelmanager.py b/urbansearch/clustering/sgdc_modelmanager.py
+index 800b961..80d014a 100644
+--- a/urbansearch/clustering/sgdc_modelmanager.py
++++ b/urbansearch/clustering/sgdc_modelmanager.py
+@@ -1,10 +1,10 @@
+-from nltk.corpus.stopwords import words
++from nltk.corpus import stopwords as sw
+ from sklearn.feature_extraction.text import TfidfVectorizer
+ from sklearn.feature_selection import f_classif, SelectPercentile
+ from sklearn.linear_model import SGDClassifier
+ from sklearn.pipeline import Pipeline
+ 
+-from modelmanager import ModelManager
++from .modelmanager import ModelManager
+ 
+ 
+ class SGDCModelManager(ModelManager):
+@@ -18,7 +18,7 @@ class SGDCModelManager(ModelManager):
+ 
+         if not filename:
+             self.clf = Pipeline([
+-                ('tfidf', TfidfVectorizer(stop_words=words('dutch'))),
++                ('tfidf', TfidfVectorizer(stop_words=sw.words('dutch'))),
+                 ('anova', SelectPercentile(f_classif)),
+                 ('clf', SGDClassifier(alpha=0.0001,
+                                       average=False,
