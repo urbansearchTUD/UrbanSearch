@@ -28,7 +28,8 @@ class IndicesSelector(object):
                             if _file.is_file()]
         return list(itertools.chain.from_iterable(relevant_indices))
 
-    def relevant_indices_from_file(self, filepath, to_database=False):
+    def relevant_indices_from_file(self, filepath, to_database=False,
+                                   worker=False):
         """ Collect all indices from file and return files that are relevant.
         An index is relevant if it contains at least one co-occurrence of
         cities. Input file can be .gz or document containing string
@@ -54,9 +55,9 @@ class IndicesSelector(object):
         # relevant_indices = [index for index in indices
         #                    if occ.check(pd.index_to_txt(index))]
         # Uncomment and remove lines below if progress is not interesting
-        return self._relevant_indices(indices, to_database)
+        return self._relevant_indices(indices, to_database, worker)
 
-    def _relevant_indices(self, indices, to_database):
+    def _relevant_indices(self, indices, to_database, worker):
         pd = self.page_downloader
         occ = self.occurrence_checker
         relevant_indices = []
@@ -68,15 +69,19 @@ class IndicesSelector(object):
             if i % 10 == 0:
                 # TODO Create clean progress indicator
                 logger.info("Index {0}/{1} of file".format(i, n))
-            co_occ = occ.check(pd.index_to_txt(index))
+            co_occ = occ.check(pd.download_warc_part(index))
             if co_occ:
-                relevant_indices.append(index)
                 if to_database:
                     db_utils.store_index(index, co_occ, None)
+                # If called from workers, return tuple to add to queue
+                if worker:
+                    relevant_indices.append((index, co_occ))
+                else:
+                    relevant_indices.append(index)
 
         return relevant_indices
 
-    def run_workers(self, no_of_workers, directory, queue, opt=False, 
+    def run_workers(self, no_of_workers, directory, queue, opt=False,
                     join=True):
         """ Run workers to process indices from a directory with files
         in parallel. All parsed indices will be added to the queue.
