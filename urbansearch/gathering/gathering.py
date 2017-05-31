@@ -157,6 +157,18 @@ class PageDownloader(object):
         data = self.download_warc_part(index)
         return self.warc_html_to_text(data)
 
+    def index_to_raw_text(self, index):
+        """
+        Extract plain text using JSON index. Downloads WARC parts from
+        common crawl servers and parses to raw utf-8 text. Contains html
+        and other headers.
+
+        :return: Raw text of web page in str format
+
+        """
+        data = self.download_warc_part(index)
+        return data.decode('utf-8')
+
     def indices_from_file(self, filename):
         """
         Opens file with filename and parses JSON,

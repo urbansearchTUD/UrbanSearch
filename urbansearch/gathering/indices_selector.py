@@ -69,7 +69,7 @@ class IndicesSelector(object):
             if i % 10 == 0:
                 # TODO Create clean progress indicator
                 logger.info("Index {0}/{1} of file".format(i, n))
-            co_occ = occ.check(pd.download_warc_part(index))
+            co_occ = occ.check(pd.index_to_raw_text(index))
             if co_occ:
                 if to_database:
                     db_utils.store_index(index, co_occ, None)
