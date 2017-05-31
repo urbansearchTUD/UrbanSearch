@@ -138,12 +138,10 @@ def city_haversine_distance(name_a, name_b):
     return 2 * 6371 * math.asin(math.sqrt(a))
 
 
-def store_index(index, co_occurrences, topics=None):
+def store_index(index, co_occurrences):
     """
     Stores the provided index in Neo4j and creates relationships
     to all cities that occur in the document.
-    If a list of topics is provided,
-    it also labels the index node with every topic.
 
     The index should be a dictionary, containing at least:
 
@@ -154,21 +152,16 @@ def store_index(index, co_occurrences, topics=None):
     :param index: The index dictionary
     :param co_occurrences: A list of tuples,
            containing co-occurrences (e.g. `[('Amsterdam', 'Rotterdam')]`)
-    :param topics A list of topics. Defaults to None
     :return: True iff the index has been successfully stored
     """
     # Create a set of cities to remove duplicates
     cities = {city for occurrence in co_occurrences for city in occurrence}
 
-    # Join all topics with ':', also add a leading ':'
-    # because there always is an Index label
-    topics = _join_topics(topics) if topics else ''
-
     # Create a node for the index if it doesn't exist
     index_result = perform_query('''
-        MERGE (i:Index{0} {{ filename: '{1}', offset: {2}, length: {3} }})
+        MERGE (i:Index {{ filename: '{0}', offset: {1}, length: {2} }})
         RETURN ID(i) AS id
-    '''.format(topics, index['filename'], index['offset'], index['length']))
+    '''.format(index['filename'], index['offset'], index['length']))
     index_id = index_result[0]['id']
 
     # For every city in the co-occurrence list,
@@ -186,10 +179,34 @@ def store_index(index, co_occurrences, topics=None):
     return len(created_relations) == len(cities)
 
 
+def store_index_topics(index, topics):
+    """
+    Appends the given topics as labels to the given index.
+
+    Caution: the index must already exist in the database!
+
+    :param index: The filename of the index
+    :param topics: A list of topics
+    :return: True iff the topics have been successfully stored
+    """
+    if not topics:
+        return False
+
+    # Join all topics with ':', also add a leading ':'
+    topics = _join_topics(topics) if topics else None
+
+    query = '''
+        MATCH (i:Index {{ filename: '{}' }})
+        SET i{}
+        RETURN ID(i) AS id
+    '''.format(index, topics)
+
+    return 'id' in perform_query(query)[0]
+
+
 def _join_topics(topics):
     # Join all topics with ':', also add a leading ':'
     # because there always is an Index label
-    # To limit branch points a second method is made for this.
     return ':{}'.format(':'.join(topic.capitalize() for topic in topics))
 
 
