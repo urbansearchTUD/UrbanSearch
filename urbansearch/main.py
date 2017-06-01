@@ -34,7 +34,9 @@ def classify_documents_from_indices(pworkers=1, cworkers=1, directory=None):
     # pworkers = int(request.args.get('pworkers', 0))
     # cworkers = int(request.args.get('cworkers', 0))
     # directory = request.args.get('directory')
-    directory='/home/gijs/BEP/test3/'
+    pworkers = 16
+    cworkers = 8
+    directory='/home/gijs/BEP/test2/'
     ind_sel = indices_selector.IndicesSelector()
     cworker = workers.Workers()
     man = Manager()
