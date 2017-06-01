@@ -90,6 +90,7 @@ ENV/
 
 # Temporary files
 *~
+.DS_Store
 
 # IDEA
 .idea/
