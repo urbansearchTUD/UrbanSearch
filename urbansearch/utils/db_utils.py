@@ -5,16 +5,7 @@ from neo4j.v1 import GraphDatabase, basic_auth, SessionError, CypherSyntaxError
 
 import config
 
-TOPIC_PROBS = {
-    'commuting': 0,
-    'shopping': 0,
-    'leisure': 0,
-    'moving': 0,
-    'education': 0,
-    'collaboration': 0,
-    'transportation': 0,
-    'other': 0
-}
+TOPIC_PROBS = dict.fromkeys(config.get('score', 'categories'), 0)
 
 # Keep a global driver
 _driver = None
@@ -279,7 +270,7 @@ def store_index_probabilities(index, probabilities):
     """
     Stores topic probabilities in the given Index node. The probabilities
     parameter is a dictionary and it's values default to 0.
-    The following probability types are supported:
+    The following probability types are supported by default:
 
     - commuting
     - shopping
