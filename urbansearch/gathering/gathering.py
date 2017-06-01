@@ -7,7 +7,7 @@ import os
 import requests
 from urllib.parse import quote
 from bs4 import BeautifulSoup
-from multiprocessing import Process, cpu_count
+from multiprocessing import Process
 
 import config
 from urbansearch.utils import process_utils
@@ -55,7 +55,7 @@ class PageDownloader(object):
             self.indices += indices
 
         except requests.exceptions.ReadTimeout:
-            logger.warning("URL index request timed out")
+            logger.warning('URL index request timed out')
             # Catch these read exceptions in main application, or increase
             # the timeout value if deemed necessary
             raise
@@ -82,7 +82,7 @@ class PageDownloader(object):
                                                                       end)},
                                     timeout=req_timeout)
         except requests.exceptions.RequestException as e:
-            logger.warning("Exception while downloading warc part: {0}"
+            logger.warning('Exception while downloading warc part: {0}'
                            .format(e))
             return None
 
@@ -143,7 +143,7 @@ class PageDownloader(object):
         data = data[index:-1]
         soup = BeautifulSoup(data, 'html.parser')
         # Remove style and script statements
-        for script in soup(["script", "style"]):
+        for script in soup(['script', 'style']):
             script.extract()
         return soup.get_text()
 
@@ -191,31 +191,27 @@ class PageDownloader(object):
             self.indices += indices
             return indices
 
-    def run_workers(self, no_of_workers, directory, queue, gz=True, opt=False):
+    def run_workers(self, num_workers, directory, queue, **kwargs):
         """ Run workers to process indices from a directory with files
         in parallel. All parsed indices will be added to the queue.
 
-        :no_of_workers: Number of workers that will run
+        :num_workers: Number of workers that will run
         :directory: Path to directory containing files
         :queue: multiprocessing.Queue where the indices will be added to
-        :gz: Files are in .gz format. Default: True.
-        :opt: Determine optimal number of workers and ignore no_of_workers
-        parameter
+        :gz: Passed in kwargs. Files are in .gz format. Default: True
+        :opt: Passed in kwargs. Determine optimal number of workers and
+        ignore num_workers parameter
         """
-        if opt:
-            try:
-                no_of_workers = (cpu_count() * 2) + 1
-            except NotImplementedError:
-                logger.error("Cannot determine number of CPU's,"
-                             + "defaulting to 1 worker")
-                no_of_workers = 1
+        if kwargs.get('opt'):
+            num_workers = process_utils.compute_num_workers()
 
         files = [_file.path for _file in os.scandir(directory)
                  if _file.is_file()]
 
-        div_files = process_utils.divide_files(files, no_of_workers)
-        workers = [Process(target=self.worker, args=(queue, div_files[i], gz))
-                   for i in range(no_of_workers)]
+        div_files = process_utils.divide_files(files, num_workers)
+        workers = [Process(target=self.worker, args=(queue, div_files[i],
+                                                     kwargs.get('gz', True)))
+                   for i in range(num_workers)]
 
         for worker in workers:
             worker.start()
@@ -254,7 +250,7 @@ class PageDownloader(object):
                            gz_obj.read().decode('utf-8').strip().split('\n')
                            if self._useful_str_responsecode(x)]
             except OSError as e:
-                logger.error("File {0} failed to read: {1}".format(filename,
+                logger.error('File {0} failed to read: {1}'.format(filename,
                                                                    e))
             return indices
 
