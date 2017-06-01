@@ -260,7 +260,7 @@ class PageDownloader(object):
             indices = []
             try:
                 # Strips JSON to minimal information (length, offset & name)
-                indices = [json.loads(x, object_hook=self._remove_keys)
+                indices = [json.loads(x)
                            for x in
                            gz_obj.read().decode('utf-8').strip().split('\n')
                            if self._useful_str_responsecode(x)]
