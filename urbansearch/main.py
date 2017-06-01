@@ -119,8 +119,12 @@ def parse_arguments():
     return parser.parse_args()
 
 
+def run_urbansearch(args):
+    if args.directory:
+        pass
+
+
 if __name__ == "__main__":
     # classify_documents_from_indices()
-    print(db_utils.connected_to_db())
-    # args = parse_arguments()
-    # print(args)
+    args = parse_arguments()
+

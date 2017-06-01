@@ -45,7 +45,7 @@ def test_run_worker():
     files = [_file.path for _file in os.scandir(directory)
              if _file.is_file()]
     ind_sel.worker(queue, files)
-    index = queue.get_nowait()
+    index, _ = queue.get_nowait()
     assert index is not None
     # Order doesn't matter
     assert int(index['offset']) in [727926652, 808]
@@ -57,8 +57,8 @@ def test_run_2_workers():
     queue = man.Queue()
     directory = os.path.join(config.get('resources', 'test'), 'indices_dir/')
     ind_sel.run_workers(2, directory, queue)
-    index = queue.get_nowait()
-    index2 = queue.get_nowait()
+    index, _ = queue.get_nowait()
+    index2, _ = queue.get_nowait()
     assert index is not None
     assert index2 is not None
     exp = 'crawl-data/CC-MAIN-2017-13/segments/1490218187144.60/warc/'\
@@ -73,8 +73,8 @@ def test_run_odd_workers():
     queue = man.Queue()
     directory = os.path.join(config.get('resources', 'test'), 'indices_dir/')
     ind_sel.run_workers(3, directory, queue)
-    index = queue.get_nowait()
-    index2 = queue.get_nowait()
+    index, _ = queue.get_nowait()
+    index2, _ = queue.get_nowait()
     assert index is not None
     assert index2 is not None
     exp = 'crawl-data/CC-MAIN-2017-13/segments/1490218187144.60/warc/'\
@@ -89,8 +89,8 @@ def test_run_opt_workers():
     queue = man.Queue()
     directory = os.path.join(config.get('resources', 'test'), 'indices_dir/')
     ind_sel.run_workers(2, directory, queue, opt=True)
-    index = queue.get_nowait()
-    index2 = queue.get_nowait()
+    index, _ = queue.get_nowait()
+    index2, _ = queue.get_nowait()
     assert index is not None
     assert index2 is not None
     exp = 'crawl-data/CC-MAIN-2017-13/segments/1490218187144.60/warc/'\
