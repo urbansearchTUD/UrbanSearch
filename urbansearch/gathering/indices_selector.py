@@ -2,7 +2,7 @@ import os
 import itertools
 import logging
 from json.decoder import JSONDecodeError
-from multiprocessing import Process, cpu_count
+from multiprocessing import Process
 
 from urbansearch.gathering import gathering
 from urbansearch.filtering import cooccurrence
@@ -41,12 +41,12 @@ class IndicesSelector(object):
         pd = self.page_downloader
         occ = self.occurrence_checker
         try:
-            if filepath.endswith(".gz"):
+            if filepath.endswith('.gz'):
                 indices = pd._worker_indices_from_gz_file(filepath)
             else:
                 indices = pd.indices_from_file(filepath)
         except JSONDecodeError:
-            logger.error("File {0} doesn't contain correct indices"
+            logger.error('File {0} doesn\'t contain correct indices'
                          .format(filepath))
             indices = None
 
@@ -60,36 +60,30 @@ class IndicesSelector(object):
         for index in indices:
             i += 1
             if i % 10 == 0:
-                logger.info("Index {0}/{1} of file {2}".format(i, n, filepath))
+                logger.info('Index {0}/{1} of file {2}'.format(i, n, filepath))
             if occ.check(pd.index_to_txt(index)):
                 relevant_indices.append(index)
         return relevant_indices
 
-    def run_workers(self, no_of_workers, directory, queue, opt=False):
+    def run_workers(self, num_workers, directory, queue, opt=False):
         """ Run workers to process indices from a directory with files
         in parallel. All parsed indices will be added to the queue.
 
-        :no_of_workers: Number of workers that will run
+        :num_workers: Number of workers that will run
         :directory: Path to directory containing files
         :queue: multiprocessing.Queue where the indices will be added to
-        :opt: Determine optimal number of workers and ignore no_of_workers
+        :opt: Determine optimal number of workers and ignore num_workers
         parameter
         """
         if opt:
-            try:
-                # Spawn a large number of workers because of downloading
-                no_of_workers = cpu_count() * 8
-            except NotImplementedError:
-                logger.error("Cannot determine number of CPU's,"
-                             + "defaulting to 1 worker")
-                no_of_workers = 1
+            num_workers = process_utils.compute_num_workers()
 
         files = [_file.path for _file in os.scandir(directory)
                  if _file.is_file()]
 
-        div_files = process_utils.divide_files(files, no_of_workers)
-        workers = [Process(target=self.worker, args=(queue, div_files[i],))
-                   for i in range(no_of_workers)]
+        div_files = process_utils.divide_files(files, num_workers)
+        workers = [Process(target=self.worker, args=(queue, div_files[i]))
+                   for i in range(num_workers)]
 
         for worker in workers:
             worker.start()
