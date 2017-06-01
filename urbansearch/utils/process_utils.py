@@ -7,7 +7,7 @@ def divide_files(files, parts):
     :return: List of filelists divided, that have been divided into the
     specified number of parts
     """
-    if (not files and parts <= 0) or len(files) <= 0:
+    if _check_files_and_parts(files, parts):
         return None
     files_len = len(files)
     if parts > files_len:
@@ -23,3 +23,9 @@ def divide_files(files, parts):
         div_files[-1] += [files[-1]]
 
     return div_files
+
+
+def _check_files_and_parts(files, parts):
+    if (not files and parts <= 0) or len(files) <= 0:
+        return True
+

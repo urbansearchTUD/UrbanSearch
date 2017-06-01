@@ -145,7 +145,7 @@ def test_opt_workers():
     man = Manager()
     queue = man.Queue()
     directory = os.path.join(config.get('resources', 'test'), 'indices_dir/')
-    pd.run_workers(1, directory, queue, opt=True)
+    pd.run_workers(0, directory, queue)
     index = queue.get_nowait()
     index2 = queue.get_nowait()
     assert index is not None

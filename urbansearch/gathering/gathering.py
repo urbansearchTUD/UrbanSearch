@@ -37,11 +37,7 @@ class PageDownloader(object):
         :param url: The url in string format
         :param collection: Name of the collection, e.g CC-Main-2015-27-index
         """
-        if not url or not collection:
-            logger.warn('Invalid url/collection passed: {0} {1}'.format(
-                url, collection))
-            raise ValueError('A valid url to query on and an index '
-                             'collection must be specified.')
+        self._check_url_and_collection(url, collection)
 
         enc_url = quote(url, safe='')
         try:
@@ -50,7 +46,7 @@ class PageDownloader(object):
                                     '?url=' + enc_url +
                                     '&output=json', timeout=req_timeout)
             indices = [json.loads(x) for x in
-                       response.content.strip().decode('utf-8').split('\n')
+                       response.content.strip().descode('utf-8').split('\n')
                        if self._useful_str_responsecode(x)]
             self.indices += indices
 
@@ -59,6 +55,18 @@ class PageDownloader(object):
             # Catch these read exceptions in main application, or increase
             # the timeout value if deemed necessary
             raise
+
+    @staticmethod
+    def _check_url_and_collection(url, collection):
+        """
+        :param url: The url in string format
+        :param collection: Name of the collection, e.g CC-Main-2015-27-index
+        """
+        if not url or not collection:
+            logger.warn('Invalid url/collection passed: {0} {1}'.format(
+                url, collection))
+            raise ValueError('A valid url to query on and an index '
+                             'collection must be specified.')
 
     def download_warc_part(self, index):
         """
@@ -191,7 +199,11 @@ class PageDownloader(object):
             self.indices += indices
             return indices
 
-    def run_workers(self, no_of_workers, directory, queue, gz=True, opt=False):
+    @staticmethod
+    def _get_file_paths(directory):
+        return [_file.path for _file in os.scandir(directory) if _file.is_file()]
+
+    def run_workers(self, no_of_workers, directory, queue, gz=True):
         """ Run workers to process indices from a directory with files
         in parallel. All parsed indices will be added to the queue.
 
@@ -202,7 +214,7 @@ class PageDownloader(object):
         :opt: Determine optimal number of workers and ignore no_of_workers
         parameter
         """
-        if opt:
+        if (no_of_workers==0):
             try:
                 no_of_workers = (cpu_count() * 2) + 1
             except NotImplementedError:
@@ -210,8 +222,7 @@ class PageDownloader(object):
                              + "defaulting to 1 worker")
                 no_of_workers = 1
 
-        files = [_file.path for _file in os.scandir(directory)
-                 if _file.is_file()]
+        files = self._get_file_paths(directory)
 
         div_files = process_utils.divide_files(files, no_of_workers)
         workers = [Process(target=self.worker, args=(queue, div_files[i], gz))
@@ -235,14 +246,21 @@ class PageDownloader(object):
         :gz: Use .gz files or not, default: True.
         """
         if gz:
-            for file in files:
-                if file.endswith('.gz'):
-                    for index in self._worker_indices_from_gz_file(file):
-                        queue.put(index)
+            self._gz_workers(queue, files)
         else:
-            for file in files:
-                for index in self.indices_from_file(file):
+            self._file_workers(queue, files)
+
+    def _gz_workers(self, queue, files):
+        for file in files:
+            if file.endswith('.gz'):
+                for index in self._worker_indices_from_gz_file(file):
                     queue.put(index)
+
+    def _file_workers(self, queue, files):
+        for file in files:
+            for index in self.indices_from_file(file):
+                queue.put(index)
+
 
     def _worker_indices_from_gz_file(self, filename):
         with gzip.GzipFile(filename) as gz_obj:
