@@ -49,6 +49,14 @@ class Workers(object):
             return workers
 
     def classifying_worker(self, queue, to_db):
+        """ Classifying worker that classifies relevant indices from a queue.
+        Can output to database. Worker stops if queue is Empty and received
+        signal that the producers that fill the queue are done. See function
+        set_producers_done()
+
+        :queue: Queue containing indices
+        :to_db: Output index and category to database
+        """
         global producers_done
 
         while not queue.empty() or not producers_done.is_set():
@@ -71,5 +79,15 @@ class Workers(object):
                 pass
 
     def set_producers_done(self):
+        """ Set the signal that producers are done.
+
+        """
         global producers_done
         producers_done.set()
+
+    def clear_producers_done(self):
+        """ Clear the signal that producers are done.
+
+        """
+        global producers_done
+        producers_done.clear()

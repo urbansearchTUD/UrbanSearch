@@ -10,19 +10,13 @@ LOGGER = logging.getLogger(__name__)
 app = Flask(__name__)
 
 
-@app.route('/workers', methods=['GET'])
-def selection_workers():
-    ind_sel = indices_selector.IndicesSelector()
-    man = Manager()
-    queue = man.Queue()
-    iworkers = int(request.args.get('workers', 0))
-    directory = request.args.get('directory')
-    ind_sel.run_workers(iworkers, directory, queue)
-    return "Workers done"
-
-
 @app.route('/download_indices', methods=['GET'])
-def download_indices_for_url():
+def download_indices_for_url(url):
+    """ Download all indices for a given url
+
+    :url: String repr of url
+    :return: String repr of list of indices
+    """
     pd = gathering.PageDownloader()
     url = request.args.get('url')
     collection = request.args.get('collection')
@@ -32,6 +26,14 @@ def download_indices_for_url():
 
 @app.route('/classify_documents/log_only', methods=['GET'])
 def classify_documents_from_indices(pworkers=1, cworkers=1, directory=None):
+    """ Run workers to classify all documents and log only.
+    All the indices from the specified directory will be parsed using the
+    number of workers specified.
+
+    :pworkers: Number of producing workers, parsing indices and adds to queue.
+    :cworkers: Number of consuming workers, classifying indices from the queue.
+    :directory: Path to directory containing indices
+    """
     pworkers = int(request.args.get('pworkers', 0))
     cworkers = int(request.args.get('cworkers', 0))
     directory = request.args.get('directory')
@@ -53,6 +55,14 @@ def classify_documents_from_indices(pworkers=1, cworkers=1, directory=None):
 
 @app.route('/classify_documents/to_database', methods=['GET'])
 def classify_indices_to_db(pworkers=1, cworkers=1, directory=None):
+    """ Run workers to classify all documents and output to database.
+    Database must be online, all the indices from the specified directory
+    will be parsed using the number of workers specified.
+
+    :pworkers: Number of producing workers, parsing indices and adds to queue.
+    :cworkers: Number of consuming workers, classifying indices from the queue.
+    :directory: Path to directory containing indices
+    """
     pworkers = int(request.args.get('pworkers', 0))
     cworkers = int(request.args.get('cworkers', 0))
     directory = request.args.get('directory')
@@ -78,6 +88,7 @@ def classify_indices_to_db(pworkers=1, cworkers=1, directory=None):
 
 
 def _join_workers(cworker, producers, consumers):
+    # Wait for producers to finish
     for p in producers:
         p.join()
 
@@ -87,8 +98,10 @@ def _join_workers(cworker, producers, consumers):
     for c in consumers:
         c.join()
 
+    # Clear event in case cworker is used again
+    cworker.clear_producers_done()
 
-def parse_arguments():
+def _parse_arguments():
     parser = ArgumentParser(description='The TU Delft Urbansearch CLI')
 
     parser.add_argument('-d', '--directory',
@@ -119,12 +132,6 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def run_urbansearch(args):
-    if args.directory:
-        pass
-
-
 if __name__ == "__main__":
-    # classify_documents_from_indices()
-    args = parse_arguments()
-
+    args = _parse_arguments()
+    # TODO Create CLI, make different PR
