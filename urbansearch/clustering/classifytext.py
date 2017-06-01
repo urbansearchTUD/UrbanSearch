@@ -33,7 +33,7 @@ class ClassifyText(object):
         elif type == MNB:
             self.mm = MNBModelManager(filename=MAIN_CLASSIFIER_FILE)
 
-    def predict(self, text, pre_processor=False):
+    def predict(self, text, pre_processor=None):
         """
         Predict the class of the supplied text
 
@@ -45,7 +45,7 @@ class ClassifyText(object):
 
         return self.mm.predict([text])
 
-    def probability_per_category(self, text, pre_processor=False):
+    def probability_per_category(self, text, pre_processor=None):
         """
         Predict the class of the supplied text
 
