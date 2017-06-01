@@ -22,7 +22,8 @@ class Workers(object):
         self.ct = classifytext.ClassifyText()
         self.prepr = text_preprocessor.PreProcessor()
 
-    def run_classifying_workers(self, no_of_workers, queue, join=True):
+    def run_classifying_workers(self, no_of_workers, queue, join=True,
+                                to_db=False):
         """ Run workers to classify indices consumed from the queue in
         parallel. Workers will only terminate if producers are done, which can
         be signaled setting the producer_done event.
@@ -32,7 +33,7 @@ class Workers(object):
         :join: Wait for workers to be done and join. Default is True.
         parameter
         """
-        workers = [Process(target=self.classifying_worker, args=(queue,))
+        workers = [Process(target=self.classifying_worker, args=(queue, to_db))
                    for i in range(no_of_workers)]
 
         for worker in workers:
@@ -47,7 +48,7 @@ class Workers(object):
         else:
             return workers
 
-    def classifying_worker(self, queue):
+    def classifying_worker(self, queue, to_db):
         global producers_done
 
         while not queue.empty() or not producers_done.is_set():
@@ -57,6 +58,11 @@ class Workers(object):
                 category = self.ct.predict(txt, self.prepr.pre_process)
                 prob = self.ct.probability_per_category(txt,
                                                         self.prepr.pre_process)
+                if to_db:
+                    LOGGER.debug("Inserting {0} for {1} and index: {2}"
+                                 .format(prob, co_occ, index))
+                    # TODO Call to db_utils
+                    # TODO Change logging to debug?
                 LOGGER.info("Category: {0} for index {1}".format(str(category),
                                                                  index))
                 LOGGER.info("Probabilities: {0} for index {1}".format(str(prob),

@@ -4,6 +4,7 @@ from argparse import ArgumentParser
 from flask import Flask, request
 from urbansearch.gathering import indices_selector, gathering
 from urbansearch import workers
+from urbansearch.utils import db_utils
 
 LOGGER = logging.getLogger(__name__)
 app = Flask(__name__)
@@ -29,18 +30,49 @@ def download_indices_for_url():
     return str(pd.indices)
 
 
-@app.route('/classify_documents', methods=['GET'])
+@app.route('/classify_documents/log_only', methods=['GET'])
 def classify_documents_from_indices(pworkers=1, cworkers=1, directory=None):
-    # pworkers = int(request.args.get('pworkers', 0))
-    # cworkers = int(request.args.get('cworkers', 0))
-    # directory = request.args.get('directory')
-    directory='/home/gijs/BEP/test3/'
+    pworkers = int(request.args.get('pworkers', 0))
+    cworkers = int(request.args.get('cworkers', 0))
+    directory = request.args.get('directory')
+
+    if directory:
+        LOGGER.info("Using files from dir: {0}".format(directory))
+
     ind_sel = indices_selector.IndicesSelector()
     cworker = workers.Workers()
     man = Manager()
     queue = man.Queue()
+
     producers = ind_sel.run_workers(pworkers, directory, queue, join=False)
     consumers = cworker.run_classifying_workers(cworkers, queue, join=False)
+
+    # Join all workers when done
+    _join_workers(cworker, producers, consumers)
+
+
+@app.route('/classify_documents/to_database', methods=['GET'])
+def classify_indices_to_db(pworkers=1, cworkers=1, directory=None):
+    pworkers = int(request.args.get('pworkers', 0))
+    cworkers = int(request.args.get('cworkers', 0))
+    directory = request.args.get('directory')
+
+    if not db_utils.connected_to_db():
+        LOGGER.error("No database connection!")
+        return
+
+    if directory:
+        LOGGER.info("Using files from dir: {0}".format(directory))
+
+    ind_sel = indices_selector.IndicesSelector()
+    cworker = workers.Workers()
+    man = Manager()
+    queue = man.Queue()
+
+    producers = ind_sel.run_workers(pworkers, directory, queue, join=False)
+    consumers = cworker.run_classifying_workers(cworkers, queue, join=False,
+                                                to_db=False)
+
     # Join all workers when done
     _join_workers(cworker, producers, consumers)
 
@@ -88,6 +120,7 @@ def parse_arguments():
 
 
 if __name__ == "__main__":
-    classify_documents_from_indices()
+    # classify_documents_from_indices()
+    print(db_utils.connected_to_db())
     # args = parse_arguments()
     # print(args)
