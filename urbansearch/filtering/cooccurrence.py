@@ -1,8 +1,12 @@
 import ahocorasick
 import collections
 import itertools
+import logging
 
 from urbansearch.utils import db_utils
+
+
+logger = logging.getLogger('filtering')
 
 
 class CoOccurrenceChecker(object):
@@ -52,27 +56,26 @@ class CoOccurrenceChecker(object):
         return list(itertools.combinations(occurrences, 2))
 
     def _calculate_occurrences(self, page):
-        occurrences = self.automaton.iter(page)
+        names = self.automaton.iter(page)
         result_set = collections.OrderedDict()
 
-        # Loop over the occurrences pairwise: (1, 2), (2, 3), (3, 4), etc.
-        prev_occurrence = next(occurrences, None)
-        for occurrence in occurrences:
-            # If the end indices of a pair are within
-            # the length of an occurrence, there is overlap.
-            if abs(occurrence[0] - prev_occurrence[0]) < len(occurrence[1]):
-                longer = occurrence[1] if len(occurrence[1]) > len(
-                    prev_occurrence[1]) else prev_occurrence[1]
+        prev_end, prev_name = next(names, (None, None))
+        for end, name in names:
+            # Skip words that contain city names (e.g. Amsterdammers)
+            if page[prev_end + 1] in 'abcdefghijklmnopqrstuvwxyz':
+                prev_end, prev_name = end, name
+            # Skip cities if they are part of another city (e.g. Amsterdam
+            # when Amsterdam Zuidoost occurs)
+            elif abs(end - prev_end) < len(name):
+                longer = name if len(name) > len(prev_name) else prev_name
                 result_set[longer] = None
-                # Skip next to avoid processing the overlap in the next pair
-                prev_occurrence = next(occurrences, None)
-            # If there is no overlap, just add the city names to the result
-            # set.
+                prev_end, prev_name = next(names, (None, None))
             else:
-                result_set[prev_occurrence[1]] = None
-                prev_occurrence = occurrence
+                result_set[prev_name] = None
+                prev_end, prev_name = end, name
 
-        if prev_occurrence:
-            result_set[prev_occurrence[1]] = None
+        # Add the last occurrence
+        if prev_name:
+            result_set[prev_name] = None
 
         return result_set.keys()
