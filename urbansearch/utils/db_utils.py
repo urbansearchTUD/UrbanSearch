@@ -5,6 +5,8 @@ from neo4j.v1 import GraphDatabase, basic_auth, SessionError, CypherSyntaxError
 
 import config
 
+TOPIC_PROBS = dict.fromkeys(config.get('score', 'categories'), 0)
+
 # Keep a global driver
 _driver = None
 # Keep a global list of cities to prevent too many DB hits
@@ -52,6 +54,26 @@ def _city_property(city, property_name):
         return float(city['a'].properties[property_name])
     except ValueError:
         return city['a'].properties[property_name]
+
+
+def _get_topic_str(topics):
+    # Join all topics with ':', also add a leading ':'
+    # because there always is an Index label
+    return ':{}'.format(':'.join(topic.capitalize() for topic in topics))
+
+
+def _get_property_ret_str(name='r', properties=TOPIC_PROBS):
+    return ', '.join('{0}.{1} AS {1}'.format(name, k) for k in
+                     properties.keys())
+
+
+def _get_property_kv_str(properties=TOPIC_PROBS):
+    return ', '.join('{}: {}'.format(k, v) for k, v in properties.items())
+
+
+def _get_property_set_str(name='r', properties=TOPIC_PROBS):
+    return ', '.join('{}.{} = {}'.format(name, k, v)
+                     for k, v in properties.items())
 
 
 def perform_query(query):
@@ -138,6 +160,46 @@ def city_haversine_distance(name_a, name_b):
     return 2 * 6371 * math.asin(math.sqrt(a))
 
 
+def get_ic_rel(city_a, city_b, rel_name='RELATES_TO'):
+    """
+    Retrieves the relation scores for city A and city B, as a dictionary.
+    See `store_ic_rel` for a list of supported categories.
+
+    :param city_a: The name of city A
+    :param city_b: The name of city B
+    :param rel_name: The name of the relation. Defaults to 'RELATES_TO'.
+    Should not be adjusted in normal cases.
+    :return: A dictionary containing the relationship scores for different
+    categories or None if no relation exists.
+    """
+    query = '''
+        MATCH (n:City) WHERE n.name = '{0}'
+        MATCH (m:City) WHERE m.name = '{1}'
+        MATCH (n)-[r:{2}]-(m)
+        RETURN {3}
+        '''.format(city_a, city_b, rel_name, _get_property_ret_str())
+
+    result = perform_query(query)
+    return {k: v for k, v in result[0].items()} if result else None
+
+
+def get_index_probabilities(index):
+    """
+    Returns the probabilities for all topics that a given index belongs to
+    that topic.
+    :param index: The filename of the index
+    :return: A dictionary of `topic: probability` pairs or None if no topics
+    belong to the index
+    """
+    query = '''
+        MATCH (i:Index) WHERE i.filename = '{0}'
+        RETURN {1}
+    '''.format(index, _get_property_ret_str(name='i'))
+
+    result = perform_query(query)
+    return {k: v for k, v in result[0].items()} if result else {}
+
+
 def store_index(index, co_occurrences):
     """
     Stores the provided index in Neo4j and creates relationships
@@ -156,12 +218,15 @@ def store_index(index, co_occurrences):
     """
     # Create a set of cities to remove duplicates
     cities = {city for occurrence in co_occurrences for city in occurrence}
+    topic_probabilities = _get_property_kv_str()
 
     # Create a node for the index if it doesn't exist
     index_result = perform_query('''
-        MERGE (i:Index {{ filename: '{0}', offset: {1}, length: {2} }})
+        MERGE (i:Index {{ filename: '{0}', offset: {1}, length: {2}, {3} }})
         RETURN ID(i) AS id
-    '''.format(index['filename'], index['offset'], index['length']))
+    '''.format(index['filename'], index['offset'], index['length'],
+               topic_probabilities))
+
     index_id = index_result[0]['id']
 
     # For every city in the co-occurrence list,
@@ -170,7 +235,7 @@ def store_index(index, co_occurrences):
     for city in cities:
         create_relation_result = perform_query('''
             MATCH (i:Index) WHERE ID(i)={0}
-            MATCH (c:City {{ name: "{1}" }})
+            MATCH (c:City {{ name: '{1}' }})
             MERGE (c)-[r:OCCURS_IN]-(i)
             RETURN ID(r) AS id
         '''.format(index_id, city))
@@ -192,117 +257,73 @@ def store_index_topics(index, topics):
     if not topics:
         return False
 
-    # Join all topics with ':', also add a leading ':'
-    topics = _join_topics(topics) if topics else None
-
     query = '''
         MATCH (i:Index {{ filename: '{}' }})
         SET i{}
         RETURN ID(i) AS id
-    '''.format(index, topics)
+    '''.format(index, _get_topic_str(topics))
 
     return 'id' in perform_query(query)[0]
 
 
-def _join_topics(topics):
-    # Join all topics with ':', also add a leading ':'
-    # because there always is an Index label
-    return ':{}'.format(':'.join(topic.capitalize() for topic in topics))
-
-
-def _get_default_ic_rel_dict():
-    # Returns a default dictionary containing the supported categories.
-    return {
-        'commuting': -1,
-        'shopping': -1,
-        'leisure': -1,
-        'moving': -1,
-        'business': -1,
-        'education': -1,
-        'collaboration': -1,
-        'transportation': -1,
-        'other': -1
-    }
-
-
-def get_ic_rel(city_a, city_b, rel_name='RELATES_TO'):
+def store_index_probabilities(index, probabilities):
     """
-    Retrieves the relation scores for city A and city B, as a dictionary.
-    See `store_ic_rel` for a list of supported categories.
-
-    :param city_a: The name of city A
-    :param city_b: The name of city B
-    :param rel_name: The name of the relation. Defaults to 'RELATES_TO'.
-    Should not be adjusted in normal cases.
-    :return: A dictionary containing the relationship scores for different
-    categories or None if no relation exists.
-    """
-    property_str = ', '.join('r.{0} AS {0}'.format(k) for k in
-                             _get_default_ic_rel_dict().keys())
-    query = '''
-        MATCH (n:City) WHERE n.name = '{0}'
-        MATCH (m:City) WHERE m.name = '{1}'
-        MATCH (n)-[r:{2}]-(m)
-        RETURN {3}
-        '''.format(city_a, city_b, rel_name, property_str)
-
-    result = perform_query(query)
-    return {k: v for k, v in result[0].items()} if result else None
-
-
-def store_ic_rel(city_a, city_b, scores=None, rel_name='RELATES_TO'):
-    """
-    Stores a relationship from city A to city B with given scores.
-    If any scores exist, they are updated, preserving any existing scores
-    that are not being updated.
-
-    The scores parameter is a dictionary and it's values default to -1.
-    The following score types are supported:
+    Stores topic probabilities in the given Index node. The probabilities
+    parameter is a dictionary and it's values default to 0.
+    The following probability types are supported by default:
 
     - commuting
     - shopping
     - leisure
     - moving
-    - business
     - education
     - collaboration
     - transportation
     - other
 
-    :param city_a: The name of city A
-    :param city_b: The name of city B
-    :param scores: A dictionary of scores, with each score defaulting to -1
-    :param rel_name: The name of the relation, defaulting to 'RELATES_TO'.
-        Should not need to be adjusted in normal cases.
-    :return: True iff the intercity relation has been succesfully stored
+    :param index: The name of the index
+    :param probabilities: A dictionary of topic:probability pairs
+    :return: True iff the probabilities have been successfully stored
     :raises ValueError iff the passed scores dict contains a non-existing
     score type
     """
-    default_scores = _get_default_ic_rel_dict()
-    current_scores = get_ic_rel(city_a, city_b, rel_name)
+    current = get_index_probabilities(index)
 
-    if scores:
+    if probabilities:
         # Fill in the passed scores
-        if current_scores:
-            scores = {**default_scores, **current_scores, **scores}
-        else:
-            scores = {**default_scores, **scores}
+        probabilities = {**TOPIC_PROBS, **current, **probabilities}
 
-        if len(scores) > len(default_scores):
+        if len(probabilities) > len(TOPIC_PROBS):
             raise ValueError('Invalid score type given!')
     else:
-        scores = default_scores
+        probabilities = TOPIC_PROBS
 
-    # Convert to comma separated string
-    scores = ', '.join('{0}: {1}'.format(k, v) for k, v in scores.items())
+    query = '''
+        MATCH (i:Index) WHERE i.filename = '{0}'
+        SET {1}
+        RETURN ID(i) AS id
+    '''.format(index, _get_property_set_str(name='i',
+                                            properties=probabilities))
+    return 'id' in perform_query(query)[0]
 
-    rel_query = """
+
+def store_ic_rel(city_a, city_b, rel_name='RELATES_TO'):
+    """
+    Stores a relationship from city A to city B with default scores.
+    If the relationship already exists and if any scores exist, they are
+    overwritten.
+
+    :param city_a: The name of city A
+    :param city_b: The name of city B
+    :param rel_name: The name of the relation, defaulting to 'RELATES_TO'.
+        Should not need to be adjusted in normal cases.
+    :return: True iff the intercity relation has been succesfully stored
+    """
+    query = '''
         MATCH (a:City {{ name: '{0}' }})
         MATCH (b:City {{ name: '{1}' }})
         MERGE (a)-[r:{2} {{ {3} }}]-(b)
         RETURN ID(r) AS id
-    """.format(city_a, city_b, rel_name, scores)
+    '''.format(city_a, city_b, rel_name, _get_property_kv_str())
 
-    logger.debug(rel_query)
-
-    return 'id' in perform_query(rel_query)[0]
+    return 'id' in perform_query(query)[0]

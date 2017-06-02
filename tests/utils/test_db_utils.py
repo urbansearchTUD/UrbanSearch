@@ -52,6 +52,12 @@ def clean_neo4j_ic_rel(request):
     request.addfinalizer(clean_ic_rel)
 
 
+def _create_test_index(cooccurrences=list()):
+    index = {'filename': 'test.gz', 'length': 10, 'offset': 12}
+    db_utils.store_index(index, cooccurrences)
+    return index['filename']
+
+
 def test_caching():
     # Without cities cached
     start = time.time()
@@ -117,13 +123,6 @@ def test_store_single_cooccurrence():
 
 
 @pytest.mark.usefixtures('clean_neo4j_index_and_rel')
-def test_store_single_cooccurrence_no_topic():
-    index = {'filename': 'test.gz', 'length': 10, 'offset': 12}
-    co_occurrences = [('Amsterdam', 'Rotterdam')]
-    assert db_utils.store_index(index=index, co_occurrences=co_occurrences)
-
-
-@pytest.mark.usefixtures('clean_neo4j_index_and_rel')
 def test_store_multi_cooccurrence():
     index = {'filename': 'test.gz', 'length': 10, 'offset': 12}
     co_occurrences = [('Amsterdam', 'Rotterdam'), ('Amsterdam', 'Appingedam'),
@@ -131,90 +130,83 @@ def test_store_multi_cooccurrence():
     assert db_utils.store_index(index=index, co_occurrences=co_occurrences)
 
 
-@pytest.mark.usefixtures('clean_neo4j_index_and_rel')
-def test_store_multi_cooccurrences_no_topic():
-    index = {'filename': 'test.gz', 'length': 10, 'offset': 12}
-    co_occurrences = [('Amsterdam', 'Rotterdam'), ('Amsterdam', 'Appingedam'),
-                      ('Rotterdam', 'Appingedam')]
-    assert db_utils.store_index(index=index, co_occurrences=co_occurrences)
-
-
 @pytest.mark.usefixtures('clean_neo4j_ic_rel')
-def test_store_intercity_relation_default():
+def test_store_intercity_relation():
     assert db_utils.store_ic_rel('Amsterdam', 'Rotterdam', rel_name='REL_TEST')
 
 
-def test_get_instercity_relation_none():
+def test_get_intercity_relation_none():
     assert db_utils.get_ic_rel('Rotterdam', 'Amsterdam', rel_name='REL_TEST')\
            is None
 
 
 @pytest.mark.usefixtures('clean_neo4j_ic_rel')
-def test_get_instercity_relation():
+def test_get_intercity_relation():
     expected = {
         'commuting': 0,
-        'shopping': 1,
+        'shopping': 0,
         'leisure': 0,
-        'moving': 1,
-        'business': 0,
-        'education': 1,
+        'moving': 0,
+        'education': 0,
         'collaboration': 0,
-        'transportation': 1,
+        'transportation': 0,
         'other': 0
     }
-    db_utils.store_ic_rel('Rotterdam', 'Amsterdam', scores=expected,
-                          rel_name='REL_TEST')
+    db_utils.store_ic_rel('Rotterdam', 'Amsterdam', rel_name='REL_TEST')
     assert db_utils.get_ic_rel('Rotterdam', 'Amsterdam',
                                rel_name='REL_TEST') == expected
 
 
-@pytest.mark.usefixtures('clean_neo4j_ic_rel')
-def test_store_intercity_relation_full():
-    scores = {
+@pytest.mark.usefixtures('clean_neo4j_index')
+def test_store_index_topics_single():
+    index = _create_test_index()
+    topics = ['economy']
+    assert db_utils.store_index_topics(index, topics)
+
+
+@pytest.mark.usefixtures('clean_neo4j_index')
+def test_store_index_topics_multi():
+    index = _create_test_index()
+    topics = ['economy', 'commuting']
+    assert db_utils.store_index_topics(index, topics)
+
+
+@pytest.mark.usefixtures('clean_neo4j_index')
+def test_store_index_topics_empty():
+    index = _create_test_index()
+    topics = []
+    assert not db_utils.store_index_topics(index, topics)
+    topics = None
+    assert not db_utils.store_index_topics(index, topics)
+
+
+@pytest.mark.usefixtures('clean_neo4j_index')
+def test_store_index_probabilities_default():
+    index = _create_test_index()
+    assert db_utils.store_index_probabilities(index, None)
+
+
+@pytest.mark.usefixtures('clean_neo4j_index')
+def test_store_index_probabilities_full():
+    index = _create_test_index()
+    probabilities = {
         'commuting': 0.5,
         'shopping': 0.13,
         'leisure': 0.12,
         'moving': 0.11,
-        'business': 0.14,
         'education': 0.15,
         'collaboration': 0.16,
         'transportation': 0.17,
         'other': 0.19
     }
-    assert db_utils.store_ic_rel('Amsterdam', 'Rotterdam', scores=scores,
-                                 rel_name='REL_TEST')
-    assert db_utils.get_ic_rel('Amsterdam', 'Rotterdam',
-                               rel_name='REL_TEST') == scores
+    assert db_utils.store_index_probabilities(index, probabilities)
+    assert db_utils.get_index_probabilities(index) == probabilities
 
 
 @pytest.mark.usefixtures('clean_neo4j_ic_rel')
-def test_store_intercity_relation_partial():
-    scores = {
-        'commuting': 0.5,
-        'shopping': 0.13,
-        'leisure': 0.12,
-        'moving': 0.11
-    }
-    expected = {
-        'commuting': 0.5,
-        'shopping': 0.13,
-        'leisure': 0.12,
-        'moving': 0.11,
-        'business': -1,
-        'education': -1,
-        'collaboration': -1,
-        'transportation': -1,
-        'other': -1
-    }
-    assert db_utils.store_ic_rel('Amsterdam', 'Rotterdam', scores=scores,
-                                 rel_name='REL_TEST')
-    assert db_utils.get_ic_rel('Amsterdam', 'Rotterdam',
-                               rel_name='REL_TEST') == expected
-
-
-@pytest.mark.usefixtures('clean_neo4j_ic_rel')
-def test_store_intercity_relation_with_update():
-    scores = {
+def test_store_index_probabilities_with_update():
+    index = _create_test_index()
+    probabilities = {
         'commuting': 0.5,
         'shopping': 0.13,
         'leisure': 0.12,
@@ -226,47 +218,19 @@ def test_store_intercity_relation_with_update():
         'shopping': 0.13,
         'leisure': 0.12,
         'moving': 0.11,
-        'business': -1,
-        'education': -1,
-        'collaboration': -1,
-        'transportation': -1,
-        'other': -1
+        'education': 0,
+        'collaboration': 0,
+        'transportation': 0,
+        'other': 0
     }
-    assert db_utils.store_ic_rel('Amsterdam', 'Rotterdam', scores=scores,
-                                 rel_name='REL_TEST')
-    assert db_utils.store_ic_rel('Amsterdam', 'Rotterdam', scores=update,
-                                 rel_name='REL_TEST')
-    assert db_utils.get_ic_rel('Amsterdam', 'Rotterdam',
-                               rel_name='REL_TEST') == expected
+    assert db_utils.store_index_probabilities(index, probabilities)
+    assert db_utils.store_index_probabilities(index, update)
+    assert db_utils.get_index_probabilities(index) == expected
 
 
-def test_store_intercity_relation_invalid():
+@pytest.mark.usefixtures('clean_neo4j_index')
+def test_store_index_probabilities_invalid():
+    index = _create_test_index()
+    probabilities = {'invalid': 1}
     with pytest.raises(ValueError):
-        db_utils.store_ic_rel('Amsterdam', 'Rotterdam', scores={'wrong': 1},
-                              rel_name='REL_TEST')
-
-
-@pytest.mark.usefixtures('clean_neo4j_index')
-def test_store_index_topics_single():
-    index = {'filename': 'test.gz', 'length': 10, 'offset': 12}
-    db_utils.store_index(index, [])
-    topics = ['economy']
-    assert db_utils.store_index_topics(index['filename'], topics)
-
-
-@pytest.mark.usefixtures('clean_neo4j_index')
-def test_store_index_topics_multi():
-    index = {'filename': 'test.gz', 'length': 10, 'offset': 12}
-    db_utils.store_index(index, [])
-    topics = ['economy', 'commuting']
-    assert db_utils.store_index_topics(index['filename'], topics)
-
-
-@pytest.mark.usefixtures('clean_neo4j_index')
-def test_store_index_topics_empty():
-    index = {'filename': 'test.gz', 'length': 10, 'offset': 12}
-    db_utils.store_index(index, [])
-    topics = []
-    assert not db_utils.store_index_topics(index['filename'], topics)
-    topics = None
-    assert not db_utils.store_index_topics(index['filename'], topics)
+        db_utils.store_index_probabilities(index, probabilities)

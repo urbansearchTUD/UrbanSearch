@@ -14,6 +14,17 @@ gathering:
   cc_data: https://commoncrawl.s3.amazonaws.com/
   cc_index: http://index.commoncrawl.org/
   request_timeout: 2
+score:
+  default: 0
+  categories:
+    - commuting
+    - shopping
+    - leisure
+    - moving
+    - education
+    - collaboration
+    - transportation
+    - other
 logging:
   version: 1
   formatters:
