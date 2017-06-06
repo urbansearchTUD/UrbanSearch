@@ -10,6 +10,8 @@ resources:
   validation_sets: urbansearch/resources/validation_sets
   test_sets: urbansearch/resources/test_sets
   training_sets: urbansearch/resources/training_sets
+classification:
+  default_classifier: urbansearch/resources/models/sgdcmodel.default.pickle
 gathering:
   cc_data: https://commoncrawl.s3.amazonaws.com/
   cc_index: http://index.commoncrawl.org/
