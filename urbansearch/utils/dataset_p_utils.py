@@ -5,16 +5,7 @@ import pickle
 
 from .p_utils import PickleUtils
 
-CATEGORIES = [
-    'education',
-    'leisure',
-    'transportation',
-    'collaboration',
-    'commuting',
-    'shopping',
-    'residential_mobility',
-    'other',
-]
+CATEGORIES = config.get('score', 'categories')
 DATA_SETS_DIRECTORY = config.get('resources', 'data_sets')
 MODELS_DIRECTORY = config.get('resources', 'models')
 
@@ -28,8 +19,8 @@ class DatasetPickleUtils(PickleUtils):
         """
         Append a text to the list in the specified file
 
-        :param filename:
-        :param text:
+        :param filename: appends the text to the list in the specified file
+        :param text: the text to append
         """
         filename = self.category_to_file(category) if category else filename
         dataset = self.load(filename)
@@ -44,8 +35,8 @@ class DatasetPickleUtils(PickleUtils):
         """
         Append a list off texts to the list in the specified file
 
-        :param filename:
-        :param text:
+        :param filename: appends the texts to the list in the specified file
+        :param text: the texts to append
         """
         if isinstance(texts, list):
             filename = self.category_to_file(category) if category else filename
@@ -62,11 +53,19 @@ class DatasetPickleUtils(PickleUtils):
 
     def category_to_file(self, category):
         """
+        Return the filename for the category
+
+        :param category: the category for which we want the filename
+        :return: filename for the category
         """
         return '{}.pickle'.format(category)
 
     def filename_to_path(self, filename):
         """
+        Return the path for the file
+
+        :param category: the file for which we want the path
+        :return: path for the supplied filename
         """
         return os.path.join(DATA_SETS_DIRECTORY, filename)
 
@@ -128,11 +127,19 @@ class DatasetPickleUtils(PickleUtils):
 
     def load(self, filename):
         """
+        Dataset load function, overwrites the p_utils load function
+
+        :param filename: the file which we want to load
+        :return: The object saved in the file
         """
         return super().load(self.filename_to_path(filename))
 
     def save(self, obj, filename):
         """
+        Dataset save function, overwrites the p_utils save function
+
+        :param obj: the object we want to save/pickle
+        :param filename: the filename to which we want to save the object
         """
         super().save(obj, self.filename_to_path(filename))
 
