@@ -2,6 +2,8 @@ from flask import Flask
 from urbansearch.server.predict import predict_api
 
 API_PREFIX = '/api/v1'
+
+
 class Server(object):
     """
     """

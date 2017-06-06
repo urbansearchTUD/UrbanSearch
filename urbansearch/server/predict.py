@@ -6,6 +6,7 @@ from urbansearch.clustering.classifytext import ClassifyText
 predict_api = Blueprint('predict_api', __name__)
 ct = ClassifyText()
 
+
 @predict_api.route('/classify', methods=['POST', 'GET'])
 @predict_api.route('/classify/predict', methods=['POST', 'GET'])
 def predict():
@@ -26,6 +27,7 @@ def predict():
         prediction = ct.predict(data['text'])
         return jsonify(result=str(prediction[0]),
                        status='200')
+
 
 @predict_api.route('/classify/probabilities', methods=['POST', 'GET'])
 def probabilities():
