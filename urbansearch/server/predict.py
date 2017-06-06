@@ -1,5 +1,5 @@
 import config
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 
 from urbansearch.clustering.classifytext import ClassifyText
 
@@ -17,15 +17,17 @@ def predict():
     """
 
     if request.method == 'GET':
+        print('in classify')
         # TODO: render info page
-        pass
-    elif request.method == 'POST' and request.is_json():
-        data = request.json()
+        return jsonify(info='Add info',
+                       status='200')
+    elif request.method == 'POST' and request.is_json:
+        data = request.json
         prediction = ct.predict(data['text'])
-        return jsonify(result=prediction,
+        return jsonify(result=str(prediction[0]),
                        status='200')
 
-@predict_api.route('/classify/probabilities')
+@predict_api.route('/classify/probabilities', methods=['POST', 'GET'])
 def probabilities():
     """
     API route for getting the probabilities per category of the supplied text.
