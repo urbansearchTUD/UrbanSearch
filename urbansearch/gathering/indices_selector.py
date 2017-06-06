@@ -72,7 +72,7 @@ class IndicesSelector(object):
             co_occ = occ.check(pd.index_to_raw_text(index))
             if co_occ:
                 if to_database:
-                    db_utils.store_index(index, co_occ, None)
+                    db_utils.store_index(index, co_occ)
                 # If called from workers, return tuple to add to queue
                 if worker:
                     relevant_indices.append((index, co_occ))

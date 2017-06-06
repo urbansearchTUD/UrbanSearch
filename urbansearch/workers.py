@@ -4,6 +4,7 @@ from multiprocessing import Process, Event
 
 from urbansearch.gathering import gathering
 from urbansearch.clustering import classifytext, text_preprocessor
+from urbansearch.utils import db_utils
 producers_done = Event()
 
 LOGGER = logging.getLogger(__name__)
@@ -69,14 +70,23 @@ class Workers(object):
                 if to_db:
                     LOGGER.debug("Inserting {0} for {1} and index: {2}"
                                  .format(prob, co_occ, index))
-                    # TODO Call to db_utils
-                    # TODO Change logging to debug?
-                LOGGER.info("Category: {0} for index {1}".format(str(category),
+                    self._store_ic_rel(co_occ)
+                    db_utils.store_index_probabilities(index, prob)
+                LOGGER.info("Category: {0} for index {1}".format(category,
                                                                  index))
-                LOGGER.info("Probabilities: {0} for index {1}".format(str(prob),
+                LOGGER.info("Probabilities: {0} for index {1}".format(prob,
                                                                       index))
             except Empty:
                 pass
+
+    def _store_ic_rel(self, co_occ):
+        # Store all co-occurences as relations in database using db_utils
+        for city_a, city_b in co_occ:
+            if db_utils.store_ic_rel(city_a, city_b):
+                pass
+            else:
+                LOGGER.error("Database did not store IC_REL {0}-{1}"
+                             .format(city_a, city_b))
 
     def set_producers_done(self):
         """ Set the signal that producers are done.
