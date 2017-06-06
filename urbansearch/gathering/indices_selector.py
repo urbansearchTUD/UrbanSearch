@@ -2,19 +2,26 @@ import os
 import itertools
 import logging
 from json.decoder import JSONDecodeError
-from multiprocessing import Process
+from multiprocessing import Process, Manager, Value, Lock
+from tqdm import tqdm
+from ctypes import c_int
+import sys
+import timeit
 
 from urbansearch.gathering import gathering
 from urbansearch.filtering import cooccurrence
 from urbansearch.utils import process_utils, db_utils
-logger = logging.getLogger(__name__)
 
+logger = logging.getLogger(__name__)
+counter = Value(c_int)  # defaults to 0
+counter_lock = Lock()
 
 class IndicesSelector(object):
 
     def __init__(self, cities=None):
         self.page_downloader = gathering.PageDownloader()
         self.occurrence_checker = cooccurrence.CoOccurrenceChecker(cities)
+        self.tqdm = None
 
     def relevant_indices_from_dir(self, directory):
         """ Check all files in a directory and parse indices in the files
@@ -58,6 +65,8 @@ class IndicesSelector(object):
         i = 0
         n = len(indices)
         for index in indices:
+            with counter_lock:
+                counter.value += 1
             i += 1
             if i % 10 == 0:
                 logger.info('Index {0}/{1} of file {2}'.format(i, n, filepath))
@@ -80,13 +89,25 @@ class IndicesSelector(object):
 
         files = [_file.path for _file in os.scandir(directory)
                  if _file.is_file()]
-
+        self.tqdm = tqdm(total=len(files))
         div_files = process_utils.divide_files(files, num_workers)
         workers = [Process(target=self.worker, args=(queue, div_files[i]))
                    for i in range(num_workers)]
 
         for worker in workers:
             worker.start()
+
+        while counter.value < 120000:
+            if counter.value == 1:
+                start = timeit.default_timer()
+            if counter.value == 10001:
+                stop = timeit.default_timer()
+                print((stop - start) / 10000) 
+            if counter.value % 50 == 0:
+                sys.stdout.write('Progress: {0}/{1}\r'.format(counter.value, 120000))
+                sys.stdout.flush()
+
+            # print('Progress: {0}/{1}'.format(counter.value, 120000))
 
         # Wait for processes to finish
         for worker in workers:
@@ -104,3 +125,8 @@ class IndicesSelector(object):
         for file in files:
             for index in self.relevant_indices_from_file(file):
                 queue.put(index)
+
+ind_sel = IndicesSelector()
+man = Manager()
+q = man.Queue()
+ind_sel.run_workers(48, '/home/gijs/BEP/test/', q)
