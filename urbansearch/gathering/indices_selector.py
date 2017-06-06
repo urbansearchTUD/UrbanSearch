@@ -6,7 +6,7 @@ from multiprocessing import Process
 
 from urbansearch.gathering import gathering
 from urbansearch.filtering import cooccurrence
-from urbansearch.utils import process_utils
+from urbansearch.utils import process_utils, db_utils
 logger = logging.getLogger(__name__)
 
 
