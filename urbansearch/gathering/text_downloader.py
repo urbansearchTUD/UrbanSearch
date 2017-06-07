@@ -64,10 +64,11 @@ class TextDownloader(object):
     def _write_txt_file_index(self, index, text, output_dir, w_id, n):
         # Write index on first line of file, append the text
         final_text = str(index) + '\n' + text
-        with open(output_dir + "W{0}-{1}.txt".format(w_id, n), "w") as f:
+        with open(os.path.join(output_dir, "W{0}-{1}.txt".format(w_id, n)),
+                  "w") as f:
                 f.write(final_text)
 
-    def _parse_arguments():
+    def _parse_arguments(self):
         parser = ArgumentParser(description='UrbanSearch TextDownloader')
         parser.add_argument('directory',
                             help='Source files directory containing files with'
@@ -84,10 +85,11 @@ class TextDownloader(object):
 
 if __name__ == "__main__":
     td = TextDownloader()
-    args = td._parse_arguments()
+    td.run_workers(2, '/home/gijs/BEP/UrbanSearch/tests/resources/indices_dir/', '/home/gijs/BEP/')
+    #args = td._parse_arguments()
 
-    directory = args.directory
-    output_dir = args.output
-    workers = args.workers
+    #directory = args.directory
+    #output_dir = args.output
+    #workers = args.workers
 
-    td.run_workers(workers, directory, output_dir)
+    #td.run_workers(workers, directory, output_dir)
