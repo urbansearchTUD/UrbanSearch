@@ -27,9 +27,6 @@ def test_run_workers(tmpdir):
     td.run_workers(2, directory, str(tmpdir))
     # Check line in middle of text
     # Could be either Worker1 or Worker 0, so try and except
-    try:
-        with open(os.path.join(str(tmpdir), 'W0-0.txt'), 'r') as f:
-                assert f.readlines()[1] == exp[1]
-    except OSError as e:
-        with open(os.path.join(str(tmpdir), 'W1-0.txt'), 'r') as f:
-                assert f.readlines()[1] == exp[1]
+    _file = next(os.scandir(str(tmpdir)))
+    with open(_file.path, 'r') as f:
+            assert f.readlines()[1] == exp[1]
