@@ -12,6 +12,7 @@ pytest-cov
 PyYAML
 requests
 scikit-learn
+testfixtures
 
 #
 ####### Requirements with Version Specifiers ######
