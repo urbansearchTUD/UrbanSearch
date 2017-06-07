@@ -50,7 +50,7 @@ def test_append_to_inputs():
 
     pdu.save(dataset_list, filename)
 
-    pdu.append_to_inputs(filename, 'yolo nolo')
+    pdu.append_to_inputs('yolo nolo', filename=filename)
 
     data = pdu.load(filename)
     assert len(data['inputs']) == 3
@@ -64,7 +64,7 @@ def test_append_to_inputs_no_list():
 
     with pytest.raises(Exception):
         pdu.save(dataset_no_list, filename)
-        pdu.append_to_inputs(filename, 'yolo nolo')
+        pdu.append_to_inputs('yolo nolo', filename=filename)
 
     os.remove(file_path)
 
@@ -74,7 +74,7 @@ def test_append_list_to_inputs():
 
     pdu.save(dataset_list, filename)
 
-    pdu.append_list_to_inputs(filename, ['yolo nolo', 'nolo yolo'])
+    pdu.append_list_to_inputs(['yolo nolo', 'nolo yolo'], filename=filename)
 
     data = pdu.load(filename)
     assert len(data['inputs']) == 4
@@ -89,7 +89,7 @@ def test_append_no_list_to_inputs():
     pdu.save(dataset_list, filename)
 
     with pytest.raises(Exception):
-        pdu.append_list_to_inputs(filename, 'yolo nolo')
+        pdu.append_list_to_inputs('yolo nolo', filename=filename)
 
     os.remove(file_path)
 
@@ -99,7 +99,7 @@ def test_append_list_to_inputs_no_list():
     pdu.save(dataset_no_list, filename)
 
     with pytest.raises(Exception):
-        pdu.append_list_to_inputs(filename, ['yolo nolo', 'nolo yolo'])
+        pdu.append_list_to_inputs(['yolo nolo', 'nolo yolo'], filename=filename)
 
     os.remove(file_path)
 
@@ -115,27 +115,27 @@ def test_init_categoryset():
     filename = 'test_123.pickle'
     file_path = os.path.join(DATA_SETS_DIRECTORY, filename)
 
-    pdu.init_categoryset(filename, output='test',
+    pdu.init_categoryset('test_123',
                          inputs=['bla', 'blabla'])
 
     data = pdu.load(filename)
 
-    assert data['output'] == 'test'
+    assert data['output'] == 'test_123'
     assert len(data['inputs']) == 2
 
-    pdu.init_categoryset(filename, output=[],
+    pdu.init_categoryset('test_123',
                          inputs='test')
 
     data = pdu.load(filename)
 
-    assert data['output'] == ''
+    assert data['output'] == 'test_123'
     assert len(data['inputs']) == 0
 
-    pdu.init_categoryset(filename)
+    pdu.init_categoryset('test_123')
 
     data = pdu.load(filename)
 
-    assert data['output'] == ''
+    assert data['output'] == 'test_123'
     assert len(data['inputs']) == 0
 
     os.remove(file_path)
@@ -176,13 +176,11 @@ def test_generate_dataset():
 
     education_filename = 'education.pickle'
     education_file_path = os.path.join(DATA_SETS_DIRECTORY, education_filename)
-    pdu.init_categoryset(education_filename, output='test',
-                         inputs=['test'])
+    pdu.init_categoryset('education', inputs=['test'])
 
     commuting_filename = 'commuting.pickle'
     commuting_file_path = os.path.join(DATA_SETS_DIRECTORY, commuting_filename)
-    pdu.init_categoryset(commuting_filename, output='test',
-                         inputs=['test'])
+    pdu.init_categoryset('commuting', inputs=['test'])
 
     pdu.generate_dataset()
 
@@ -200,7 +198,7 @@ def test_set_output():
     filename = 'test_123.pickle'
     file_path = os.path.join(DATA_SETS_DIRECTORY, filename)
 
-    pdu.init_categoryset(filename, output='test',
+    pdu.init_categoryset('test_123',
                          inputs=['bla', 'blabla'])
 
     pdu.set_output(filename, 'yolo')
