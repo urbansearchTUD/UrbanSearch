@@ -3,7 +3,7 @@ import datetime
 import os
 import pickle
 
-from .p_utils import PickleUtils
+from urbansearch.utils.p_utils import PickleUtils
 
 CATEGORIES = config.get('score', 'categories')
 DATA_SETS_DIRECTORY = config.get('resources', 'data_sets')
@@ -15,13 +15,16 @@ class DatasetPickleUtils(PickleUtils):
     DatasetPickleUtils
     """
 
-    def append_to_inputs(self, filename, text, category=None):
+    def append_to_inputs(self, text, filename=None, category=None):
         """
         Append a text to the list in the specified file
 
         :param filename: appends the text to the list in the specified file
         :param text: the text to append
         """
+        if not filename and not category:
+            raise Exception('Filename or category should be specified')
+
         filename = self.category_to_file(category) if category else filename
         dataset = self.load(filename)
 
@@ -31,14 +34,14 @@ class DatasetPickleUtils(PickleUtils):
         else:
             raise Exception('Inputs not a list')
 
-    def append_list_to_inputs(self, filename, texts, category=None):
+    def append_list_to_inputs(self, texts, filename=None, category=None):
         """
         Append a list off texts to the list in the specified file
 
         :param filename: appends the texts to the list in the specified file
         :param text: the texts to append
         """
-        if isinstance(texts, list):
+        if isinstance(texts, list) and (filename or category):
             filename = self.category_to_file(category) if category else filename
             dataset = self.load(filename)
 
@@ -69,22 +72,21 @@ class DatasetPickleUtils(PickleUtils):
         """
         return os.path.join(DATA_SETS_DIRECTORY, filename)
 
-    def init_categoryset(self, filename, output=None, inputs=None):
+    def init_categoryset(self, category, inputs=None):
         """
         Initialize a new dataset
 
         :param filename: the filename of the file in which we want to store
         the new object
         """
-        output = output if output and isinstance(output, str) else ''
         inputs = inputs if inputs and isinstance(inputs, list) else []
 
         categoryset = {
-            'output': output,
+            'output': category,
             'inputs': inputs
         }
 
-        self.save(categoryset, filename)
+        self.save(categoryset, self.category_to_file(category))
 
     def init_dataset(self, filename, inputs=None, outputs=None):
         """
