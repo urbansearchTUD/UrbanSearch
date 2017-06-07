@@ -141,8 +141,3 @@ class IndicesSelector(object):
         for file in files:
             for index in self.relevant_indices_from_file(file):
                 queue.put(index)
-
-ind_sel = IndicesSelector()
-man = Manager()
-q = man.Queue()
-ind_sel.run_workers(48, '/home/gijs/BEP/test/', q)
