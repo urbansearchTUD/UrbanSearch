@@ -3,10 +3,10 @@ import itertools
 import logging
 from json.decoder import JSONDecodeError
 from multiprocessing import Process, Manager, Value, Lock
-from tqdm import tqdm
 from ctypes import c_int
 import sys
 import timeit
+import gzip
 
 from urbansearch.gathering import gathering
 from urbansearch.filtering import cooccurrence
@@ -21,7 +21,6 @@ class IndicesSelector(object):
     def __init__(self, cities=None):
         self.page_downloader = gathering.PageDownloader()
         self.occurrence_checker = cooccurrence.CoOccurrenceChecker(cities)
-        self.tqdm = None
 
     def relevant_indices_from_dir(self, directory):
         """ Check all files in a directory and parse indices in the files
@@ -89,25 +88,42 @@ class IndicesSelector(object):
 
         files = [_file.path for _file in os.scandir(directory)
                  if _file.is_file()]
-        self.tqdm = tqdm(total=len(files))
         div_files = process_utils.divide_files(files, num_workers)
         workers = [Process(target=self.worker, args=(queue, div_files[i]))
                    for i in range(num_workers)]
 
+        # Count lines of all files
+        # TODO move to process_utils
+        lines = 0
+        for file in files:
+            if file.endswith('.gz'):
+                with gzip.GzipFile(file) as gz_obj:
+                    for l in gz_obj.read().decode('utf-8').split('\n'):
+                        lines += 1
+        
         for worker in workers:
             worker.start()
 
-        while counter.value < 120000:
+        # TODO Move to function
+        start = 0
+        been = False
+        while counter.value < lines:
             if counter.value == 1:
                 start = timeit.default_timer()
-            if counter.value == 10001:
+            if counter.value % 100 == 0 and not been:
                 stop = timeit.default_timer()
-                print((stop - start) / 10000) 
-            if counter.value % 50 == 0:
-                sys.stdout.write('Progress: {0}/{1}\r'.format(counter.value, 120000))
-                sys.stdout.flush()
+                avg = (stop - start) / 100
+                remaining = (lines - counter.value) * avg
+                m, s = divmod(remaining, 60)
+                h, m = divmod(m, 60)
 
-            # print('Progress: {0}/{1}'.format(counter.value, 120000))
+                sys.stdout.write('Progress: {0}/{1} Left: {2} h {3} m {4} s\r'
+                                 .format(counter.value, lines, h, m, s))
+                sys.stdout.flush()
+                start = timeit.default_timer()
+                been = True
+            if counter.value % 100 != 0:
+                been = False
 
         # Wait for processes to finish
         for worker in workers:
