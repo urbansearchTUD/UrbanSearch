@@ -28,17 +28,22 @@ class Test_Workers(TestCase):
         assert mock_pre_process.called
 
 
+    @patch('urbansearch.utils.db_utils')
     @patch('queue.Empty')
-    def test_mock_classifying_worker(self, mock_event, mock_pd, mock_classify, mock_pre_process, mock_q_empty):
+    def test_mock_classifying_worker(self, mock_event, mock_pd, mock_classify, mock_pre_process, mock_q_empty, mock_db_utils):
         queue = Mock()
         queue.empty = MagicMock(side_effect=[False, True])
+        co_oc_mock = MagicMock(side_effect=[[{Mock()}, {Mock()}]])
+        queue.get_nowait = MagicMock(side_effect=[{Mock(), co_oc_mock}])
         w = Workers()
         w.set_producers_done()
+
+        mock_db_utils.store_index_probabilities = Mock()
 
         # Bugs other fixtures if imported globally.
         from testfixtures import LogCapture
         with LogCapture() as l:
-            w.classifying_worker(queue)
+            w.classifying_worker(queue, True)
             assert (l.__sizeof__()) > 0
 
         assert queue.empty.called

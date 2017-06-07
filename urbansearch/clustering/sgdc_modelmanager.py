@@ -4,7 +4,7 @@ from sklearn.feature_selection import f_classif, SelectPercentile
 from sklearn.linear_model import SGDClassifier
 from sklearn.pipeline import Pipeline
 
-from .modelmanager import ModelManager
+from urbansearch.clustering.modelmanager import ModelManager
 
 
 class SGDCModelManager(ModelManager):

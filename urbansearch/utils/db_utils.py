@@ -1,7 +1,8 @@
 import logging
 import math
 
-from neo4j.v1 import GraphDatabase, basic_auth, SessionError, CypherSyntaxError
+from neo4j.v1 import (GraphDatabase, basic_auth, SessionError,
+                      CypherSyntaxError, DriverError, ServiceUnavailable)
 
 import config
 
@@ -27,6 +28,14 @@ def _get_session():
         auth=basic_auth(config.get('neo4j', 'username'),
                         config.get('neo4j', 'password')))
     return _driver.session()
+
+
+def connected_to_db():
+    try:
+        if _get_session():
+            return True
+    except (DriverError, SessionError, ServiceUnavailable):
+        return False
 
 
 def _get_cities():

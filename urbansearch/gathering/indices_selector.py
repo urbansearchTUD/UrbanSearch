@@ -28,18 +28,19 @@ class IndicesSelector(object):
                             if _file.is_file()]
         return list(itertools.chain.from_iterable(relevant_indices))
 
-    def relevant_indices_from_file(self, filepath):
+    def relevant_indices_from_file(self, filepath, to_database=False,
+                                   worker=False):
         """ Collect all indices from file and return files that are relevant.
         An index is relevant if it contains at least one co-occurrence of
         cities. Input file can be .gz or document containing string
         representations of json.
 
         :filepath: Path to the file containing indices
+        :to_database: Store the indices and co-occurrences in the database
         :returns: List of relevant indices, in python JSON format
 
         """
         pd = self.page_downloader
-        occ = self.occurrence_checker
         try:
             if filepath.endswith('.gz'):
                 indices = pd._worker_indices_from_gz_file(filepath)
@@ -54,18 +55,34 @@ class IndicesSelector(object):
         # relevant_indices = [index for index in indices
         #                    if occ.check(pd.index_to_txt(index))]
         # Uncomment and remove lines below if progress is not interesting
+        return self._relevant_indices(indices, to_database, worker)
+
+    def _relevant_indices(self, indices, to_database, worker):
+        pd = self.page_downloader
+        occ = self.occurrence_checker
         relevant_indices = []
         i = 0
         n = len(indices)
+
         for index in indices:
             i += 1
             if i % 10 == 0:
-                logger.info('Index {0}/{1} of file {2}'.format(i, n, filepath))
-            if occ.check(pd.index_to_txt(index)):
-                relevant_indices.append(index)
+                # TODO Create clean progress indicator
+                logger.info("Index {0}/{1} of file".format(i, n))
+            co_occ = occ.check(pd.index_to_raw_text(index))
+            if co_occ:
+                if to_database:
+                    db_utils.store_index(index, co_occ)
+                # If called from workers, return tuple to add to queue
+                if worker:
+                    relevant_indices.append((index, co_occ))
+                else:
+                    relevant_indices.append(index)
+
         return relevant_indices
 
-    def run_workers(self, num_workers, directory, queue, opt=False):
+    def run_workers(self, num_workers, directory, queue, opt=False,
+                    join=True):
         """ Run workers to process indices from a directory with files
         in parallel. All parsed indices will be added to the queue.
 
@@ -88,9 +105,12 @@ class IndicesSelector(object):
         for worker in workers:
             worker.start()
 
-        # Wait for processes to finish
-        for worker in workers:
-            worker.join()
+        if join:
+            # Wait for processes to finish
+            for worker in workers:
+                worker.join()
+        else:
+            return workers
 
     def worker(self, queue, files):
         """
@@ -102,5 +122,5 @@ class IndicesSelector(object):
         :files: List of filepaths to files that this worker will use
         """
         for file in files:
-            for index in self.relevant_indices_from_file(file):
+            for index in self.relevant_indices_from_file(file, worker=True):
                 queue.put(index)

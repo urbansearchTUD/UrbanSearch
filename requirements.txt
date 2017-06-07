@@ -12,6 +12,8 @@ pytest-cov
 PyYAML
 requests
 scikit-learn
+flask
+sklearn
 testfixtures
 
 #

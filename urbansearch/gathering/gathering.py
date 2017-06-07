@@ -5,16 +5,12 @@ import logging
 import re
 import os
 import requests
-
 from urllib.parse import quote
 from bs4 import BeautifulSoup
 from multiprocessing import Process
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 import config
 from urbansearch.utils import process_utils
-
-requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 logger = logging.getLogger(__name__)
 
 
@@ -31,7 +27,6 @@ class PageDownloader(object):
         self.cc_index_url = config.get('gathering', 'cc_index')
         self.indices = []
         self.req_timeout = config.get('gathering', 'request_timeout')
-        self.session = requests.Session()
         # Cache the regular expression to filter http response code
         re.compile('\'status\': \'(\w+)\',')
 
@@ -51,10 +46,9 @@ class PageDownloader(object):
 
         enc_url = quote(url, safe='')
         try:
-            response = self.session.get(self.cc_index_url + collection +
-                                        '?url=' + enc_url +
-                                        '&output=json',
-                                        timeout=self.req_timeout)
+            response = requests.get(self.cc_index_url + collection +
+                                    '?url=' + enc_url +
+                                    '&output=json', timeout=self.req_timeout)
             indices = [json.loads(x) for x in
                        response.content.strip().decode('utf-8').split('\n')
                        if self._useful_str_responsecode(x)]
@@ -81,18 +75,18 @@ class PageDownloader(object):
         start, length = int(index['offset']), int(index['length'])
         end = start + length - 1
         try:
-            resp = self.session.get(self.cc_data_prefix + index['filename'],
+            response = requests.get(self.cc_data_prefix + index['filename'],
                                     headers={
                                         'Range': 'bytes={}-{}'.format(start,
                                                                       end)},
-                                    timeout=self.req_timeout, verify=False)
+                                    timeout=self.req_timeout)
         except requests.exceptions.RequestException as e:
             logger.warning('Exception while downloading warc part: {0}'
                            .format(e))
             return None
 
         # Response is compressed gz data, uncompress this using gzip
-        data = self._uncompress_gz(resp)
+        data = self._uncompress_gz(response)
 
         return data
 

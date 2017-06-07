@@ -102,6 +102,14 @@ def test_index_to_txt():
     assert result == exp
 
 
+def test_index_to_raw_text():
+    ind = pd.indices_from_file(os.path.join(config.get('resources', 'test'),
+                                            'indices.txt'))
+    result = pd.index_to_raw_text(ind[0])
+    assert type(result) == str
+    assert result.splitlines()[0] == 'WARC/1.0'
+
+
 def test_run_worker_gz():
     man = Manager()
     queue = man.Queue()
