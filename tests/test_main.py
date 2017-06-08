@@ -102,24 +102,14 @@ def test_mock_classify_indices_to_db_not_connected(mock_db_connected):
                 main.classify_indices_to_db()
                 assert (l.__sizeof__()) > 0
 
-"""
+
 @patch('urbansearch.main.ArgumentParser')
 def test_mock_parse_arguments(mock_argumentParser):
 
     p = mock_argumentParser.return_value = Mock()
 
-    main.parse_arguments()
+    main._parse_arguments()
 
     assert mock_argumentParser.called
     assert p.add_argument.called
     assert p.parse_args.called
-"""
-
-
-""" For testing Logger: 
-            # Bugs other fixtures if imported globally.
-            from testfixtures import LogCapture
-            with LogCapture() as l:
-                main.classify_indices_to_db()
-                assert (l.__sizeof__()) > 0
-"""
