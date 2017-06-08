@@ -24,10 +24,9 @@ def test_run_workers(tmpdir):
                            'W1-0.txt'), "r") as text_file:
         exp = text_file.readlines()
     
-    d = tmpdir.mkdir("2worker")
-    td.run_workers(2, directory, str(d))
+    td.run_workers(2, directory, directory)
     # Check line in middle of text
     # Could be either Worker1 or Worker 0, so try and except
-    _file = next(os.scandir(str(d)))
-    with open(_file.path, 'r') as f:
+    #_file = next(os.scandir(str(d)))
+    with open(os.path.join(directory, "W1-0.txt"), 'r') as f:
             assert f.readlines()[1] == exp[1]
