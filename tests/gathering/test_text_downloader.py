@@ -17,6 +17,23 @@ def test_worker(tmpdir):
             assert f.readlines()[10] == exp[10]
 
 
+def test_write_txt_file(tmpdir):
+    td = text_downloader.TextDownloader()
+    td._write_txt_file_index('a', 'b', str(tmpdir), 123, 456)
+    with open(os.path.join(str(tmpdir), 'W123-456.txt'), 'r') as f:
+            assert f.readline() == 'a\n'
+            assert f.readline() == 'b'
+
+
+def test_parse_arguments():
+    td = text_downloader.TextDownloader()
+    in_args = ['dir', '33', 'out']
+    args = td._parse_arguments(in_args)
+    assert args.directory == 'dir'
+    assert args.workers == '33'
+    assert args.output == 'out'
+
+"""
 def test_run_workers(tmpdir):
     td = text_downloader.TextDownloader()
     directory = os.path.join(config.get('resources', 'test'), 'indices_dir/')
@@ -30,3 +47,4 @@ def test_run_workers(tmpdir):
     _file = next(os.scandir(str(tmpdir)))
     with open(_file.path, 'r') as f:
             assert f.readlines()[1] == exp[1]
+"""
