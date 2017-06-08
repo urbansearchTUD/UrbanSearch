@@ -1,11 +1,15 @@
+import os
 import logging
 from queue import Empty
 from multiprocessing import Process, Event
+from ast import literal_eval
 
 from urbansearch.gathering import gathering
+from urbansearch.filtering import cooccurrence
 from urbansearch.clustering import classifytext, text_preprocessor
 from urbansearch.utils import db_utils
 producers_done = Event()
+file_producers_done = Event()
 
 LOGGER = logging.getLogger(__name__)
 
@@ -17,14 +21,13 @@ class Workers(object):
     """
 
     def __init__(self):
-        # global producer_alive
-        self.producer_alive = Event()
         self.pd = gathering.PageDownloader()
         self.ct = classifytext.ClassifyText()
+        self.co = cooccurrence.CoOccurrenceChecker()
         self.prepr = text_preprocessor.PreProcessor()
 
     def run_classifying_workers(self, no_of_workers, queue, join=True,
-                                to_db=False):
+                                to_db=False, pre_downloaded=False):
         """ Run workers to classify indices consumed from the queue in
         parallel. Workers will only terminate if producers are done, which can
         be signaled setting the producer_done event.
@@ -34,7 +37,11 @@ class Workers(object):
         :join: Wait for workers to be done and join. Default is True.
         parameter
         """
-        workers = [Process(target=self.classifying_worker, args=(queue, to_db))
+        func = self.classifying_worker
+        if pre_downloaded:
+            func = self.classifying_from_files_worker
+
+        workers = [Process(target=func, args=(queue, to_db))
                    for i in range(no_of_workers)]
 
         for worker in workers:
@@ -79,6 +86,62 @@ class Workers(object):
             except Empty:
                 pass
 
+    def classifying_from_files_worker(self, queue, to_db=False):
+        """ Classifying worker that classifies plain text files of relevant
+        indices from a directory. Can output to database.
+        Worker stops if queue is Empty and received signal that the file
+        reading producers that fill the queue are done. See function
+        set_file_producers_done()
+
+        :queue: Queue containing indices and text
+        :to_db: Output index and category to database
+        """
+        global file_producers_done
+
+        while not queue.empty() or not file_producers_done.is_set():
+            try:
+                index, txt = queue.get_nowait()
+                co_occ = self.co.check(txt)
+                prob = self.ct.probability_per_category(txt,
+                                                        self.prepr.pre_process)
+                LOGGER.debug("Parsed index: {0} || {1}".format(index, prob))
+
+                if to_db:
+                    db_utils.store_index(index, co_occ)
+                    self._store_ic_rel(co_occ)
+                    db_utils.store_index_probabilities(index, prob)
+            except Empty:
+                pass
+
+    def run_read_files_worker(self, directory, queue, join=True):
+        worker = [Process(target=self.read_files_worker, args=(directory,
+                                                               queue))]
+
+        LOGGER.info("File reading worker started")
+
+        worker[0].start()
+
+        if join:
+            # Wait for processes to finish
+            worker.join()
+        else:
+            return worker
+
+    def read_files_worker(self, directory, queue):
+        """ Read all files in a directory and output to the queue. First line
+        of every file should contain the index. Worker separates first line
+        and parses to dict. Tuple of index and text is added to queue.
+
+        :directory: Source directory containing files
+        :queue: Queue to add the tuples to
+        """
+        for file in os.scandir(directory):
+            if file.is_file():
+                with open(file.path, 'r') as f:
+                    text = f.readlines()
+                    index = literal_eval(text.pop(0).strip())
+                    queue.put_nowait((index, '\n'.join(text)))
+
     def _store_ic_rel(self, co_occ):
         # Store all co-occurences as relations in database using db_utils
         for city_a, city_b in co_occ:
@@ -101,3 +164,17 @@ class Workers(object):
         """
         global producers_done
         producers_done.clear()
+
+    def set_file_producers_done(self):
+        """ Set the signal that producers are done.
+
+        """
+        global file_producers_done
+        file_producers_done.set()
+
+    def clear_file_producers_done(self):
+        """ Clear the signal that producers are done.
+
+        """
+        global file_producers_done
+        file_producers_done.clear()
