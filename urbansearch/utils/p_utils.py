@@ -19,7 +19,6 @@ class PickleUtils(object):
         except:
             raise Exception('Loading object from {} failed'.format(filename))
 
-
     def save(self, obj, filename):
         """
         Pickle an object to filename

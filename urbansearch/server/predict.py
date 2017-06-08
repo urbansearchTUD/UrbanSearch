@@ -13,8 +13,8 @@ ct = ClassifyText()
 @is_json
 def predict():
     """
-    API route for predicting the category of the supplied text. The request should
-    have type set to application/json and the provided JSON
+    API route for predicting the category of the supplied text.
+    The request should have type set to application/json and the provided JSON
     should have a text attribute containing the text for which we want to
     predict the category.
     """

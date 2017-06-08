@@ -30,5 +30,7 @@ class Server(object):
         """
         Register the predefined blueprints
         """
-        self.app.register_blueprint(predict_api, url_prefix=API_PREFIX+'/classify')
-        self.app.register_blueprint(dataset_api, url_prefix=API_PREFIX+'/datasets')
+        self.app.register_blueprint(predict_api,
+                                    url_prefix=API_PREFIX + '/classify')
+        self.app.register_blueprint(dataset_api,
+                                    url_prefix=API_PREFIX + '/datasets')

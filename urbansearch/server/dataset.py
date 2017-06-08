@@ -19,7 +19,7 @@ def append():
         dpu.append_to_inputs(data['document'], category=data['category'])
         return jsonify(status=200,
                        message='Document successfully added')
-    except Exception as e:
+    except:
         return jsonify(error=True,
                        status=400,
                        message='Invalid JSON supplied for this API call')
@@ -34,13 +34,14 @@ def create():
         dpu.generate_dataset()
         return jsonify(status=200,
                        message='Dataset successfully created')
-    except Exception as e:
+    except:
         return jsonify(error=True,
                        status=500,
                        message='Creation of dataset failed')
 
 
-@dataset_api.route('/create/categoryset', methods=['POST'], strict_slashes=False)
+@dataset_api.route('/create/categoryset',
+                   methods=['POST'], strict_slashes=False)
 @is_json
 def create_categoryset():
     """
@@ -54,7 +55,7 @@ def create_categoryset():
 
         return jsonify(status=200,
                        message='Categoryset successfully created')
-    except Exception as e:
+    except:
         return jsonify(error=True,
                        status=500,
                        message='Creation of categoryset failed')
