@@ -59,9 +59,7 @@ class TextDownloader(object):
             for file in files:
                 if file.endswith('.gz'):
                     for i, index in enumerate(rlv_indices(file)):
-                        print(file)
                         txt = self.pd.index_to_txt(index)
-                        print(txt)
                         self._write_txt_file_index(index, txt, output_dir,
                                                    w_id, i)
 
