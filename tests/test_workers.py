@@ -4,9 +4,9 @@ from unittest.mock import MagicMock, Mock, patch
 from urbansearch.workers import Workers
 
 
-@patch('urbansearch.clustering.text_preprocessor.PreProcessor')
-@patch('urbansearch.clustering.classifytext.ClassifyText')
-@patch('urbansearch.gathering.gathering.PageDownloader')
+@patch('urbansearch.workers.text_preprocessor.PreProcessor')
+@patch('urbansearch.workers.classifytext.ClassifyText')
+@patch('urbansearch.workers.gathering.PageDownloader')
 @patch('urbansearch.workers.Event')
 class Test_Mock_Workers(TestCase):
 
@@ -15,7 +15,6 @@ class Test_Mock_Workers(TestCase):
                                           mock_classify,
                                           mock_pre_process, mock_process):
         queue = Mock()
-
         workers = Workers()
 
         mock_pre_process.return_value = Mock()
@@ -31,22 +30,41 @@ class Test_Mock_Workers(TestCase):
     @patch('urbansearch.workers.db_utils')
     def test_mock_classifying_worker(self, mock_event, mock_pd, mock_classify,
                                      mock_pre_process, mock_db_utils):
-        queue = Mock()
+        queue = MagicMock()
         queue.empty = MagicMock(side_effect=[False, True])
-        queue.get_nowait = MagicMock(side_effect=[{Mock(), MagicMock(side_effect=[[{Mock(), Mock()}]])}])
+        queue.get_nowait = MagicMock(side_effect=[Mock(), Mock(return_value=iter([]))])
         w = Workers()
         w.set_producers_done()
+        w.clear_producers_done()
 
         # Bugs other fixtures if imported globally.
         from testfixtures import LogCapture
         with LogCapture() as l:
             w.classifying_worker(queue, True)
-            assert (l.__sizeof__()) > 0
+            assert (l.__sizeof__()) == 0
 
         assert queue.empty.called
         assert queue.get_nowait.called
         assert w.pd.index_to_txt.called
         assert w.ct.predict.called
         assert w.ct.probability_per_category.called
+
+    @patch('urbansearch.workers.db_utils')
+    def test_mock_not_classifying_worker(self, mock_event, mock_pd, mock_classify,
+                                     mock_pre_process, mock_db_utils):
+        queue = MagicMock()
+        queue.empty.return_value = True
+        queue.get_nowait = MagicMock(side_effect=[{Mock(), Mock()}])
+        w = Workers()
+        w.set_producers_done()
+
+        w.classifying_worker(queue, True)
+
+        assert queue.empty.called
+        assert not queue.get_nowait.called
+        assert not w.pd.index_to_txt.called
+        assert not w.ct.predict.called
+        assert not w.ct.probability_per_category.called
+
 
 
