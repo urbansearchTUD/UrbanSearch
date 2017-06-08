@@ -71,7 +71,7 @@ class Workers(object):
                     LOGGER.debug("Inserting {0} for {1} and index: {2}"
                                  .format(prob, co_occ, index))
                     self._store_ic_rel(co_occ)
-                    #db_utils.store_index_probabilities(index, prob)
+                    db_utils.store_index_probabilities(index, prob)
                 LOGGER.info("Category: {0} for index {1}".format(category,
                                                                  index))
                 LOGGER.info("Probabilities: {0} for index {1}".format(prob,

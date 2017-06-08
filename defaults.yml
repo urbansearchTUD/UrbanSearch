@@ -5,6 +5,7 @@ neo4j:
   password: ''
 resources:
   test: tests/resources
+  category_links: urbansearch/resources/category_links
   models: urbansearch/resources/models
   data_sets: urbansearch/resources/data_sets
   validation_sets: urbansearch/resources/validation_sets

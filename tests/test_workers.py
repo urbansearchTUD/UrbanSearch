@@ -10,9 +10,9 @@ from urbansearch.workers import Workers
 @patch('urbansearch.workers.Event')
 class Test_Workers(TestCase):
 
-
     @patch('urbansearch.workers.Process')
-    def test_mock_run_classifying_workers(self, mock_event, mock_pd, mock_classify, mock_pre_process, mock_process):
+    def test_mock_run_classifying_workers(self, mock_event, mock_pd, mock_classify,
+                                          mock_pre_process, mock_process):
         queue = Mock()
 
         workers = Workers()
@@ -27,18 +27,14 @@ class Test_Workers(TestCase):
 
         assert mock_pre_process.called
 
-
-    @patch('urbansearch.utils.db_utils')
-    @patch('queue.Empty')
-    def test_mock_classifying_worker(self, mock_event, mock_pd, mock_classify, mock_pre_process, mock_q_empty, mock_db_utils):
+    @patch('urbansearch.workers.db_utils')
+    def test_mock_classifying_worker(self, mock_event, mock_pd, mock_classify, mock_pre_process, mock_db_utils):
         queue = Mock()
         queue.empty = MagicMock(side_effect=[False, True])
         co_oc_mock = MagicMock(side_effect=[[{Mock()}, {Mock()}]])
         queue.get_nowait = MagicMock(side_effect=[{Mock(), co_oc_mock}])
         w = Workers()
         w.set_producers_done()
-
-        mock_db_utils.store_index_probabilities = Mock()
 
         # Bugs other fixtures if imported globally.
         from testfixtures import LogCapture
