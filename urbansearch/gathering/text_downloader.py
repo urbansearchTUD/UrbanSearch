@@ -1,4 +1,5 @@
 import os
+import config
 from argparse import ArgumentParser
 from multiprocessing import Process
 
@@ -83,9 +84,10 @@ class TextDownloader(object):
         return parser.parse_args()
 
 
-if __name__ == "__main__":
-    td = TextDownloader()
-    td.run_workers(2, '/home/gijs/BEP/UrbanSearch/tests/resources/indices_dir/', '/home/gijs/BEP/')
+#if __name__ == "__main__":
+    #td = TextDownloader()
+    #td.run_workers(2, os.path.join(config.get('resources', 'test'), 'indices_dir/'),
+    #               '/home/gijs/BEP/')
     #args = td._parse_arguments()
 
     #directory = args.directory
