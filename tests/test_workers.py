@@ -33,8 +33,8 @@ class Test_Mock_Workers(TestCase):
                                      mock_pre_process, mock_db_utils):
         queue = Mock()
         queue.empty = MagicMock(side_effect=[False, True])
-        co_oc_mock = MagicMock(side_effect=[[{Mock(), Mock()}]])
-        queue.get_nowait = MagicMock(side_effect=[{Mock(), co_oc_mock}])
+        queue.get_nowait = MagicMock(side_effect=[{Mock(), MagicMock(
+            side_effect=[[{Mock(), Mock()}]])}])
         w = Workers()
         w.set_producers_done()
 
