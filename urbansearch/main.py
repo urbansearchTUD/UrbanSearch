@@ -87,6 +87,34 @@ def classify_indices_to_db(pworkers=1, cworkers=1, directory=None):
     _join_workers(cworker, producers, consumers)
 
 
+def classify_textfiles_to_db(num_cworkers, directory, to_db=False):
+    """ Run workers to classify all documents and output to database.
+    Database must be online, all the indices from the specified directory
+    will be parsed using the number of workers specified.
+
+    :directory: Path to directory containing indices
+    :cworkers: Number of consuming workers, classifying indices from the queue.
+    """
+    if not db_utils.connected_to_db():
+        LOGGER.error("No database connection!")
+        return
+
+    if directory:
+        LOGGER.info("Using files from dir: {0}".format(directory))
+
+    w_factory = workers.Workers()
+    man = Manager()
+    queue = man.Queue()
+
+    producer = w_factory.run_read_files_worker(directory, queue, join=False)
+    consumers = w_factory.run_classifying_workers(num_cworkers, queue,
+                                                  join=False, to_db=False,
+                                                  pre_downloaded=True)
+
+    # Join all workers when done
+    _join_file_workers(w_factory, producer, consumers)
+
+
 def _join_workers(cworker, producers, consumers):
     # Wait for producers to finish
     for p in producers:
@@ -100,6 +128,21 @@ def _join_workers(cworker, producers, consumers):
 
     # Clear event in case cworker is used again
     cworker.clear_producers_done()
+
+
+def _join_file_workers(w, producers, consumers):
+    # Wait for producers to finish
+    for p in producers:
+        p.join()
+    # Signal consumers that producers have finished
+    w.set_file_producers_done()
+
+    for c in consumers:
+        c.join()
+
+    # Clear event in case it is used again
+    w.clear_file_producers_done()
+
 
 def _parse_arguments():
     parser = ArgumentParser(description='The TU Delft Urbansearch CLI')
@@ -133,5 +176,7 @@ def _parse_arguments():
 
 
 if __name__ == "__main__":
-    args = _parse_arguments()
+    classify_textfiles_to_db(2, '/home/gijs/BEP/test4/', to_db=False)
+    # args = _parse_arguments()
+
     # TODO Create CLI, make different PR
