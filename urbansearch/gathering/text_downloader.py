@@ -1,5 +1,5 @@
 import os
-import config
+import sys
 from argparse import ArgumentParser
 from multiprocessing import Process
 
@@ -70,7 +70,7 @@ class TextDownloader(object):
                   "w") as f:
                 f.write(final_text)
 
-    def _parse_arguments(self):
+    def _parse_arguments(self, args):
         parser = ArgumentParser(description='UrbanSearch TextDownloader')
         parser.add_argument('directory',
                             help='Source files directory containing files with'
@@ -82,17 +82,15 @@ class TextDownloader(object):
         parser.add_argument('output',
                             help='Output directory where text containing at '
                                  + 'least 1 co-occurrence will be stored.')
-        return parser.parse_args()
+        return parser.parse_args(args)
 
 
-#if __name__ == "__main__":
-    #td = TextDownloader()
-    #td.run_workers(2, os.path.join(config.get('resources', 'test'), 'indices_dir/'),
-    #               '/home/gijs/BEP/')
-    #args = td._parse_arguments()
+if __name__ == "__main__":
+    td = TextDownloader()
+    args = td._parse_arguments(sys.argv[1:])
 
-    #directory = args.directory
-    #output_dir = args.output
-    #workers = args.workers
+    directory = args.directory
+    output_dir = args.output
+    workers = args.workers
 
-    #td.run_workers(workers, directory, output_dir)
+    td.run_workers(workers, directory, output_dir)

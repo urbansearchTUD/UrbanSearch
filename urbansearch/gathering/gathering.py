@@ -87,7 +87,6 @@ class PageDownloader(object):
                                                                       end)},
                                     timeout=self.req_timeout, verify=False)
         except requests.exceptions.RequestException as e:
-            raise
             logger.warning('Exception while downloading warc part: {0}'
                            .format(e))
             return None
