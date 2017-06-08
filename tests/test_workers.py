@@ -32,7 +32,7 @@ class Test_Mock_Workers(TestCase):
         queue = Mock()
         queue.empty = MagicMock(side_effect=[False, True])
         #co_oc_mock = MagicMock(side_effect=[[Mock(), Mock()]])
-        queue.get_nowait = MagicMock(side_effect=[{Mock(), MagicMock(side_effect=[{Mock(), Mock()}])}])
+        queue.get_nowait = MagicMock(side_effect=[{Mock(), MagicMock(side_effect=[[{Mock(), Mock()}]])}])
         w = Workers()
         w.set_producers_done()
 
