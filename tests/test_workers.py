@@ -11,7 +11,8 @@ from urbansearch.workers import Workers
 class Test_Mock_Workers(TestCase):
 
     @patch('urbansearch.workers.Process')
-    def test_mock_run_classifying_workers(self, mock_event, mock_pd, mock_classify,
+    def test_mock_run_classifying_workers(self, mock_event, mock_pd,
+                                          mock_classify,
                                           mock_pre_process, mock_process):
         queue = Mock()
 
@@ -28,11 +29,12 @@ class Test_Mock_Workers(TestCase):
         assert mock_pre_process.called
 
     @patch('urbansearch.workers.db_utils')
-    def test_mock_classifying_worker(self, mock_event, mock_pd, mock_classify, mock_pre_process, mock_db_utils):
+    def test_mock_classifying_worker(self, mock_event, mock_pd, mock_classify,
+                                     mock_pre_process, mock_db_utils):
         queue = Mock()
         queue.empty = MagicMock(side_effect=[False, True])
-        #co_oc_mock = MagicMock(side_effect=[[Mock(), Mock()]])
-        queue.get_nowait = MagicMock(side_effect=[{Mock(), MagicMock(side_effect=[[{Mock(), Mock()}]])}])
+        co_oc_mock = MagicMock(side_effect=[[{Mock(), Mock()}]])
+        queue.get_nowait = MagicMock(side_effect=[{Mock(), co_oc_mock}])
         w = Workers()
         w.set_producers_done()
 
@@ -47,17 +49,3 @@ class Test_Mock_Workers(TestCase):
         assert w.pd.index_to_txt.called
         assert w.ct.predict.called
         assert w.ct.probability_per_category.called
-
-"""
-def test_set_producers_done():
-    w = Workers()
-    assert not w.producers_done.is_set()
-    workers.set_producers_done()
-    assert w.producers_done.is_set()
-
-
-def test_clear_producers_done():
-    assert False
-"""
-
-

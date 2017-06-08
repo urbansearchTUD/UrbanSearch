@@ -19,7 +19,7 @@ def test_mock_download_indices_for_url(mock_gathering_pd,):
 @patch('urbansearch.workers.Workers')
 @patch('urbansearch.main.Manager')
 def test_mock_classify_documents_from_indices(mock_manager, mock_workers,
-                                         mock_indices_selector):
+                                              mock_indices_selector):
     with main.app.app_context():
         with patch('urbansearch.main.request') as mock_flask_request:
             ind_sel = mock_indices_selector.return_value = Mock()
@@ -37,7 +37,7 @@ def test_mock_classify_documents_from_indices(mock_manager, mock_workers,
             from testfixtures import LogCapture
             with LogCapture() as l:
                 main.classify_documents_from_indices()
-                assert (l.__sizeof__()) > 0
+                assert ((l.__sizeof__()) > 0)
 
             assert mock_indices_selector.called
             assert mock_workers.called
@@ -93,7 +93,6 @@ def test_mock_classify_indices_to_db(mock_manager, mock_workers,
 def test_mock_classify_indices_to_db_not_connected(mock_db_connected):
     with main.app.app_context():
         with patch('urbansearch.main.request') as mock_flask_request:
-
 
             mock_db_connected.return_value = False
 
