@@ -54,7 +54,7 @@ class Test_Mock_Workers(TestCase):
     @patch('urbansearch.workers.db_utils.store_ic_rel')
     def test__store_ic_rel(self, mock_db_utils_store_ic,
                            mock_event, mock_pd, mock_classify,
-                           mock_coOc, mock_pre_process ):
+                           mock_coOc, mock_pre_process):
         mock_db_utils_store_ic.return_value = True
         w = Workers()
         w._store_ic_rel([{Mock(), Mock()}])
@@ -63,7 +63,7 @@ class Test_Mock_Workers(TestCase):
     @patch('urbansearch.workers.db_utils.store_ic_rel')
     def test__store_ic_rel_no_rel(self, mock_db_utils_store_ic,
                                   mock_event, mock_pd, mock_classify,
-                                  mock_coOc, mock_pre_process ):
+                                  mock_coOc, mock_pre_process):
         mock_db_utils_store_ic.return_value = False
         w = Workers()
 
@@ -75,8 +75,8 @@ class Test_Mock_Workers(TestCase):
         assert mock_db_utils_store_ic.called
 
     @patch('urbansearch.workers.db_utils')
-    def test_not_classifying_worker(self, mock_db_utils, mock_event, mock_pd, mock_classify,
-                                    mock_coOc, mock_pre_process,
+    def test_not_classifying_worker(self, mock_db_utils, mock_event, mock_pd,
+                                    mock_classify, mock_coOc, mock_pre_process
                                     ):
         queue = MagicMock()
         queue.empty.return_value = True
@@ -148,9 +148,9 @@ class Test_Mock_Workers(TestCase):
         assert worker.join.called
 
     @patch('urbansearch.workers.Process')
-    def test_run_read_files_worker_join_false(self, mock_process, mock_event, mock_pd,
-                                              mock_classify, mock_coOc,
-                                              mock_pre_process):
+    def test_run_read_files_worker_join_false(self, mock_process, mock_event,
+                                              mock_pd, mock_classify,
+                                              mock_coOc, mock_pre_process):
         worker = mock_process.return_value = Mock()
         worker.join.return_value = Mock()
 
