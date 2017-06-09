@@ -92,8 +92,10 @@ def classify_textfiles_to_db(num_cworkers, directory, to_db=False):
     Database must be online, all the indices from the specified directory
     will be parsed using the number of workers specified.
 
+    :num_cworkers: Number of consuming workers, classifying indices from the
+    queue.
     :directory: Path to directory containing indices
-    :cworkers: Number of consuming workers, classifying indices from the queue.
+    :to_db: Output results to database specified in config
     """
     if not db_utils.connected_to_db():
         LOGGER.error("No database connection!")
@@ -176,7 +178,8 @@ def _parse_arguments():
 
 
 if __name__ == "__main__":
-    classify_textfiles_to_db(2, '/home/gijs/BEP/test4/', to_db=False)
+    # Example call, no output to DB
+    classify_textfiles_to_db(2, '/data/', to_db=False)
     # args = _parse_arguments()
 
     # TODO Create CLI, make different PR

@@ -75,10 +75,9 @@ class Workers(object):
                 prob = self.ct.probability_per_category(txt,
                                                         self.prepr.pre_process)
                 if to_db:
+                    self._store_in_db(index, prob, co_occ, pre_downloaded=False)
                     LOGGER.debug("Inserting {0} for {1} and index: {2}"
                                  .format(prob, co_occ, index))
-                    self._store_ic_rel(co_occ)
-                    db_utils.store_index_probabilities(index, prob)
                 LOGGER.info("Category: {0} for index {1}".format(category,
                                                                  index))
                 LOGGER.info("Probabilities: {0} for index {1}".format(prob,
@@ -107,13 +106,29 @@ class Workers(object):
                 LOGGER.debug("Parsed index: {0} || {1}".format(index, prob))
 
                 if to_db:
-                    db_utils.store_index(index, co_occ)
-                    self._store_ic_rel(co_occ)
-                    db_utils.store_index_probabilities(index, prob)
+                    self._store_in_db(index, prob, co_occ, pre_downloaded=True)
             except Empty:
                 pass
 
+    def _store_in_db(self, index, probabilities, co_occ, pre_downloaded=False):
+        # If files are already downloaded, but not inserted in the db yet
+        if pre_downloaded:
+            db_utils.store_index(index, co_occ)
+        self._store_ic_rel(co_occ)
+        db_utils.store_index_probabilities(index, probabilities)
+
     def run_read_files_worker(self, directory, queue, join=True):
+        """ Run a worker to read all pre-downloaded files from a directory,
+        which were downloaded using TextDownloader module. Output index, text
+        tuple to the queue.
+
+        :directory: Path to directory containing text files in correct format
+        :queue: Queue to add the tuples to
+        :join: Wait for worker to finish in this function or return the Process
+        :return: Return the multiprocessing.Process if join = False
+
+        """
+        # 1 worker is probably best as it's way faster than classifying
         worker = [Process(target=self.read_files_worker, args=(directory,
                                                                queue))]
 
