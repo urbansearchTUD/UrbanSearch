@@ -61,8 +61,11 @@ class IndicesSelector(object):
             i += 1
             if i % 10 == 0:
                 logger.info('Index {0}/{1} of file {2}'.format(i, n, filepath))
-            if occ.check(pd.index_to_txt(index)):
-                relevant_indices.append(index)
+            try:
+                if occ.check(pd.index_to_txt(index)):
+                    relevant_indices.append(index)
+            except TypeError as e:
+                logger.warning("Could not convert index to txt: {0}".format(e))
         return relevant_indices
 
     def run_workers(self, num_workers, directory, queue, opt=False):
