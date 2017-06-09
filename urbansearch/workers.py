@@ -69,7 +69,7 @@ class Workers(object):
 
         while not queue.empty() or not producers_done.is_set():
             try:
-                index, co_occ = queue.get_nowait()
+                index, co_occ = queue.get(block=True)
                 txt = self.pd.index_to_txt(index)
                 category = self.ct.predict(txt, self.prepr.pre_process)
                 prob = self.ct.probability_per_category(txt,
@@ -99,7 +99,7 @@ class Workers(object):
 
         while not queue.empty() or not file_producers_done.is_set():
             try:
-                index, txt = queue.get_nowait()
+                index, txt = queue.get(block=True)
                 co_occ = self.co.check(txt)
                 prob = self.ct.probability_per_category(txt,
                                                         self.prepr.pre_process)
@@ -138,7 +138,8 @@ class Workers(object):
 
         if join:
             # Wait for processes to finish
-            worker.join()
+            for w in worker:
+                w.join()
         else:
             return worker
 
