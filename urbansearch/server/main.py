@@ -1,7 +1,7 @@
 from flask import Flask
 from urbansearch.server.predict import predict_api
 from urbansearch.server.dataset import dataset_api
-
+from urbansearch.server.documents import documents_api
 API_PREFIX = '/api/v1'
 
 
@@ -23,6 +23,12 @@ class Server(object):
         self.app = Flask(__name__)
         self.register_blueprints()
 
+        @self.app.after_request
+        def apply_caching(response):
+            response.headers["Access-Control-Allow-Origin"] = "*"
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+            return response
+
         if run:
             self.app.run()
 
@@ -34,3 +40,5 @@ class Server(object):
                                     url_prefix=API_PREFIX + '/classify')
         self.app.register_blueprint(dataset_api,
                                     url_prefix=API_PREFIX + '/datasets')
+        self.app.register_blueprint(documents_api,
+                                    url_prefix=API_PREFIX + '/documents')

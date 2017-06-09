@@ -3,4 +3,9 @@ neo4j:
   password: p4ss4tr4v1s
   bolt_uri: 'bolt://127.0.0.1:7687'
   host: '127.0.0.1'
-
+api:
+  num_of_workers: 5
+  num_of_docs: 5
+resources:
+  data: tests/resources/pages
+  data_sets: tests/resources/data_sets

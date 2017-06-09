@@ -3,9 +3,14 @@ neo4j:
   bolt_uri: ''
   username: ''
   password: ''
+api:
+  num_of_workers: 50
+  num_of_docs: 20000
+  doc_path: 'W{}-{}.txt'
 resources:
   test: tests/resources
   models: urbansearch/resources/models
+  data: data/pages
   data_sets: urbansearch/resources/data_sets
   validation_sets: urbansearch/resources/validation_sets
   test_sets: urbansearch/resources/test_sets

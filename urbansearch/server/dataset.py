@@ -1,5 +1,5 @@
 import config
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, make_response, request
 
 from urbansearch.server.decorators import is_json
 from urbansearch.utils.dataset_p_utils import DatasetPickleUtils
@@ -17,11 +17,27 @@ def append():
     try:
         data = request.json
         dpu.append_to_inputs(data['document'], category=data['category'])
-        return jsonify(status=200,
-                       message='Document successfully added')
+
+        return jsonify(status=200, message='Document successfully added')
     except:
-        return jsonify(error=True,
-                       status=400,
+        return jsonify(error=True, status=400,
+                       message='Invalid JSON supplied for this API call')
+
+@dataset_api.route('/append_all', methods=['POST'], strict_slashes=False)
+@is_json
+def append_all():
+    """
+    Append the document supplied in the body of the
+    request to the categorysets.
+    """
+    try:
+        data = request.json
+        for category in data['categories']:
+            dpu.append_to_inputs(data['document'], category=category)
+
+        return jsonify(status=200, message='Document successfully added')
+    except:
+        return jsonify(error=True, status=400,
                        message='Invalid JSON supplied for this API call')
 
 
@@ -32,11 +48,9 @@ def create():
     """
     try:
         dpu.generate_dataset()
-        return jsonify(status=200,
-                       message='Dataset successfully created')
+        return jsonify(status=200, message='Dataset successfully created')
     except:
-        return jsonify(error=True,
-                       status=500,
+        return jsonify(error=True, status=500,
                        message='Creation of dataset failed')
 
 
@@ -53,9 +67,7 @@ def create_categoryset():
         data = request.json
         dpu.init_categoryset(data['category'], inputs=data['documents'])
 
-        return jsonify(status=200,
-                       message='Categoryset successfully created')
+        return jsonify(status=200, message='Categoryset successfully created')
     except:
-        return jsonify(error=True,
-                       status=500,
+        return jsonify(error=True, status=500,
                        message='Creation of categoryset failed')
