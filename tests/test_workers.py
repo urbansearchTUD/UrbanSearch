@@ -35,8 +35,9 @@ class Test_Mock_Workers(TestCase):
                                      mock_db_utils):
         queue = MagicMock()
         queue.empty = MagicMock(side_effect=[False, True])
-        co_oc = MagicMock(side_effect=[{Mock(), Mock()}])
-        queue.get_nowait = MagicMock(side_effect=[{Mock(), co_oc}])
+        co_oc = Mock() #(side_effect=[{Mock(), Mock()}])
+        co_oc.return_value = [{Mock(), Mock()}]
+        queue.get_nowait = MagicMock(side_effect=[{Mock(), MagicMock(side_effect=[{Mock(), Mock()}])}])
         w = Workers()
         w.set_producers_done()
 
@@ -108,6 +109,6 @@ class Test_Mock_Workers(TestCase):
         w = Workers()
         w.read_files_worker(Mock(), queue)
 
-        #assert f.called                    #TODO
+        #assert f.readlines.called
         assert mock_lit_ev.called
         #assert queue.put_nowait.called     #TODO
