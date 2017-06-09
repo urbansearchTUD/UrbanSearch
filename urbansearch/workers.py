@@ -138,7 +138,8 @@ class Workers(object):
 
         if join:
             # Wait for processes to finish
-            worker.join()
+            for w in worker:
+                w.join()
         else:
             return worker
 
