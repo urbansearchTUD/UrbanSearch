@@ -19,7 +19,7 @@ def test_download_indices_for_url(mock_gathering_pd,):
 @patch('urbansearch.workers.Workers')
 @patch('urbansearch.main.Manager')
 def test_classify_documents_from_indices(mock_manager, mock_workers,
-                                              mock_indices_selector):
+                                         mock_indices_selector):
     with main.app.app_context():
         with patch('urbansearch.main.request') as mock_flask_request:
             ind_sel = mock_indices_selector.return_value = Mock()
@@ -55,8 +55,8 @@ def test_classify_documents_from_indices(mock_manager, mock_workers,
 @patch('urbansearch.workers.Workers')
 @patch('urbansearch.main.Manager')
 def test_classify_indices_to_db(mock_manager, mock_workers,
-                                     mock_indices_selector,
-                                     mock_db_connected):
+                                mock_indices_selector,
+                                mock_db_connected):
     with main.app.app_context():
         with patch('urbansearch.main.request') as mock_flask_request:
             ind_sel = mock_indices_selector.return_value = Mock()
@@ -154,7 +154,8 @@ def test_mock_classify_text_files_to_db(mock_manager, mock_workers,
 
 @patch('urbansearch.workers.Workers')
 @patch('urbansearch.utils.db_utils.connected_to_db')
-def test_mock_classify_text_files_to_db_not_connected(mock_db_connected, mock_workers):
+def test_mock_classify_text_files_to_db_not_connected(mock_db_connected,
+                                                      mock_workers):
     with main.app.app_context():
         with patch('urbansearch.main.request') as mock_flask_request:
 
