@@ -58,7 +58,15 @@ class ClassifyText(object):
         return dict(zip(self.mm.clf.classes_,
                         self.mm.probabilities([text])[0]))
 
-    def probability_with_threshold(self, prob, threshold):
+    def category_with_threshold(self, prob, threshold):
+        """ Return category with highest probability above the threshold.
+        If no category is above threshold category returned is 'Other'.
+
+        :prob: Dict with category as key and probability as value
+        :threshold: A threshold for the probability between 0 and 1
+        :return: Key with highest probability if above threshold, otherwise
+        returns 'Other'
+        """
         assert 0 <= threshold <= 1
 
         key = max(prob.keys(), key=(lambda k: prob[k]))
