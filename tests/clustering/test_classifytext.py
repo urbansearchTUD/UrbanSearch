@@ -40,12 +40,12 @@ def test_probability_per_category():
         assert isinstance(prob, float)
 
 
-def test_probability_with_threshold():
+def test_category_with_threshold():
     ct = classifytext.ClassifyText()
     p = {'a': 0.2, 'b': 0.49}
-    res = ct.probability_with_threshold(p, 0.49)
+    res = ct.category_with_threshold(p, 0.49)
     assert 'b' == res
     assert isinstance(res, str)
-    res = ct.probability_with_threshold(p, 0.5)
+    res = ct.category_with_threshold(p, 0.5)
     assert 'Other' == res
     assert isinstance(res, str)
