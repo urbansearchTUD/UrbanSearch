@@ -7,6 +7,12 @@ from neo4j.v1 import (GraphDatabase, basic_auth, SessionError,
 import config
 
 TOPIC_PROBS = dict.fromkeys(config.get('score', 'categories'), 0)
+STORE_INDEX_QUERY = '''
+    MATCH (c:City) WHERE c.name IN [{}]
+    MERGE (i:Index {{filename: {{fn}}, offset: {{off}}, length: {{len}}}})
+    MERGE (c)-[r:OCCURS_IN]->(i)
+    RETURN ID(r) AS id
+'''
 
 # Keep a global driver
 _driver = None
@@ -76,8 +82,13 @@ def _get_property_ret_str(name='r', properties=TOPIC_PROBS):
                      properties.keys())
 
 
+def _get_property_kv(properties=TOPIC_PROBS):
+    return {'{{{}}}'.format(k): v for k, v in properties.items()}
+
+
 def _get_property_kv_str(properties=TOPIC_PROBS):
-    return ', '.join('{}: {}'.format(k, v) for k, v in properties.items())
+    return ', '.join('{}: {}'.format(k, v) for k, v in _get_property_kv(
+        properties))
 
 
 def _get_property_set_str(name='r', properties=TOPIC_PROBS):
@@ -85,21 +96,43 @@ def _get_property_set_str(name='r', properties=TOPIC_PROBS):
                      for k, v in properties.items())
 
 
-def perform_query(query):
+def perform_query(query, params=None):
     """
     Utility method to run an arbitrary query.
 
     Use with caution!
 
     :param query: The query to execute
+    :param params: The query parameters
     :return: The result of the query, as provided by Neo4j
     """
     try:
         with _get_session() as session:
-            return [r for r in session.run(query)]
+            return [r for r in session.run(query, params)]
     except (CypherSyntaxError, SessionError) as e:
         logger.error('query: %s\nraised error: %s' % (query, e))
-        return None
+
+
+def perform_queries(queries, params):
+    """
+    Utility method to run multiple queries in a single transaction.
+
+    Use with caution!
+
+    :param queries: A list of queries
+    :param params: A list of parameters for the queries. Must be indexed the
+    same as the query list.
+    :return: A list of results, without failed query results.
+    """
+    results = list()
+    with _get_session() as session:
+        with session.begin_transaction() as tx:
+            for i, query in enumerate(queries):
+                try:
+                    results.append([r for r in tx.run(query, params[i])])
+                except (CypherSyntaxError, SessionError) as e:
+                    logger.error('query: {}\nraised: {}'.format(query, e))
+    return results
 
 
 def city_names():
@@ -186,7 +219,7 @@ def get_ic_rel(city_a, city_b, rel_name='RELATES_TO'):
         MATCH (m:City) WHERE m.name = '{1}'
         MATCH (n)-[r:{2}]-(m)
         RETURN {3}
-        '''.format(city_a, city_b, rel_name, _get_property_ret_str())
+    '''.format(city_a, city_b, rel_name, _get_property_ret_str())
 
     result = perform_query(query)
     return {k: v for k, v in result[0].items()} if result else None
@@ -209,6 +242,17 @@ def get_index_probabilities(index):
     return {k: v for k, v in result[0].items()} if result else {}
 
 
+def _generate_index_query(index, co_occurrences):
+    cities = {city for occ in co_occurrences for city in occ}
+
+    return (
+        len(cities),
+        STORE_INDEX_QUERY.format(', '.join("'{}'".format(c) for c in cities)),
+        {'fn': index['filename'], 'off': index['offset'],
+         'len': index['length'], **_get_property_kv()}
+    )
+
+
 def store_index(index, co_occurrences):
     """
     Stores the provided index in Neo4j and creates relationships
@@ -225,32 +269,29 @@ def store_index(index, co_occurrences):
            containing co-occurrences (e.g. `[('Amsterdam', 'Rotterdam')]`)
     :return: True iff the index has been successfully stored
     """
-    # Create a set of cities to remove duplicates
-    cities = {city for occurrence in co_occurrences for city in occurrence}
-    topic_probabilities = _get_property_kv_str()
+    count, query, params = _generate_index_query(index, co_occurrences)
+    created_relations = perform_query(query, params)
 
-    # Create a node for the index if it doesn't exist
-    index_result = perform_query('''
-        MERGE (i:Index {{ filename: '{0}', offset: {1}, length: {2}, {3} }})
-        RETURN ID(i) AS id
-    '''.format(index['filename'], index['offset'], index['length'],
-               topic_probabilities))
+    return len(created_relations) == count
 
-    index_id = index_result[0]['id']
 
-    # For every city in the co-occurrence list,
-    # create a relationship to the index node
-    created_relations = []
-    for city in cities:
-        create_relation_result = perform_query('''
-            MATCH (i:Index) WHERE ID(i)={0}
-            MATCH (c:City {{ name: '{1}' }})
-            MERGE (c)-[r:OCCURS_IN]-(i)
-            RETURN ID(r) AS id
-        '''.format(index_id, city))
-        created_relations.append(create_relation_result[0]['id'])
+def store_indices(indices, co_occurrences):
+    """
+    Same as `store_index` but for multiple indices at once.
+    :param indices: A list of indices
+    :param co_occurrences: A list of co-occurrences
+    :return: True iff all queries have completed successfully
+    """
+    expected_count = 0
+    queries = list()
+    params = list()
+    for i, index in enumerate(indices):
+        count, query, param = _generate_index_query(index, co_occurrences[i])
+        expected_count += count
+        queries.append(query)
+        params.append(param)
 
-    return len(created_relations) == len(cities)
+    return expected_count == len(perform_queries(queries, params))
 
 
 def store_index_topics(index, topics):
