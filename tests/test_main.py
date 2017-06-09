@@ -112,3 +112,7 @@ def test_mock_parse_arguments(mock_argumentParser):
     assert mock_argumentParser.called
     assert p.add_argument.called
     assert p.parse_args.called
+
+
+def test_mock_classify_text_files_to_db():
+    assert False        #Todo
