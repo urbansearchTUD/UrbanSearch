@@ -12,7 +12,7 @@ from urbansearch.workers import Workers
 class Test_Mock_Workers(TestCase):
 
     @patch('urbansearch.workers.Process')
-    def test_mock_run_classifying_workers(self, mock_event, mock_pd,
+    def test_run_classifying_workers(self, mock_event, mock_pd,
                                           mock_classify,
                                           mock_pre_process, mock_coOc,
                                           mock_process):
@@ -30,7 +30,7 @@ class Test_Mock_Workers(TestCase):
         assert mock_pre_process.called
 
     @patch('urbansearch.workers.db_utils')
-    def test_mock_classifying_worker(self, mock_event, mock_pd, mock_classify,
+    def test_classifying_worker(self, mock_event, mock_pd, mock_classify,
                                      mock_pre_process, mock_coOc,
                                      mock_db_utils):
         queue = MagicMock()
@@ -53,7 +53,7 @@ class Test_Mock_Workers(TestCase):
         assert w.ct.probability_per_category.called
 
     @patch('urbansearch.workers.db_utils')
-    def test_mock_not_classifying_worker(self, mock_event, mock_pd, mock_classify,
+    def test_not_classifying_worker(self, mock_event, mock_pd, mock_classify,
                                      mock_pre_process, mock_coOc,
                                          mock_db_utils):
         queue = MagicMock()
