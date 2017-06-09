@@ -35,8 +35,7 @@ class TextDownloader(object):
         workers = [Process(target=self.worker, args=(div_files[i], output_dir,
                                                      i, kwargs.get('gz', True)))
                    for i in range(num_workers)]
-        print("DIR: {0}".format(directory))
-        print("OUT: {0}".format(output_dir))
+
         for worker in workers:
             worker.start()
 
@@ -60,6 +59,8 @@ class TextDownloader(object):
                 if file.endswith('.gz'):
                     for i, index in enumerate(rlv_indices(file)):
                         txt = self.pd.index_to_txt(index)
+                        if txt is None:
+                            continue
                         self._write_txt_file_index(index, txt, output_dir,
                                                    w_id, i)
 

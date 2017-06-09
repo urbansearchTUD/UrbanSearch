@@ -98,9 +98,14 @@ class PageDownloader(object):
 
     @staticmethod
     def _uncompress_gz(response):
-        compressed_gz = io.BytesIO(response.content)
-        with gzip.GzipFile(fileobj=compressed_gz) as gz_obj:
-            data = gz_obj.read()
+        try:
+            compressed_gz = io.BytesIO(response.content)
+            with gzip.GzipFile(fileobj=compressed_gz) as gz_obj:
+                data = gz_obj.read()
+        except OSError as e:
+            logger.error("Uncompressing gz file failed with error: {0}"
+                         .format(e))
+            data = None
         return data
 
     @staticmethod
