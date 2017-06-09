@@ -22,12 +22,13 @@ def test_classify_documents_from_indices(mock_manager, mock_workers,
                                          mock_indices_selector):
     with main.app.app_context():
         with patch('urbansearch.main.request') as mock_flask_request:
+            mock_flask_request.args.get.return_value = MagicMock(side_effect=[1, 1, Mock()])
             ind_sel = mock_indices_selector.return_value = Mock()
+            cworker = mock_workers.return_value = Mock()
             man = mock_manager.return_value = Mock()
-            man.Queue.return_value = Mock()
 
-            mock_flask_request.args.get('workers', 0).return_value = Mock()
-            mock_flask_request.args.get('directory').return_value = Mock()
+            a = Mock()
+            b = Mock()
 
             producers = ind_sel.run_workers.return_value = [a, Mock()]
             consumers = cworker.run_classifying_workers.return_value = \
@@ -40,21 +41,14 @@ def test_classify_documents_from_indices(mock_manager, mock_workers,
                 assert ((l.__sizeof__()) > 0)
 
             assert mock_indices_selector.called
+            assert mock_workers.called
             assert mock_manager.called
             assert man.Queue.called
-            assert mock_flask_request.args.get.called
             assert ind_sel.run_workers.called
-
-
-@patch('urbansearch.gathering.gathering.PageDownloader')
-def test_mock_download_indices_for_url(mock_gathering_pd,):
-    with main.app.app_context():
-        with patch('urbansearch.main.request') as mock_flask_request:
-            pd = mock_gathering_pd.return_value = Mock()
-            main.download_indices_for_url()
-            assert mock_gathering_pd.called
-            assert mock_flask_request.args.get.called
-            assert pd.download_indices.called
+            assert cworker.run_classifying_workers.called
+            assert cworker.set_producers_done.called
+            assert a.join.called
+            assert b.join.called
 
 
 @patch('urbansearch.gathering.indices_selector.IndicesSelector')
