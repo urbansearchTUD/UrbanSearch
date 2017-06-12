@@ -20,7 +20,7 @@ classification:
 gathering:
   cc_data: https://commoncrawl.s3.amazonaws.com/
   cc_index: http://index.commoncrawl.org/
-  request_timeout: 2
+  request_timeout: 3
 score:
   default: 0
   categories:

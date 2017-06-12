@@ -1,5 +1,5 @@
 import config
-from flask import Blueprint, jsonify, make_response, request
+from flask import Blueprint, jsonify, request
 
 from urbansearch.server.decorators import is_json
 from urbansearch.utils.dataset_p_utils import DatasetPickleUtils
@@ -17,7 +17,7 @@ def append():
     try:
         data = request.json
         dpu.append_to_inputs(data['document'], category=data['category'])
-
+        
         return jsonify(status=200, message='Document successfully added')
     except:
         return jsonify(error=True, status=400,
@@ -48,6 +48,7 @@ def create():
     """
     try:
         dpu.generate_dataset()
+        
         return jsonify(status=200, message='Dataset successfully created')
     except:
         return jsonify(error=True, status=500,

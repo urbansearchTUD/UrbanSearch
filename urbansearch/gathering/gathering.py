@@ -5,12 +5,16 @@ import logging
 import re
 import os
 import requests
+
 from urllib.parse import quote
 from bs4 import BeautifulSoup
 from multiprocessing import Process
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 import config
 from urbansearch.utils import process_utils
+
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 logger = logging.getLogger(__name__)
 
 
@@ -26,6 +30,8 @@ class PageDownloader(object):
         self.cc_data_prefix = config.get('gathering', 'cc_data')
         self.cc_index_url = config.get('gathering', 'cc_index')
         self.indices = []
+        self.req_timeout = config.get('gathering', 'request_timeout')
+        self.session = requests.Session()
         # Cache the regular expression to filter http response code
         re.compile('\'status\': \'(\w+)\',')
 
@@ -45,10 +51,10 @@ class PageDownloader(object):
 
         enc_url = quote(url, safe='')
         try:
-            req_timeout = config.get('gathering', 'request_timeout')
-            response = requests.get(self.cc_index_url + collection +
-                                    '?url=' + enc_url +
-                                    '&output=json', timeout=req_timeout)
+            response = self.session.get(self.cc_index_url + collection +
+                                        '?url=' + enc_url +
+                                        '&output=json',
+                                        timeout=self.req_timeout)
             indices = [json.loads(x) for x in
                        response.content.strip().decode('utf-8').split('\n')
                        if self._useful_str_responsecode(x)]
@@ -72,30 +78,34 @@ class PageDownloader(object):
         if not index:
             return None
 
-        req_timeout = config.get('gathering', 'request_timeout')
         start, length = int(index['offset']), int(index['length'])
         end = start + length - 1
         try:
-            response = requests.get(self.cc_data_prefix + index['filename'],
+            resp = self.session.get(self.cc_data_prefix + index['filename'],
                                     headers={
                                         'Range': 'bytes={}-{}'.format(start,
                                                                       end)},
-                                    timeout=req_timeout)
+                                    timeout=self.req_timeout, verify=False)
         except requests.exceptions.RequestException as e:
             logger.warning('Exception while downloading warc part: {0}'
                            .format(e))
             return None
 
         # Response is compressed gz data, uncompress this using gzip
-        data = self._uncompress_gz(response)
+        data = self._uncompress_gz(resp)
 
         return data
 
     @staticmethod
     def _uncompress_gz(response):
-        compressed_gz = io.BytesIO(response.content)
-        with gzip.GzipFile(fileobj=compressed_gz) as gz_obj:
-            data = gz_obj.read()
+        try:
+            compressed_gz = io.BytesIO(response.content)
+            with gzip.GzipFile(fileobj=compressed_gz) as gz_obj:
+                data = gz_obj.read()
+        except OSError as e:
+            logger.error("Uncompressing gz file failed with error: {0}"
+                         .format(e))
+            data = None
         return data
 
     @staticmethod
@@ -157,6 +167,18 @@ class PageDownloader(object):
         """
         data = self.download_warc_part(index)
         return self.warc_html_to_text(data)
+
+    def index_to_raw_text(self, index):
+        """
+        Extract plain text using JSON index. Downloads WARC parts from
+        common crawl servers and parses to raw utf-8 text. Contains html
+        and other headers.
+
+        :return: Raw text of web page in str format
+
+        """
+        data = self.download_warc_part(index)
+        return data.decode('utf-8')
 
     def indices_from_file(self, filename):
         """
