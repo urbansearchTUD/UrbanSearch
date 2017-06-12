@@ -146,7 +146,7 @@ def test_get_intercity_relation():
         'commuting': 0,
         'shopping': 0,
         'leisure': 0,
-        'moving': 0,
+        'residential_mobility': 0,
         'education': 0,
         'collaboration': 0,
         'transportation': 0,
@@ -193,7 +193,7 @@ def test_store_index_probabilities_full():
         'commuting': 0.5,
         'shopping': 0.13,
         'leisure': 0.12,
-        'moving': 0.11,
+        'residential_mobility': 0.11,
         'education': 0.15,
         'collaboration': 0.16,
         'transportation': 0.17,
@@ -210,14 +210,14 @@ def test_store_index_probabilities_with_update():
         'commuting': 0.5,
         'shopping': 0.13,
         'leisure': 0.12,
-        'moving': 0.11
+        'residential_mobility': 0.11
     }
     update = {'commuting': 0.6}
     expected = {
         'commuting': 0.6,
         'shopping': 0.13,
         'leisure': 0.12,
-        'moving': 0.11,
+        'residential_mobility': 0.11,
         'education': 0,
         'collaboration': 0,
         'transportation': 0,

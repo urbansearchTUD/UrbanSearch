@@ -3,6 +3,7 @@
 ####### Requirements without Version Specifiers ######
 beautifulsoup4
 # hack for gensim - travis stuff
+flask
 gensim
 neo4j-driver
 nltk
