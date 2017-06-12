@@ -51,6 +51,12 @@ logging:
         - console
       level: DEBUG
       propagate: true
+    workers:
+      handlers:
+        - file
+        - console
+      level: DEBUG
+      propagate: true
     config:
       handlers:
         - file

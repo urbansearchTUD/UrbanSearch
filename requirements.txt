@@ -13,6 +13,8 @@ pytest-cov
 PyYAML
 requests
 scikit-learn
+flask
+sklearn
 
 #
 ####### Requirements with Version Specifiers ######

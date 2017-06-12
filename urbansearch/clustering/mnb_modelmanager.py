@@ -4,10 +4,11 @@ from sklearn.feature_selection import f_classif, SelectPercentile
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import Pipeline
 
-from .modelmanager import ModelManager
+from urbansearch.clustering.modelmanager import ModelManager
 
 
 class MNBModelManager(ModelManager):
+
     """
     An implementation of the ModelManager base class which uses a Multinomial
     Naive Bayes classifier as its default classifier.
