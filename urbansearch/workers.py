@@ -69,7 +69,7 @@ class Workers(object):
 
         while not queue.empty() or not producers_done.is_set():
             try:
-                index, co_occ = queue.get(block=True)
+                index, co_occ = queue.get(block=True, timeout=5)
                 txt = self.pd.index_to_txt(index)
                 category = self.ct.predict(txt, self.prepr.pre_process)
                 prob = self.ct.probability_per_category(txt,
@@ -99,7 +99,7 @@ class Workers(object):
 
         while not queue.empty() or not file_producers_done.is_set():
             try:
-                index, txt = queue.get(block=True)
+                index, txt = queue.get(block=True, timeout=5)
                 co_occ = self.co.check(txt)
                 prob = self.ct.probability_per_category(txt,
                                                         self.prepr.pre_process)
@@ -155,8 +155,12 @@ class Workers(object):
             if file.is_file():
                 with open(file.path, 'r') as f:
                     text = f.readlines()
-                    index = literal_eval(text.pop(0).strip())
-                    queue.put_nowait((index, '\n'.join(text)))
+                    try:
+                        index = literal_eval(text.pop(0).strip())
+                        queue.put_nowait((index, '\n'.join(text)))
+                    except IndexError:
+                        LOGGER.error('File {0} is not classifyable'
+                                     .format(file.path))
 
     def _store_ic_rel(self, co_occ):
         # Store all co-occurences as relations in database using db_utils
