@@ -1,5 +1,5 @@
 import config
-import datetime
+from datetime import datetime
 import os
 import pickle
 
@@ -88,6 +88,14 @@ class DatasetPickleUtils(PickleUtils):
 
         self.save(categoryset, self.category_to_file(category))
 
+    def init_categorysets(self):
+        """
+        Initialize a categoryset for all the default categories.
+        The files will contain no input documents.
+        """
+        for category in CATEGORIES:
+            self.init_categoryset(category)
+
     def init_dataset(self, filename, inputs=None, outputs=None):
         """
         Initialize a new dataset
@@ -111,6 +119,8 @@ class DatasetPickleUtils(PickleUtils):
         Generates a dataset which combines the files from the predefined
         categories and pickles a object containing 'inputs' and 'outputs'
         attributes
+
+        :return filename: Path of the saved dataset
         """
         x = []
         y = []
@@ -123,9 +133,10 @@ class DatasetPickleUtils(PickleUtils):
             except:
                 pass
 
-        i = datetime.datetime.now()
-        self.init_dataset('data.{}.pickle'.format(i.strftime('%d%m%Y')),
-                          inputs=x, outputs=y)
+        filename = 'data.{}.pickle'.format(datetime.now().strftime('%d%m%Y'))
+        self.init_dataset(filename, inputs=x, outputs=y)
+
+        return filename
 
     def load(self, filename):
         """
@@ -135,6 +146,19 @@ class DatasetPickleUtils(PickleUtils):
         :return: The object saved in the file
         """
         return super().load(self.filename_to_path(filename))
+
+    def persist_categorysets(self):
+        """
+        Saves the current categorysets to files that will not be erased when
+        init_categorysets is called. The files are saved in the following
+        format: $CATEGORY.$DATE_OF_SAVE.pickle
+        """
+        for category in CATEGORIES:
+            filename = self.category_to_file(category)
+            print('saving file {}'.format(filename))
+            data = self.load(filename)
+            self.save(data, '{}.{}.pickle'.format(category,
+                                            datetime.now().strftime('%d%m%Y')))
 
     def save(self, obj, filename):
         """

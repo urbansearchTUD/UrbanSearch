@@ -5,7 +5,7 @@ from .mnb_modelmanager import MNBModelManager
 from .sgdc_modelmanager import SGDCModelManager
 from .text_preprocessor import PreProcessor
 
-MAIN_CLASSIFIER_FILE = 'sgdcmodel.pickle'
+DEFAULT_CLASSIFIER = config.get('classification', 'default_classifier')
 MNB = 'mnb'
 SGDC = 'sgdc'
 
@@ -29,9 +29,9 @@ class ClassifyText(object):
         super(ClassifyText, self).__init__()
 
         if not type or type == SGDC:
-            self.mm = SGDCModelManager(filename=MAIN_CLASSIFIER_FILE)
+            self.mm = SGDCModelManager(filename=DEFAULT_CLASSIFIER)
         elif type == MNB:
-            self.mm = MNBModelManager(filename=MAIN_CLASSIFIER_FILE)
+            self.mm = MNBModelManager(filename=DEFAULT_CLASSIFIER)
 
     def predict(self, text, pre_processor=None):
         """

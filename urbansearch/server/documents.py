@@ -26,7 +26,8 @@ def get_random():
     """
     while True:
         try:
-            with open(DOCUMENT_PATH.format(random_worker(), random_file())) as f:
+            with open(DOCUMENT_PATH.format(random_worker(),
+                      random_file())) as f:
                 document = f.read()
                 break
         except:
@@ -42,14 +43,9 @@ def get_random_test():
     """
     while True:
         try:
-            path = DOCUMENT_PATH.format(randint(0, 1),
-                                           randint(0, 1))
-
-            print(path)
-
+            path = DOCUMENT_PATH.format(randint(0, 1),randint(0, 1))
             with open(path) as f:
                 document = f.read()
-                print(document)
                 break
         except:
             pass

@@ -54,8 +54,8 @@ def create():
                        message='Creation of dataset failed')
 
 
-@dataset_api.route('/create/categoryset',
-                   methods=['POST'], strict_slashes=False)
+@dataset_api.route('/create/categoryset', methods=['POST'],
+                   strict_slashes=False)
 @is_json
 def create_categoryset():
     """
@@ -71,3 +71,30 @@ def create_categoryset():
     except:
         return jsonify(error=True, status=500,
                        message='Creation of categoryset failed')
+
+
+@dataset_api.route('/init_categorysets', methods=['POST'],
+                   strict_slashes=False)
+def init_categorysets():
+    try:
+        dpu.init_categorysets()
+        return jsonify(status=200,
+                       message='Categorysets initialized successfully')
+    except:
+        return jsonify(error=True, status=500,
+                       message='Initialization of categorysets failed')
+
+
+@dataset_api.route('/persist/categorysets', methods=['POST'],
+                   strict_slashes=False)
+def persist_categorysets():
+    """
+    Persist the current categorysets
+    """
+    try:
+        dpu.persist_categorysets()
+        return jsonify(status=200, message='Categorysets successfully saved')
+    except Exception as e:
+        print(e)
+        return jsonify(error=True, status=500,
+                       message='Save of categorysets failed')
