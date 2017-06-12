@@ -3,6 +3,8 @@ neo4j:
   bolt_uri: ''
   username: ''
   password: ''
+  relates_to_name: 'RELATES_TO'
+  occurs_in_name: 'OCCURS_IN'
 resources:
   test: tests/resources
   models: urbansearch/resources/models

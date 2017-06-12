@@ -2,59 +2,56 @@ import time
 
 import pytest
 
+import config
+
 from urbansearch.utils import db_utils
 
+OCCURS_IN = config.get('neo4j', 'occurs_in_name')
+RELATES_TO = config.get('neo4j', 'relates_to_name')
 
-# Cities available in the test database:
-# Amsterdam, Rotterdam, Den Haag and Appingedam
+if not ('TEST' in OCCURS_IN and 'TEST' in RELATES_TO):
+    raise ValueError('Not adjusting production DB! {} {}'.format(RELATES_TO,
+                                                                 OCCURS_IN))
 
-# │{"latitude":52.3702157,"name":│
-# │"Amsterdam","longitude":4.8951│
-# │679,"population":"697835"}    │
-# ├──────────────────────────────┤
-# │{"latitude":51.9244201,"name":│
-# │"Rotterdam","longitude":4.4777│
-# │325,"population":"549355"}    │
-# ├──────────────────────────────┤
-# │{"latitude":52.0704978,"name":│
-# │"Den Haag","longitude":4.30069│
-# │99,"population":"495010"}
-#
-# NOTE: when running these tests locally, some will fail, since they are run
-# against the production database. Travis has it's own database, containing
-# only what is mentioned above.
 
 @pytest.fixture
 def clean_neo4j_index_and_rel(request):
-    # Cleans all created relations to index named 'test.gz'
+    # Cleans all created relations to index named 'test*.gz'
     def clean():
-        db_utils.perform_query('MATCH ()-[r]->(n:Index {filename: "test.gz"})'
-                               'DELETE r, n')
+        db_utils.perform_query('''
+            MATCH (:City)-[r:{}]->(n:Index)
+            WHERE n.filename STARTS WITH 'test'
+            DELETE r, n'''.format(OCCURS_IN))
 
     request.addfinalizer(clean)
 
 
 @pytest.fixture
 def clean_neo4j_index(request):
-    # Cleans all created relations to index named 'test.gz'
+    # Cleans all created relations to index named 'test*.gz'
     def clean():
-        db_utils.perform_query('MATCH (n:Index {filename:"test.gz"}) DELETE n')
+        db_utils.perform_query('''
+            MATCH (n:Index)
+            WHERE n.filename STARTS WITH 'test'
+            DELETE n''')
 
     request.addfinalizer(clean)
 
 
 @pytest.fixture
 def clean_neo4j_ic_rel(request):
-    # Cleans all created relations labeled REL_TEST
+    # Cleans all created relations labeled RELATES_TO
     def clean_ic_rel():
-        db_utils.perform_query('MATCH ()-[r:REL_TEST]->() DELETE r')
+        db_utils.perform_query('''
+            MATCH (:City)-[r:{}]->(:City)
+            DELETE r'''.format(RELATES_TO), None)
 
     request.addfinalizer(clean_ic_rel)
 
 
-def _create_test_index(cooccurrences=list()):
-    index = {'filename': 'test.gz', 'length': 10, 'offset': 12}
-    db_utils.store_index(index, cooccurrences)
+def _create_test_index(filename='test.gz'):
+    index = {'filename': filename, 'length': 10, 'offset': 12}
+    assert db_utils.store_index(index)
     return index['filename']
 
 
@@ -115,29 +112,47 @@ def test_invalid_query():
     assert db_utils.perform_query('MATCH (n:City)') is None
 
 
-@pytest.mark.usefixtures('clean_neo4j_index_and_rel')
-def test_store_single_cooccurrence():
+@pytest.mark.usefixtures('clean_neo4j_index')
+def test_store_single_index():
     index = {'filename': 'test.gz', 'length': 10, 'offset': 12}
-    co_occurrences = [('Amsterdam', 'Rotterdam')]
-    assert db_utils.store_index(index=index, co_occurrences=co_occurrences)
+    assert db_utils.store_index(index)
+
+
+@pytest.mark.usefixtures('clean_neo4j_index')
+def test_store_multi_index():
+    indices = [
+            {'filename': 'test.gz', 'length': 10, 'offset': 12},
+            {'filename': 'test2.gz', 'length': 11, 'offset': 13}
+    ]
+    assert db_utils.store_indices(indices)
 
 
 @pytest.mark.usefixtures('clean_neo4j_index_and_rel')
-def test_store_multi_cooccurrence():
-    index = {'filename': 'test.gz', 'length': 10, 'offset': 12}
-    co_occurrences = [('Amsterdam', 'Rotterdam'), ('Amsterdam', 'Appingedam'),
-                      ('Rotterdam', 'Appingedam')]
-    assert db_utils.store_index(index=index, co_occurrences=co_occurrences)
+def test_store_single_occurrence():
+    filename = _create_test_index()
+    city = 'Amsterdam'
+    assert db_utils.store_occurrence(filename, city)
+
+
+@pytest.mark.usefixtures('clean_neo4j_index_and_rel')
+def test_store_multi_occurrence():
+    indices = [
+            {'filename': 'test.gz', 'length': 10, 'offset': 12},
+            {'filename': 'test2.gz', 'length': 11, 'offset': 13}
+    ]
+    db_utils.store_indices(indices)
+    filenames = ['test.gz', 'test2.gz']
+    occurrences = ['Amsterdam', 'Rotterdam', 'Appingedam']
+    assert db_utils.store_occurrences(filenames, occurrences)
 
 
 @pytest.mark.usefixtures('clean_neo4j_ic_rel')
 def test_store_intercity_relation():
-    assert db_utils.store_ic_rel('Amsterdam', 'Rotterdam', rel_name='REL_TEST')
+    assert db_utils.store_ic_rel('Amsterdam', 'Rotterdam')
 
 
 def test_get_intercity_relation_none():
-    assert db_utils.get_ic_rel('Rotterdam', 'Amsterdam', rel_name='REL_TEST')\
-           is None
+    assert not db_utils.get_ic_rel('Rotterdam', 'Amsterdam')
 
 
 @pytest.mark.usefixtures('clean_neo4j_ic_rel')
@@ -152,9 +167,27 @@ def test_get_intercity_relation():
         'transportation': 0,
         'other': 0
     }
-    db_utils.store_ic_rel('Rotterdam', 'Amsterdam', rel_name='REL_TEST')
-    assert db_utils.get_ic_rel('Rotterdam', 'Amsterdam',
-                               rel_name='REL_TEST') == expected
+    db_utils.store_ic_rel('Rotterdam', 'Amsterdam')
+    assert db_utils.get_ic_rel('Rotterdam', 'Amsterdam') == expected
+
+
+@pytest.mark.usefixtures('clean_neo4j_ic_rel')
+def test_get_intercity_relation_multi():
+    d = {
+        'commuting': 0,
+        'shopping': 0,
+        'leisure': 0,
+        'residential_mobility': 0,
+        'education': 0,
+        'collaboration': 0,
+        'transportation': 0,
+        'other': 0
+    }
+    expected = [d, d]
+    db_utils.store_ic_rels([('Rotterdam', 'Amsterdam'),
+                                ('Den Haag', 'Appingedam')])
+    assert db_utils.get_ic_rels([('Rotterdam', 'Amsterdam'),
+                                     ('Den Haag', 'Appingedam')]) == expected
 
 
 @pytest.mark.usefixtures('clean_neo4j_index')
@@ -181,6 +214,48 @@ def test_store_index_topics_empty():
 
 
 @pytest.mark.usefixtures('clean_neo4j_index')
+def test_store_indices_topics():
+    indices = [_create_test_index(), _create_test_index('test2.gz')]
+    topics = [['Economy', 'Trade'], []]
+    assert db_utils.store_indices_topics(indices, topics)
+
+
+@pytest.mark.usefixtures('clean_neo4j_index')
+def test_get_index_probabilities():
+    index = _create_test_index()
+    db_utils.store_index_probabilities()
+    expected = {
+        'commuting': 0,
+        'shopping': 0,
+        'leisure': 0,
+        'residential_mobility': 0,
+        'education': 0,
+        'collaboration': 0,
+        'transportation': 0,
+        'other': 0
+    }
+    assert db_utils.get_index_probabilities(index) == expected
+
+
+@pytest.mark.usefixtures('clean_neo4j_index')
+def test_get_index_probabilities():
+    indices = [_create_test_index(), _create_test_index('test2.gz')]
+    db_utils.store_indices_probabilities(indices, [None, None])
+    probabilities = {
+        'commuting': 0,
+        'shopping': 0,
+        'leisure': 0,
+        'residential_mobility': 0,
+        'education': 0,
+        'collaboration': 0,
+        'transportation': 0,
+        'other': 0
+    }
+    expected = [probabilities, probabilities]
+    assert db_utils.get_indices_probabilities(indices) == expected
+
+
+@pytest.mark.usefixtures('clean_neo4j_index')
 def test_store_index_probabilities_default():
     index = _create_test_index()
     assert db_utils.store_index_probabilities(index, None)
@@ -188,7 +263,7 @@ def test_store_index_probabilities_default():
 
 @pytest.mark.usefixtures('clean_neo4j_index')
 def test_store_index_probabilities_full():
-    index = _create_test_index()
+    filename = _create_test_index()
     probabilities = {
         'commuting': 0.5,
         'shopping': 0.13,
@@ -199,11 +274,11 @@ def test_store_index_probabilities_full():
         'transportation': 0.17,
         'other': 0.19
     }
-    assert db_utils.store_index_probabilities(index, probabilities)
-    assert db_utils.get_index_probabilities(index) == probabilities
+    assert db_utils.store_index_probabilities(filename, probabilities)
+    assert db_utils.get_index_probabilities(filename) == probabilities
 
 
-@pytest.mark.usefixtures('clean_neo4j_ic_rel')
+@pytest.mark.usefixtures('clean_neo4j_index')
 def test_store_index_probabilities_with_update():
     index = _create_test_index()
     probabilities = {
@@ -229,8 +304,31 @@ def test_store_index_probabilities_with_update():
 
 
 @pytest.mark.usefixtures('clean_neo4j_index')
-def test_store_index_probabilities_invalid():
+def test_store_indices_probabilities():
+    indices = [_create_test_index(), _create_test_index('test2.gz')]
+    values = {
+        'commuting': 0.6,
+        'shopping': 0.13,
+        'leisure': 0.12,
+        'residential_mobility': 0.11,
+        'education': 0,
+        'collaboration': 0,
+        'transportation': 0,
+        'other': 0
+    }
+    expected = [values, values]
+    assert db_utils.store_indices_probabilities(indices, expected)
+
+
+@pytest.mark.usefixtures('clean_neo4j_index')
+def test_get_index_topics():
     index = _create_test_index()
-    probabilities = {'invalid': 1}
-    with pytest.raises(ValueError):
-        db_utils.store_index_probabilities(index, probabilities)
+    db_utils.store_index_topics(index, ['Economy'])
+    assert db_utils.get_index_topics(index) == ['Economy']
+
+
+@pytest.mark.usefixtures('clean_neo4j_index')
+def test_get_indices_topics():
+    indices = [_create_test_index(), _create_test_index('test2.gz')]
+    db_utils.store_indices_topics(indices, [['Economy'], []])
+    assert db_utils.get_indices_topics(indices) == [['Economy'], []]

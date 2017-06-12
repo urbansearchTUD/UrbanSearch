@@ -1,59 +1,460 @@
-import logging
 import math
-
-from neo4j.v1 import (GraphDatabase, basic_auth, SessionError,
+import logging
+from neo4j.v1 import (basic_auth, GraphDatabase, SessionError,
                       CypherSyntaxError, DriverError, ServiceUnavailable)
 
 import config
 
-TOPIC_PROBS = dict.fromkeys(config.get('score', 'categories'), 0)
-STORE_INDEX_QUERY = '''
-    MATCH (c:City) WHERE c.name IN [{}]
-    MERGE (i:Index {{filename: {{fn}}, offset: {{off}}, length: {{len}}}})
-    MERGE (c)-[r:OCCURS_IN]->(i)
-    RETURN ID(r) AS id
-'''
+CATEGORIES = config.get('score', 'categories')
+DEFAULT_CAT_DICT = dict.fromkeys(CATEGORIES, 0)
+RELATES_TO = config.get('neo4j', 'relates_to_name')
+OCCURS_IN = config.get('neo4j', 'occurs_in_name')
 
-# Keep a global driver
-_driver = None
-# Keep a global list of cities to prevent too many DB hits
+_logger = logging.getLogger('db_utils')
+_driver = GraphDatabase.driver(
+    config.get('neo4j', 'bolt_uri'),
+    auth=basic_auth(config.get('neo4j', 'username'),
+                    config.get('neo4j', 'password')))
+
 _cities = None
-
-logger = logging.getLogger(__name__)
-
-
-def _get_session():
-    global _driver
-
-    if _driver:
-        return _driver.session()
-
-    # If no driver is present, create a new one
-    _driver = GraphDatabase.driver(
-        config.get('neo4j', 'bolt_uri'),
-        auth=basic_auth(config.get('neo4j', 'username'),
-                        config.get('neo4j', 'password')))
-    return _driver.session()
 
 
 def connected_to_db():
+    """
+    Verifies the database is still accepting connections
+
+    :return: True iff the database is available
+    """
     try:
-        if _get_session():
+        with _driver.session():
             return True
     except (DriverError, SessionError, ServiceUnavailable):
         return False
 
 
+def _run(runner, query, *params, **kwparams):
+    # Runs the given query with given parameters, either as
+    # single transaction (if runner is a Session object)
+    # or within a single transaction, if runner is a Transaction
+    # object.
+    try:
+        return [r for r in runner.run(query, *params, **kwparams)]
+    except (CypherSyntaxError, SessionError) as e:
+        _logger.error('query {}\nraised: {}'.format(query, e))
+
+
+def perform_queries(queries, params):
+    """
+    Performs the given queries with given parameters, in a single
+    transaction.
+
+    :param queries: A list of queries
+    :param params: A list of lists of parameters belonging to the queries
+    :return: A list of result lists
+    """
+    with _driver.session() as session:
+        with session.begin_transaction() as tx:
+            return [[r for r in _run(tx, queries[i], params[i])]
+                    for i in range(len(queries))]
+
+
+def perform_query(query, *params, **kwparams):
+    """
+    Performs the given query with given parameters, either as an expanded
+    list or an expanded dictionary.
+
+    :param query: The query to perform
+    :param params: The query parameters, as positional arguments
+    :param kwparams: The query parameters, as key value pairs
+    :return: A list of resulting records
+    """
+    with _driver.session() as session:
+        return _run(session, query, *params, **kwparams)
+
+
+def _store_ic_rel_query(city_a, city_b):
+    # Generates a query for storing an intercity relation
+    # Returns a query, params tuple
+    query = '''
+        MATCH (a:City {{ name: $a }})
+        MATCH (b:City {{ name: $b }})
+        MERGE (a)<-[r:{0}]-(b)
+        ON CREATE SET r = {{ {1} }}
+    '''.format(RELATES_TO, ', '.join('{0}: $val'.format(p)
+                                     for p in CATEGORIES))
+    return query, {'a': city_a, 'b': city_b, 'val': 0}
+
+
+def store_ic_rel(city_a, city_b):
+    """
+    Stores a relation between the given cities and initialises the
+    scores for all topics to 0.
+
+    :param city_a: City A
+    :param city_b: City B
+    :return: True iff stored successfully
+    """
+    query, params = _store_ic_rel_query(city_a, city_b)
+    return perform_query(query, params) == []
+
+
+def store_ic_rels(pairs):
+    """
+    Same as store_ic_rel, but for multiple city pairs
+
+    :param pairs: A list of city tuples
+    :return: True iff all pairs have been successfully stored
+    """
+    query_list = list()
+    params_list = list()
+
+    for pair in pairs:
+        query, params = _store_ic_rel_query(pair[0], pair[1])
+        query_list.append(query)
+        params_list.append(params)
+
+    return len(perform_queries(query_list, params_list)) == len(query_list)
+
+
+def _store_index_query(index):
+    # Generates a query for storing an index
+    # Returns a query, params tuple
+    query = '''
+        MERGE (i:Index {{ filename: $filename }})
+        ON CREATE SET i = {{ {0}, {1} }}
+    '''.format(', '.join('{0}: ${0}'.format(k) for k in index.keys()),
+               ', '.join('{0}: 0'.format(k) for k in CATEGORIES))
+    return query, {k: v for k, v in index.items()}
+
+
+def store_index(index):
+    """
+    Stores the provided index. The index should be a dictionary,
+    containing:
+
+    `filename`: The location of the page pointed to
+    `offset`: The offset of the page
+    `length`: The content length of the page
+
+    :param index: The index dictionary
+    :return: True iff the index has been successfully stored
+    """
+    return perform_query(*_store_index_query(index)) == []
+
+
+def store_indices(indices):
+    """
+    Same as store_index but for multiple indices"
+
+    :param indices: The indices to create
+    :return: True iff created successfully
+    """
+    query_list = list()
+    params_list = list()
+
+    for index in indices:
+        query, params = _store_index_query(index)
+        query_list.append(query)
+        params_list.append(params)
+
+    return len(perform_queries(query_list, params_list)) == len(query_list)
+
+
+def _store_occurrence_query(filename, city):
+    # Generates a query for storing an occurrence, as a relation
+    # between a city and an index. Returns a query, params tuple
+    query = '''
+        MATCH (i:Index {{ filename: $filename }})
+        MATCH (a:City {{ name: $city }})
+        MERGE (a)-[:{0}]->(i)
+    '''.format(OCCURS_IN)
+    return query, {'filename': filename, 'city': city}
+
+
+def store_occurrence(filename, city):
+    """
+    Creates a relation between the given index and city
+
+    :param filename: The file name of the index
+    :param city: The name of the city
+    :return: True iff stored successfully
+    """
+    return perform_query(*_store_occurrence_query(filename, city)) == []
+
+
+def store_occurrences(filenames, occurrences):
+    """
+    Same as store_occurrence but for multple indices/occurrences.
+    Allows for duplicate index names to be able to store multiple
+    occurrences.
+
+    :param filenames: The file names of the indices
+    :param occurrences: The names of the cities
+    :return: True iff stored successfully
+    """
+    query_list = list()
+    params_list = list()
+
+    for i, fn in enumerate(filenames):
+        query, params = _store_occurrence_query(fn, occurrences[i])
+        query_list.append(query)
+        params_list.append(params)
+
+    return len(perform_queries(query_list, params_list)) == len(query_list)
+
+
+def _store_index_topics_query(filename, topics):
+    # Generates a query for storing index topics, as labels
+    # Topics must be set or a None, None tuple is returned.
+    # Returns a query, params tuple
+    if not topics:
+        return None, None
+    query = '''
+        MATCH (i:Index {{ filename: $filename }})
+        SET i{}
+    '''.format(':{}'.format(':'.join(t.capitalize() for t in topics)))
+    return query, {'filename': filename}
+
+
+def store_index_topics(filename, topics):
+    """
+    Appends the given topics as labels to the given index.
+
+    Caution: the index must already exist in the database!
+
+    :param filename: The file name of the index
+    :param topics: A list of topics
+    :return: True iff the topics have been successfully stored
+    """
+    query, params = _store_index_topics_query(filename, topics)
+    if query:
+        return perform_query(query, params) == []
+
+
+def store_indices_topics(filenames, topics):
+    """
+    Same as store_index_topics, but for multiple indices.
+
+    :param filenames: The file names of the indices
+    :param topics: A list of topic lists
+    :return: True iff the topics have been successfully stored
+    """
+    query_list = list()
+    params_list = list()
+
+    for i, fn in enumerate(filenames):
+        query, params = _store_index_topics_query(fn, topics[i])
+        if query:
+            query_list.append(query)
+            params_list.append(params)
+
+    return len(perform_queries(query_list, params_list)) == len(query_list)
+
+
+def _store_index_probabilities_query(filename, probabilities):
+    # Generates a query for storing topic probabilities on an index
+    # Default probabilities (0) are used if none are provided
+    # Returns a query, params tuple
+    if not probabilities:
+        probabilities = DEFAULT_CAT_DICT
+
+    query = '''
+        MATCH (i:Index {{ filename: $filename }})
+        SET {}
+    '''.format(','.join('i.{0}=${0}'.format(k) for k in probabilities.keys()))
+    return query, {'filename': filename, **probabilities}
+
+
+def store_index_probabilities(filename, probabilities=None):
+    """
+    Stores topic probabilities in the given Index node. The probabilities
+    parameter is a dictionary and it's values default to 0.
+    The following probability types are supported by default:
+
+    - commuting
+    - shopping
+    - leisure
+    - moving
+    - education
+    - collaboration
+    - transportation
+    - other
+
+    :param filename: The name of the index
+    :param probabilities: A dictionary of topic:probability pairs
+    :return: True iff the probabilities have been successfully stored
+    """
+    query, params = _store_index_probabilities_query(filename, probabilities)
+    return perform_query(query, params) == []
+
+
+def store_indices_probabilities(filenames, probabilities):
+    """
+    Same as store_index_probabilities, but for multiple indices.
+    :param filenames: A list of file names
+    :param probabilities: A list of probability dictionaries per index
+    :return: True iff stored successfully
+    """
+    query_list = list()
+    params_list = list()
+
+    for i, fn in enumerate(filenames):
+        query, params = _store_index_probabilities_query(fn, probabilities[i])
+        query_list.append(query)
+        params_list.append(params)
+
+    return len(perform_queries(query_list, params_list)) == len(query_list)
+
+
+def _get_ic_rel_query(city_a, city_b):
+    # Generates a query for retrieving intercity relation statistics
+    # Returns a query, params tuple
+    query = '''
+        MATCH (a:City {{name: $city_a}})-[r:{0}]-(b:City {{name: $city_b}})
+        RETURN properties(r) AS relation
+    '''.format(RELATES_TO)
+    return query, {'city_a': city_a, 'city_b': city_b}
+
+
+def _parse_ic_rel_result(result):
+    # Checks the result and returns a dictionary of the relation scores
+    if result:
+        return {k: v for k, v in result[0]['relation'].items()}
+
+
+def get_ic_rel(city_a, city_b):
+    """
+    Retrieves the relation scores between City A and City B
+
+    :param city_a: City A
+    :param city_b: City B
+    :return: A dictionary containing the scores per topic
+    """
+    result = perform_query(*_get_ic_rel_query(city_a, city_b))
+    return _parse_ic_rel_result(result)
+
+
+def get_ic_rels(city_pairs):
+    """
+    Retrieves the relation scores between the given pairs of cities.
+
+    :param city_pairs: A list of tuples of cities
+    :return: A list of dictionaries, containing the scores per city pair
+    """
+    query_list = list()
+    params_list = list()
+
+    for pair in city_pairs:
+        query, params = _get_ic_rel_query(pair[0], pair[1])
+        query_list.append(query)
+        params_list.append(params)
+
+    return [_parse_ic_rel_result(r)
+            for r in perform_queries(query_list, params_list)]
+
+
+def _get_index_probabilities_query(filename):
+    # Generates a query for retrieving index probabilities
+    # Returns a query, params tuple
+    query = '''
+        MATCH (i:Index {{ filename: $filename }})
+        RETURN {}
+    '''.format(', '.join('i.{0} AS {0}'.format(p) for p in CATEGORIES))
+    return query, {'filename': filename}
+
+
+def _parse_index_probabilities_result(result):
+    # Checks the result and returns a dictionary of topic-probability pairs
+    if result:
+        return {k: v for k, v in result[0].items()}
+
+
+def get_index_probabilities(filename):
+    """
+    Returns a dictionary of topic probabilities for the given index
+
+    :param filename: A file name representing an index
+    :return: The dictionary of topic probabilities
+    """
+    result = perform_query(*_get_index_probabilities_query(filename))
+    return _parse_index_probabilities_result(result)
+
+
+def get_indices_probabilities(filenames):
+    """
+    Retrieves the topic probabilities of the given indices
+
+    :param filenames: A list of file names, representing indices
+    :return: A list of dictionaries, containing the probabilities per
+    topic per index
+    """
+    query_list = list()
+    params_list = list()
+
+    for filename in filenames:
+        query, params = _get_index_probabilities_query(filename)
+        query_list.append(query)
+        params_list.append(params)
+
+    return [_parse_index_probabilities_result(r)
+            for r in perform_queries(query_list, params_list)]
+
+
+def _get_index_topics_query(filename):
+    # Generates a query for retrieving index topics
+    # Returns a query, params tuple
+    query = '''
+        MATCH (i:Index { filename: $filename })
+        RETURN labels(i) AS labels
+    '''
+    return query, {'filename': filename}
+
+
+def _parse_index_topics_result(result):
+    # Checks the result and returns a list of topics
+    if result:
+        return [label for label in result[0]['labels'] if label != 'Index']
+
+
+def get_index_topics(filename):
+    """
+    Retrieves a list of topics for a given index.
+
+    :param filename: A file name, representing an index
+    :return: A list of topics
+    """
+    result = perform_query(*_get_index_topics_query(filename))
+    return _parse_index_topics_result(result)
+
+
+def get_indices_topics(filenames):
+    """
+    Retrieves a list of topics per given index.
+
+    :param filenames: A list of file names, representing the indices
+    :return: A list of topic lists
+    """
+    query_list = list()
+    params_list = list()
+
+    for filename in filenames:
+        query, params = _get_index_topics_query(filename)
+        query_list.append(query)
+        params_list.append(params)
+
+    return [_parse_index_topics_result(r)
+            for r in perform_queries(query_list, params_list)]
+
+
 def _get_cities():
+    # Returns a list of Neo4j City objects. Tries to reuse them
+    # save database hits
     global _cities
-    if _cities:
-        return _cities
-    else:
-        with _get_session() as session:
-            # Records need to be copied
-            # due to the scope of the session variable
-            _cities = [c for c in session.run('MATCH (a:City) RETURN a')]
-            return _cities
+
+    if not _cities:
+        _cities = [c for c in perform_query('MATCH (a:City) RETURN a')]
+
+    return _cities
 
 
 def _city_by_name(name):
@@ -69,70 +470,6 @@ def _city_property(city, property_name):
         return float(city['a'].properties[property_name])
     except ValueError:
         return city['a'].properties[property_name]
-
-
-def _get_topic_str(topics):
-    # Join all topics with ':', also add a leading ':'
-    # because there always is an Index label
-    return ':{}'.format(':'.join(topic.capitalize() for topic in topics))
-
-
-def _get_property_ret_str(name='r', properties=TOPIC_PROBS):
-    return ', '.join('{0}.{1} AS {1}'.format(name, k) for k in
-                     properties.keys())
-
-
-def _get_property_kv(properties=TOPIC_PROBS):
-    return {'{{{}}}'.format(k): v for k, v in properties.items()}
-
-
-def _get_property_kv_str(properties=TOPIC_PROBS):
-    return ', '.join('{}: {}'.format(k, v) for k, v in _get_property_kv(
-        properties))
-
-
-def _get_property_set_str(name='r', properties=TOPIC_PROBS):
-    return ', '.join('{}.{} = {}'.format(name, k, v)
-                     for k, v in properties.items())
-
-
-def perform_query(query, params=None):
-    """
-    Utility method to run an arbitrary query.
-
-    Use with caution!
-
-    :param query: The query to execute
-    :param params: The query parameters
-    :return: The result of the query, as provided by Neo4j
-    """
-    try:
-        with _get_session() as session:
-            return [r for r in session.run(query, params)]
-    except (CypherSyntaxError, SessionError) as e:
-        logger.error('query: %s\nraised error: %s' % (query, e))
-
-
-def perform_queries(queries, params):
-    """
-    Utility method to run multiple queries in a single transaction.
-
-    Use with caution!
-
-    :param queries: A list of queries
-    :param params: A list of parameters for the queries. Must be indexed the
-    same as the query list.
-    :return: A list of results, without failed query results.
-    """
-    results = list()
-    with _get_session() as session:
-        with session.begin_transaction() as tx:
-            for i, query in enumerate(queries):
-                try:
-                    results.append([r for r in tx.run(query, params[i])])
-                except (CypherSyntaxError, SessionError) as e:
-                    logger.error('query: {}\nraised: {}'.format(query, e))
-    return results
 
 
 def city_names():
@@ -200,180 +537,3 @@ def city_haversine_distance(name_a, name_b):
 
     # 6371 = Earth's radius
     return 2 * 6371 * math.asin(math.sqrt(a))
-
-
-def get_ic_rel(city_a, city_b, rel_name='RELATES_TO'):
-    """
-    Retrieves the relation scores for city A and city B, as a dictionary.
-    See `store_ic_rel` for a list of supported categories.
-
-    :param city_a: The name of city A
-    :param city_b: The name of city B
-    :param rel_name: The name of the relation. Defaults to 'RELATES_TO'.
-    Should not be adjusted in normal cases.
-    :return: A dictionary containing the relationship scores for different
-    categories or None if no relation exists.
-    """
-    query = '''
-        MATCH (n:City) WHERE n.name = '{0}'
-        MATCH (m:City) WHERE m.name = '{1}'
-        MATCH (n)-[r:{2}]-(m)
-        RETURN {3}
-    '''.format(city_a, city_b, rel_name, _get_property_ret_str())
-
-    result = perform_query(query)
-    return {k: v for k, v in result[0].items()} if result else None
-
-
-def get_index_probabilities(index):
-    """
-    Returns the probabilities for all topics that a given index belongs to
-    that topic.
-    :param index: The filename of the index
-    :return: A dictionary of `topic: probability` pairs or None if no topics
-    belong to the index
-    """
-    query = '''
-        MATCH (i:Index) WHERE i.filename = '{0}'
-        RETURN {1}
-    '''.format(index, _get_property_ret_str(name='i'))
-
-    result = perform_query(query)
-    return {k: v for k, v in result[0].items()} if result else {}
-
-
-def _generate_index_query(index, co_occurrences):
-    cities = {city for occ in co_occurrences for city in occ}
-
-    return (
-        len(cities),
-        STORE_INDEX_QUERY.format(', '.join("'{}'".format(c) for c in cities)),
-        {'fn': index['filename'], 'off': index['offset'],
-         'len': index['length'], **_get_property_kv()}
-    )
-
-
-def store_index(index, co_occurrences):
-    """
-    Stores the provided index in Neo4j and creates relationships
-    to all cities that occur in the document.
-
-    The index should be a dictionary, containing at least:
-
-    `filename`: The location of the page pointed to
-    `offset`: The offset of the page
-    `length`: The content length of the page
-
-    :param index: The index dictionary
-    :param co_occurrences: A list of tuples,
-           containing co-occurrences (e.g. `[('Amsterdam', 'Rotterdam')]`)
-    :return: True iff the index has been successfully stored
-    """
-    count, query, params = _generate_index_query(index, co_occurrences)
-    created_relations = perform_query(query, params)
-
-    return len(created_relations) == count
-
-
-def store_indices(indices, co_occurrences):
-    """
-    Same as `store_index` but for multiple indices at once.
-    :param indices: A list of indices
-    :param co_occurrences: A list of co-occurrences
-    :return: True iff all queries have completed successfully
-    """
-    expected_count = 0
-    queries = list()
-    params = list()
-    for i, index in enumerate(indices):
-        count, query, param = _generate_index_query(index, co_occurrences[i])
-        expected_count += count
-        queries.append(query)
-        params.append(param)
-
-    return expected_count == len(perform_queries(queries, params))
-
-
-def store_index_topics(index, topics):
-    """
-    Appends the given topics as labels to the given index.
-
-    Caution: the index must already exist in the database!
-
-    :param index: The filename of the index
-    :param topics: A list of topics
-    :return: True iff the topics have been successfully stored
-    """
-    if not topics:
-        return False
-
-    query = '''
-        MATCH (i:Index {{ filename: '{}' }})
-        SET i{}
-        RETURN ID(i) AS id
-    '''.format(index, _get_topic_str(topics))
-
-    return 'id' in perform_query(query)[0]
-
-
-def store_index_probabilities(index, probabilities):
-    """
-    Stores topic probabilities in the given Index node. The probabilities
-    parameter is a dictionary and it's values default to 0.
-    The following probability types are supported by default:
-
-    - commuting
-    - shopping
-    - leisure
-    - moving
-    - education
-    - collaboration
-    - transportation
-    - other
-
-    :param index: The name of the index
-    :param probabilities: A dictionary of topic:probability pairs
-    :return: True iff the probabilities have been successfully stored
-    :raises ValueError iff the passed scores dict contains a non-existing
-    score type
-    """
-    current = get_index_probabilities(index)
-
-    if probabilities:
-        # Fill in the passed scores
-        probabilities = {**TOPIC_PROBS, **current, **probabilities}
-
-        if len(probabilities) > len(TOPIC_PROBS):
-            raise ValueError('Invalid score type given!')
-    else:
-        probabilities = TOPIC_PROBS
-
-    query = '''
-        MATCH (i:Index) WHERE i.filename = '{0}'
-        SET {1}
-        RETURN ID(i) AS id
-    '''.format(index, _get_property_set_str(name='i',
-                                            properties=probabilities))
-    return 'id' in perform_query(query)[0]
-
-
-def store_ic_rel(city_a, city_b, rel_name='RELATES_TO'):
-    """
-    Stores a relationship from city A to city B with default scores.
-    If the relationship already exists and if any scores exist, they are
-    overwritten.
-
-    :param city_a: The name of city A
-    :param city_b: The name of city B
-    :param rel_name: The name of the relation, defaulting to 'RELATES_TO'.
-        Should not need to be adjusted in normal cases.
-    :return: True iff the intercity relation has been succesfully stored
-    """
-    query = '''
-        MATCH (a:City {{ name: '{0}' }})
-        MATCH (b:City {{ name: '{1}' }})
-        MERGE (a)-[r:{2} {{ {3} }}]-(b)
-        RETURN ID(r) AS id
-    '''.format(city_a, city_b, rel_name, _get_property_kv_str())
-
-    return 'id' in perform_query(query)[0]

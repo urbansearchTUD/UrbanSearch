@@ -26,6 +26,8 @@ class UrbanSearchTest(test):
     def run_tests(self):
         # import here, cause outside the eggs aren't loaded
         import pytest
+        import config
+        config.TEST = True
         errno = pytest.main(['-v', 'tests/'])
         sys.exit(errno)
 
