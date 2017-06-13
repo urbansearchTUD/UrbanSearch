@@ -22,6 +22,12 @@ class Server(object):
         """
 
         self.app = Flask(__name__)
+
+        @self.app.route("/")
+        def hello():
+            return "<h1 style='color:blue'>Hello There!</h1>"
+
+
         self.register_blueprints()
 
         @self.app.after_request
@@ -43,4 +49,3 @@ class Server(object):
                                     url_prefix=API_PREFIX + '/datasets')
         self.app.register_blueprint(documents_api,
                                     url_prefix=API_PREFIX + '/documents')
-

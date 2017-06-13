@@ -8,6 +8,7 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 CONFIG_PATH = os.path.join(os.path.expanduser('~'), '.config', 'urbansearch')
 CONFIG_FILE = 'urbansearch.yml'
 DEFAULTS_FILE = 'defaults.yml'
+SYS_CONFIG_PATH = os.path.join(os.sep, 'etc', 'urbansearch')
 CONFIG = {}
 
 LOGGER = None
@@ -34,7 +35,14 @@ def _load_default_config():
 def _load_custom_config():
     # Try to load existing config or create a new empty settings file
     try:
-        with open(os.path.join(CONFIG_PATH, CONFIG_FILE), 'r+') as f:
+        with open(os.path.join(SYS_CONFIG_PATH, CONFIG_FILE), 'r') as f:
+            # Concatenate config, override defaults with YAML values
+            return yaml.load(f)
+    except Exception as e:
+        LOGGER.warning('System configuration file not found')
+
+    try:
+        with open(os.path.join(CONFIG_PATH, CONFIG_FILE), 'r') as f:
             # Concatenate config, override defaults with YAML values
             return yaml.load(f)
     except FileNotFoundError:
