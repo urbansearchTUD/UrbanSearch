@@ -3,4 +3,6 @@ neo4j:
   password: p4ss4tr4v1s
   bolt_uri: 'bolt://127.0.0.1:7687'
   host: '127.0.0.1'
+  relates_to_name: 'TEST_RELATES_TO'
+  occurs_in_name: 'TEST_OCCURS_IN'
 
