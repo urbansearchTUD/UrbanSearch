@@ -49,10 +49,10 @@ def clean_neo4j_ic_rel(request):
     request.addfinalizer(clean_ic_rel)
 
 
-def _create_test_index(filename='test.gz'):
-    index = {'filename': filename, 'length': 10, 'offset': 12}
+def _create_test_index(digest='unique_string'):
+    index = {'digest': digest, 'filename': 'test.gz', 'length': 10, 'offset': 12}
     assert db_utils.store_index(index)
-    return index['filename']
+    return index['digest']
 
 
 def test_caching():
@@ -114,36 +114,41 @@ def test_invalid_query():
 
 @pytest.mark.usefixtures('clean_neo4j_index')
 def test_store_single_index():
-    index = {'filename': 'test.gz', 'length': 10, 'offset': 12}
+    index = {'digest': 'unique_string', 'filename': 'test.gz',
+             'length': 10, 'offset': 12}
     assert db_utils.store_index(index)
 
 
 @pytest.mark.usefixtures('clean_neo4j_index')
 def test_store_multi_index():
     indices = [
-            {'filename': 'test.gz', 'length': 10, 'offset': 12},
-            {'filename': 'test2.gz', 'length': 11, 'offset': 13}
+            {'digest': 'unique_string', 'filename': 'test.gz',
+             'length': 10, 'offset': 12},
+            {'digest': 'unique_string2', 'filename': 'test2.gz',
+             'length': 11, 'offset': 13}
     ]
     assert db_utils.store_indices(indices)
 
 
 @pytest.mark.usefixtures('clean_neo4j_index_and_rel')
 def test_store_single_occurrence():
-    filename = _create_test_index()
+    digest = _create_test_index()
     city = 'Amsterdam'
-    assert db_utils.store_occurrence(filename, city)
+    assert db_utils.store_occurrence(digest, city)
 
 
 @pytest.mark.usefixtures('clean_neo4j_index_and_rel')
 def test_store_multi_occurrence():
     indices = [
-            {'filename': 'test.gz', 'length': 10, 'offset': 12},
-            {'filename': 'test2.gz', 'length': 11, 'offset': 13}
+            {'digest': 'unique_string', 'filename': 'test.gz',
+             'length': 10, 'offset': 12},
+            {'digest': 'unique_string', 'filename': 'test2.gz',
+             'length': 11, 'offset': 13}
     ]
     db_utils.store_indices(indices)
-    filenames = ['test.gz', 'test2.gz']
+    digests = ['unique_string', 'unique_string2']
     occurrences = ['Amsterdam', 'Rotterdam', 'Appingedam']
-    assert db_utils.store_occurrences(filenames, occurrences)
+    assert db_utils.store_occurrences(digests, occurrences)
 
 
 @pytest.mark.usefixtures('clean_neo4j_ic_rel')
@@ -187,7 +192,7 @@ def test_get_intercity_relation_multi():
     db_utils.store_ic_rels([('Rotterdam', 'Amsterdam'),
                                 ('Den Haag', 'Appingedam')])
     assert db_utils.get_ic_rels([('Rotterdam', 'Amsterdam'),
-                                     ('Den Haag', 'Appingedam')]) == expected
+                                 ('Den Haag', 'Appingedam')]) == expected
 
 
 @pytest.mark.usefixtures('clean_neo4j_index')
@@ -263,7 +268,7 @@ def test_store_index_probabilities_default():
 
 @pytest.mark.usefixtures('clean_neo4j_index')
 def test_store_index_probabilities_full():
-    filename = _create_test_index()
+    digest = _create_test_index()
     probabilities = {
         'commuting': 0.5,
         'shopping': 0.13,
@@ -274,8 +279,8 @@ def test_store_index_probabilities_full():
         'transportation': 0.17,
         'other': 0.19
     }
-    assert db_utils.store_index_probabilities(filename, probabilities)
-    assert db_utils.get_index_probabilities(filename) == probabilities
+    assert db_utils.store_index_probabilities(digest, probabilities)
+    assert db_utils.get_index_probabilities(digest) == probabilities
 
 
 @pytest.mark.usefixtures('clean_neo4j_index')

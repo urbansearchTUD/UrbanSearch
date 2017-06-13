@@ -281,6 +281,6 @@ class PageDownloader(object):
 
     @staticmethod
     def _remove_keys(json_dict):
-        # Strip all key-value pairs other than length, offset & name
+        # Strip all key-value pairs other than digest, length, offset & name
         return {k: v for k, v in json_dict.items()
-                if k in ['length', 'offset', 'filename']}
+                if k in ['digest', 'length', 'offset', 'filename']}
