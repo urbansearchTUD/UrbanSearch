@@ -67,23 +67,39 @@ class Workers(object):
         """
         global producers_done
 
+        indices = list()
+        digests = list()
+        occurrences = list()
+        probabilities = list()
+        topics_list = list()
+
         while not queue.empty() or not producers_done.is_set():
             try:
                 index, co_occ = queue.get(block=True, timeout=5)
                 txt = self.pd.index_to_txt(index)
-                category = self.ct.predict(txt, self.prepr.pre_process)
                 prob = self.ct.probability_per_category(txt,
                                                         self.prepr.pre_process)
+                topics = None # TODO Return all above threshold in classifytext
+
                 if to_db:
-                    self._store_in_db(index, prob, co_occ, pre_downloaded=False)
-                    LOGGER.debug("Inserting {0} for {1} and index: {2}"
-                                 .format(prob, co_occ, index))
-                LOGGER.info("Category: {0} for index {1}".format(category,
-                                                                 index))
-                LOGGER.info("Probabilities: {0} for index {1}".format(prob,
-                                                                      index))
+                    self._store_indices_db(index, indices)
+                    digests.append(index.get('digest', None))
+
+                    self._store_info_db(digests, co_occ, occurrences,
+                                        db_utils.store_occurrences)
+                    self._store_info_db(digests, prob, probabilities,
+                                        db_utils.store_indices_probabilities)
+                    self._store_info_db(digests, topics, topics_list,
+                                        db_utils.store_indices_topics)
+
+                    # TODO CONFIG
+                    if len(digests) >= 40000:
+                        digests.clear()
             except Empty:
                 pass
+
+        self._final_store_db(indices, digests, occurrences, probabilities,
+                             topics_list)
 
     def classifying_from_files_worker(self, queue, to_db=False):
         """ Classifying worker that classifies plain text files of relevant
@@ -97,18 +113,80 @@ class Workers(object):
         """
         global file_producers_done
 
+        indices = list()
+        digests = list()
+        occurrences = list()
+        probabilities = list()
+        topics_list = list()
+
         while not queue.empty() or not file_producers_done.is_set():
             try:
                 index, txt = queue.get(block=True, timeout=5)
                 co_occ = self.co.check(txt)
                 prob = self.ct.probability_per_category(txt,
                                                         self.prepr.pre_process)
-                LOGGER.debug("Parsed index: {0} || {1}".format(index, prob))
+                topics = None # TODO Return all above threshold in classifytext
 
                 if to_db:
-                    self._store_in_db(index, prob, co_occ, pre_downloaded=True)
+                    self._store_indices_db(index, indices)
+                    digests.append(index.get('digest', None))
+
+                    self._store_info_db(digests, co_occ, occurrences,
+                                        db_utils.store_occurrences)
+                    self._store_info_db(digests, prob, probabilities,
+                                        db_utils.store_indices_probabilities)
+                    self._store_info_db(digests, topics, topics_list,
+                                        db_utils.store_indices_topics)
+
+                    # TODO CONFIG
+                    if len(digests) >= 40000:
+                        digests.clear()
             except Empty:
                 pass
+
+        self._final_store_db(indices, digests, occurrences, probabilities,
+                             topics_list)
+
+    def _store_indices_db(self, index, indices, final=False):
+        if index and indices:
+            indices.append(index)
+
+        if index is None and final:
+            db_utils.store_indices(indices)
+
+        if len(indices >= 40000): # TODO CONFIG
+            if not db_utils.store_indices(indices):
+                # TODO Retry?
+                pass
+            indices.clear()
+
+    def _store_info_db(self, digests, itm, itm_list, util_func, final=False):
+        # Store in database using supplied item, list and function
+        if not itm and not itm_list:
+            return
+        elif itm is None and final:
+            util_func(itm_list)
+            return
+
+        itm_list.append(itm)
+
+        # Accumulate data to speed up db insertion
+        if len(itm_list >= 40000):
+            if not util_func(itm_list):
+                # TODO Retry?
+                pass
+            itm_list.clear()
+
+    def _final_store_db(self, indices, digests, occurrences, probabilities,
+                        topics_list):
+        # When done with queue but not above threshold still push to DB
+        self._store_indices_db(None, indices, final=True)
+        self._store_info_db(digests, None, occurrences,
+                            db_utils.store_occurrences, final=True)
+        self._store_info_db(digests, None, probabilities,
+                            db_utils.store_indices_probabilities, final=True)
+        self._store_info_db(digests, None, topics_list,
+                            db_utils.store_indices_topics, final=True)
 
     def _store_in_db(self, index, probabilities, co_occ, pre_downloaded=False):
         # If files are already downloaded, but not inserted in the db yet

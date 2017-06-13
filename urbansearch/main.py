@@ -136,6 +136,7 @@ def _join_file_workers(w, producers, consumers):
     # Wait for producers to finish
     for p in producers:
         p.join()
+
     # Signal consumers that producers have finished
     w.set_file_producers_done()
 
