@@ -34,15 +34,17 @@ def _load_default_config():
 
 def _load_custom_config():
     # Try to load existing config or create a new empty settings file
-    try:
-        with open(os.path.join(SYS_CONFIG_PATH, CONFIG_FILE), 'r') as f:
-            # Concatenate config, override defaults with YAML values
-            return yaml.load(f)
-    except Exception as e:
-        LOGGER.warning('System configuration file not found')
+    system_config = _load_system_config()
 
+    if system_config:
+        return system_config
+    else:
+        return _load_user_config()
+
+
+def _load_user_config():
     try:
-        with open(os.path.join(CONFIG_PATH, CONFIG_FILE), 'r') as f:
+        with open(os.path.join(CONFIG_PATH, CONFIG_FILE), 'r+') as f:
             # Concatenate config, override defaults with YAML values
             return yaml.load(f)
     except FileNotFoundError:
@@ -50,6 +52,14 @@ def _load_custom_config():
         if not os.path.exists(CONFIG_PATH):
             os.makedirs(CONFIG_PATH)
 
+
+def _load_system_config():
+    try:
+        with open(os.path.join(SYS_CONFIG_PATH, CONFIG_FILE), 'r+') as f:
+            # Concatenate config, override defaults with YAML values
+            return yaml.load(f)
+    except Exception as e:
+        pass
 
 def _load_config():
     # Fills the global CONFIG dictionary using default and custom config
