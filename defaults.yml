@@ -3,6 +3,8 @@ neo4j:
   bolt_uri: ''
   username: ''
   password: ''
+  relates_to_name: 'RELATES_TO'
+  occurs_in_name: 'OCCURS_IN'
 api:
   num_of_workers: 50
   num_of_docs: 20000
@@ -51,6 +53,12 @@ logging:
       formatter: default
   loggers:
     urbansearch:
+      handlers:
+        - file
+        - console
+      level: DEBUG
+      propagate: true
+    workers:
       handlers:
         - file
         - console

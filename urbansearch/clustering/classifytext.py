@@ -1,9 +1,9 @@
 import config
 import os
 
-from .mnb_modelmanager import MNBModelManager
-from .sgdc_modelmanager import SGDCModelManager
-from .text_preprocessor import PreProcessor
+from urbansearch.clustering.mnb_modelmanager import MNBModelManager
+from urbansearch.clustering.sgdc_modelmanager import SGDCModelManager
+from urbansearch.clustering.text_preprocessor import PreProcessor
 
 DEFAULT_CLASSIFIER = config.get('classification', 'default_classifier')
 MNB = 'mnb'
@@ -57,3 +57,20 @@ class ClassifyText(object):
 
         return dict(zip(self.mm.clf.classes_,
                         self.mm.probabilities([text])[0]))
+
+    def category_with_threshold(self, prob, threshold):
+        """ Return category with highest probability above the threshold.
+        If no category is above threshold category returned is 'Other'.
+
+        :prob: Dict with category as key and probability as value
+        :threshold: A threshold for the probability between 0 and 1
+        :return: Key with highest probability if above threshold, otherwise
+        returns 'Other'
+        """
+        assert 0 <= threshold <= 1
+
+        key = max(prob.keys(), key=(lambda k: prob[k]))
+        if prob.get(key) >= threshold:
+            return key
+        else:
+            return "Other"

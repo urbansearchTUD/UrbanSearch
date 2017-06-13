@@ -32,6 +32,7 @@ class PageDownloader(object):
         self.indices = []
         self.req_timeout = config.get('gathering', 'request_timeout')
         self.session = requests.Session()
+
         # Cache the regular expression to filter http response code
         re.compile('\'status\': \'(\w+)\',')
 
@@ -55,6 +56,7 @@ class PageDownloader(object):
                                         '?url=' + enc_url +
                                         '&output=json',
                                         timeout=self.req_timeout)
+
             indices = [json.loads(x) for x in
                        response.content.strip().decode('utf-8').split('\n')
                        if self._useful_str_responsecode(x)]
@@ -85,6 +87,7 @@ class PageDownloader(object):
                                     headers={
                                         'Range': 'bytes={}-{}'.format(start,
                                                                       end)},
+
                                     timeout=self.req_timeout, verify=False)
         except requests.exceptions.RequestException as e:
             logger.warning('Exception while downloading warc part: {0}'

@@ -7,6 +7,11 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 CONFIG_PATH = os.path.join(os.path.expanduser('~'), '.config', 'urbansearch')
 CONFIG_FILE = 'urbansearch.yml'
+
+TEST = False
+TEST_CONFIG_PATH = BASE_DIR
+TEST_CONFIG_FILE = 'test_config.yml'
+
 DEFAULTS_FILE = 'defaults.yml'
 SYS_CONFIG_PATH = os.path.join(os.sep, 'etc', 'urbansearch')
 CONFIG = {}
@@ -25,6 +30,12 @@ def _merge(a, b):
     return a
 
 
+def _load_test_config():
+    # Only if TEST is set, use the test config (from load_custom_config)
+    with open(os.path.join(TEST_CONFIG_PATH, TEST_CONFIG_FILE)) as f:
+        return yaml.load(f)
+
+
 def _load_default_config():
     # Might (but should never) throw an error if the defaults file is
     # badly configured
@@ -33,6 +44,9 @@ def _load_default_config():
 
 
 def _load_custom_config():
+    if TEST:
+        return _load_test_config()
+
     # Try to load existing config or create a new empty settings file
     system_config = _load_system_config()
 
