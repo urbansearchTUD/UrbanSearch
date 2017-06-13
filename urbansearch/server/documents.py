@@ -12,17 +12,16 @@ NUMBER_OF_DOCUMENTS_PER_WORKER = config.get('api', 'num_of_docs')
 
 
 def random_worker():
-    return randint(0, NUMBER_OF_WORKERS-1)
+    return randint(0, NUMBER_OF_WORKERS - 1)
 
 
 def random_file():
-    return randint(0, NUMBER_OF_DOCUMENTS_PER_WORKER-1)
+    return randint(0, NUMBER_OF_DOCUMENTS_PER_WORKER - 1)
 
 
 @documents_api.route('/', methods=['GET'], strict_slashes=False)
 def get_random():
     """
-    _--**--_ INFINITE LOOP HAZARD _--**--_
     """
     while True:
         try:
@@ -39,7 +38,6 @@ def get_random():
 @documents_api.route('/test', methods=['GET'], strict_slashes=False)
 def get_random_test():
     """
-    _--**--_ INFINITE LOOP HAZARD _--**--_
     """
     while True:
         try:

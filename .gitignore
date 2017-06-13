@@ -99,3 +99,4 @@ ENV/
 *.swp
 *.swo
 
+urbansearch/resources/data_sets/*.pickle

@@ -10,7 +10,7 @@ api:
 resources:
   test: tests/resources
   models: urbansearch/resources/models
-  data: data/pages
+  data: /data/pages
   data_sets: urbansearch/resources/data_sets
   validation_sets: urbansearch/resources/validation_sets
   test_sets: urbansearch/resources/test_sets
