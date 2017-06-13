@@ -49,8 +49,7 @@ def _load_user_config():
             return yaml.load(f)
     except FileNotFoundError:
         # Create settings directory if it does not exist
-        if not os.path.exists(CONFIG_PATH):
-            os.makedirs(CONFIG_PATH)
+        pass
 
 
 def _load_system_config():
