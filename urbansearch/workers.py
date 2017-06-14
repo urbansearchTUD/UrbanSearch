@@ -134,11 +134,11 @@ class Workers(object):
                     self._store_indices_db(index, indices)
                     digests.append(index.get('digest', None))
 
-                    self._store_info_db(digests, co_occ, occurrences,
+                    self._store_info_db(digests, (co_occ, occurrences),
                                         db_utils.store_occurrences)
-                    self._store_info_db(digests, prob, probabilities,
+                    self._store_info_db(digests, (prob, probabilities),
                                         db_utils.store_indices_probabilities)
-                    self._store_info_db(digests, topics, topics_list,
+                    self._store_info_db(digests, (topics, topics_list),
                                         db_utils.store_indices_topics)
 
                     if len(digests) >= self.commit:
@@ -146,8 +146,9 @@ class Workers(object):
             except Empty:
                 pass
 
-        self._final_store_db(indices, digests, occurrences, probabilities,
-                             topics_list)
+        data_lists = [indices, digests, occurrences, probabilities,
+                      topics_list]
+        self._final_store_db(data_lists)
 
     def _store_indices_db(self, index, indices, final=False):
         if index and indices:
@@ -161,8 +162,9 @@ class Workers(object):
                 LOGGER.error("Could not store indices in DB, query failed")
             indices.clear()
 
-    def _store_info_db(self, digests, itm, itm_list, util_func, final=False):
+    def _store_info_db(self, digests, items, util_func, final=False):
         # Store in database using supplied item, list and function
+        itm, itm_list = items
         if not itm and not itm_list:
             return
         elif itm is None and final:
@@ -177,8 +179,13 @@ class Workers(object):
                 LOGGER.error("Could not store list in DB, query failed")
             itm_list.clear()
 
-    def _final_store_db(self, indices, digests, occurrences, probabilities,
-                        topics_list):
+    def _final_store_db(self, data_lists):
+        indices = data_lists[0]
+        digests = data_lists[1]
+        occurrences = data_lists[2]
+        probabilities = data_lists[3]
+        topics_list = data_lists[4]
+
         # When done with queue but not above threshold still push to DB
         self._store_indices_db(None, indices, final=True)
         self._store_info_db(digests, None, occurrences,
