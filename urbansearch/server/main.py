@@ -1,7 +1,9 @@
 from flask import Flask
-from urbansearch.server.predict import predict_api
+
 from urbansearch.server.dataset import dataset_api
 from urbansearch.server.documents import documents_api
+from urbansearch.server.indices import indices_api
+from urbansearch.server.predict import predict_api
 
 API_PREFIX = '/api/v1'
 
@@ -49,3 +51,5 @@ class Server(object):
                                     url_prefix=API_PREFIX + '/datasets')
         self.app.register_blueprint(documents_api,
                                     url_prefix=API_PREFIX + '/documents')
+        self.app.register_blueprint(indices_api,
+                                    url_prefix=API_PREFIX + '/indices')
