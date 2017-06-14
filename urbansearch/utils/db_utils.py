@@ -120,7 +120,7 @@ def _store_index_query(index):
     # Generates a query for storing an index
     # Returns a query, params tuple
     query = '''
-        MERGE (i:Index {{ filename: $filename }})
+        MERGE (i:Index {{ digest: $digest }})
         ON CREATE SET i = {{ {0}, {1} }}
     '''.format(', '.join('{0}: ${0}'.format(k) for k in index.keys()),
                ', '.join('{0}: 0'.format(k) for k in CATEGORIES))
@@ -132,7 +132,8 @@ def store_index(index):
     Stores the provided index. The index should be a dictionary,
     containing:
 
-    `filename`: The location of the page pointed to
+    `digest`: A unique string to identify the index with
+    `digest`: The location of the page pointed to
     `offset`: The offset of the page
     `length`: The content length of the page
 
@@ -160,42 +161,42 @@ def store_indices(indices):
     return len(perform_queries(query_list, params_list)) == len(query_list)
 
 
-def _store_occurrence_query(filename, city):
+def _store_occurrence_query(digest, city):
     # Generates a query for storing an occurrence, as a relation
     # between a city and an index. Returns a query, params tuple
     query = '''
-        MATCH (i:Index {{ filename: $filename }})
+        MATCH (i:Index {{ digest: $digest }})
         MATCH (a:City {{ name: $city }})
         MERGE (a)-[:{0}]->(i)
     '''.format(OCCURS_IN)
-    return query, {'filename': filename, 'city': city}
+    return query, {'digest': digest, 'city': city}
 
 
-def store_occurrence(filename, city):
+def store_occurrence(digest, city):
     """
     Creates a relation between the given index and city
 
-    :param filename: The file name of the index
+    :param digest: The unique identifier of the index
     :param city: The name of the city
     :return: True iff stored successfully
     """
-    return perform_query(*_store_occurrence_query(filename, city)) == []
+    return perform_query(*_store_occurrence_query(digest, city)) == []
 
 
-def store_occurrences(filenames, occurrences):
+def store_occurrences(digests, occurrences):
     """
     Same as store_occurrence but for multple indices/occurrences.
-    Allows for duplicate index names to be able to store multiple
+    Allows for duplicate index digests to be able to store multiple
     occurrences.
 
-    :param filenames: The file names of the indices
+    :param digests: The unique identifiers of the indices
     :param occurrences: The names of the cities
     :return: True iff stored successfully
     """
     query_list = list()
     params_list = list()
 
-    for i, fn in enumerate(filenames):
+    for i, fn in enumerate(digests):
         query, params = _store_occurrence_query(fn, occurrences[i])
         query_list.append(query)
         params_list.append(params)
@@ -203,46 +204,46 @@ def store_occurrences(filenames, occurrences):
     return len(perform_queries(query_list, params_list)) == len(query_list)
 
 
-def _store_index_topics_query(filename, topics):
+def _store_index_topics_query(digest, topics):
     # Generates a query for storing index topics, as labels
     # Topics must be set or a None, None tuple is returned.
     # Returns a query, params tuple
     if not topics:
         return None, None
     query = '''
-        MATCH (i:Index {{ filename: $filename }})
+        MATCH (i:Index {{ digest: $digest }})
         SET i{}
     '''.format(':{}'.format(':'.join(t.capitalize() for t in topics)))
-    return query, {'filename': filename}
+    return query, {'digest': digest}
 
 
-def store_index_topics(filename, topics):
+def store_index_topics(digest, topics):
     """
     Appends the given topics as labels to the given index.
 
     Caution: the index must already exist in the database!
 
-    :param filename: The file name of the index
+    :param digest: The unique identifier of the index
     :param topics: A list of topics
     :return: True iff the topics have been successfully stored
     """
-    query, params = _store_index_topics_query(filename, topics)
+    query, params = _store_index_topics_query(digest, topics)
     if query:
         return perform_query(query, params) == []
 
 
-def store_indices_topics(filenames, topics):
+def store_indices_topics(digests, topics):
     """
     Same as store_index_topics, but for multiple indices.
 
-    :param filenames: The file names of the indices
+    :param digests: The unique identifiers of the indices
     :param topics: A list of topic lists
     :return: True iff the topics have been successfully stored
     """
     query_list = list()
     params_list = list()
 
-    for i, fn in enumerate(filenames):
+    for i, fn in enumerate(digests):
         query, params = _store_index_topics_query(fn, topics[i])
         if query:
             query_list.append(query)
@@ -251,7 +252,7 @@ def store_indices_topics(filenames, topics):
     return len(perform_queries(query_list, params_list)) == len(query_list)
 
 
-def _store_index_probabilities_query(filename, probabilities):
+def _store_index_probabilities_query(digest, probabilities):
     # Generates a query for storing topic probabilities on an index
     # Default probabilities (0) are used if none are provided
     # Returns a query, params tuple
@@ -259,13 +260,13 @@ def _store_index_probabilities_query(filename, probabilities):
         probabilities = DEFAULT_CAT_DICT
 
     query = '''
-        MATCH (i:Index {{ filename: $filename }})
+        MATCH (i:Index {{ digest: $digest }})
         SET {}
     '''.format(','.join('i.{0}=${0}'.format(k) for k in probabilities.keys()))
-    return query, {'filename': filename, **probabilities}
+    return query, {'digest': digest, **probabilities}
 
 
-def store_index_probabilities(filename, probabilities=None):
+def store_index_probabilities(digest, probabilities=None):
     """
     Stores topic probabilities in the given Index node. The probabilities
     parameter is a dictionary and it's values default to 0.
@@ -280,25 +281,26 @@ def store_index_probabilities(filename, probabilities=None):
     - transportation
     - other
 
-    :param filename: The name of the index
+    :param digest: The unique identifier of the index
     :param probabilities: A dictionary of topic:probability pairs
     :return: True iff the probabilities have been successfully stored
     """
-    query, params = _store_index_probabilities_query(filename, probabilities)
+    query, params = _store_index_probabilities_query(digest, probabilities)
     return perform_query(query, params) == []
 
 
-def store_indices_probabilities(filenames, probabilities):
+def store_indices_probabilities(digests, probabilities):
     """
     Same as store_index_probabilities, but for multiple indices.
-    :param filenames: A list of file names
+
+    :param digests: A list of unique identifiers
     :param probabilities: A list of probability dictionaries per index
     :return: True iff stored successfully
     """
     query_list = list()
     params_list = list()
 
-    for i, fn in enumerate(filenames):
+    for i, fn in enumerate(digests):
         query, params = _store_index_probabilities_query(fn, probabilities[i])
         query_list.append(query)
         params_list.append(params)
@@ -353,14 +355,14 @@ def get_ic_rels(city_pairs):
             for r in perform_queries(query_list, params_list)]
 
 
-def _get_index_probabilities_query(filename):
+def _get_index_probabilities_query(digest):
     # Generates a query for retrieving index probabilities
     # Returns a query, params tuple
     query = '''
-        MATCH (i:Index {{ filename: $filename }})
+        MATCH (i:Index {{ digest: $digest }})
         RETURN {}
     '''.format(', '.join('i.{0} AS {0}'.format(p) for p in CATEGORIES))
-    return query, {'filename': filename}
+    return query, {'digest': digest}
 
 
 def _parse_index_probabilities_result(result):
@@ -369,30 +371,30 @@ def _parse_index_probabilities_result(result):
         return {k: v for k, v in result[0].items()}
 
 
-def get_index_probabilities(filename):
+def get_index_probabilities(digest):
     """
     Returns a dictionary of topic probabilities for the given index
 
-    :param filename: A file name representing an index
+    :param digest: A unique identifier representing an index
     :return: The dictionary of topic probabilities
     """
-    result = perform_query(*_get_index_probabilities_query(filename))
+    result = perform_query(*_get_index_probabilities_query(digest))
     return _parse_index_probabilities_result(result)
 
 
-def get_indices_probabilities(filenames):
+def get_indices_probabilities(digests):
     """
     Retrieves the topic probabilities of the given indices
 
-    :param filenames: A list of file names, representing indices
+    :param digests: A list of unique identifiers, representing indices
     :return: A list of dictionaries, containing the probabilities per
     topic per index
     """
     query_list = list()
     params_list = list()
 
-    for filename in filenames:
-        query, params = _get_index_probabilities_query(filename)
+    for digest in digests:
+        query, params = _get_index_probabilities_query(digest)
         query_list.append(query)
         params_list.append(params)
 
@@ -400,14 +402,14 @@ def get_indices_probabilities(filenames):
             for r in perform_queries(query_list, params_list)]
 
 
-def _get_index_topics_query(filename):
+def _get_index_topics_query(digest):
     # Generates a query for retrieving index topics
     # Returns a query, params tuple
     query = '''
-        MATCH (i:Index { filename: $filename })
+        MATCH (i:Index { digest: $digest })
         RETURN labels(i) AS labels
     '''
-    return query, {'filename': filename}
+    return query, {'digest': digest}
 
 
 def _parse_index_topics_result(result):
@@ -416,29 +418,29 @@ def _parse_index_topics_result(result):
         return [label for label in result[0]['labels'] if label != 'Index']
 
 
-def get_index_topics(filename):
+def get_index_topics(digest):
     """
     Retrieves a list of topics for a given index.
 
-    :param filename: A file name, representing an index
+    :param digest: A unique identifier, representing an index
     :return: A list of topics
     """
-    result = perform_query(*_get_index_topics_query(filename))
+    result = perform_query(*_get_index_topics_query(digest))
     return _parse_index_topics_result(result)
 
 
-def get_indices_topics(filenames):
+def get_indices_topics(digests):
     """
     Retrieves a list of topics per given index.
 
-    :param filenames: A list of file names, representing the indices
+    :param digests: A list of unique identifiers, representing the indices
     :return: A list of topic lists
     """
     query_list = list()
     params_list = list()
 
-    for filename in filenames:
-        query, params = _get_index_topics_query(filename)
+    for digest in digests:
+        query, params = _get_index_topics_query(digest)
         query_list.append(query)
         params_list.append(params)
 
