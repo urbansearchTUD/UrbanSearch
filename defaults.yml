@@ -5,6 +5,7 @@ neo4j:
   password: ''
   relates_to_name: 'RELATES_TO'
   occurs_in_name: 'OCCURS_IN'
+  commit_threshold: 40000
 api:
   num_of_workers: 50
   num_of_docs: 20000
