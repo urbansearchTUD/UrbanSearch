@@ -55,6 +55,6 @@ def test_categories_above_threshold():
     ct = classifytext.ClassifyText()
     p = {'a': 0.2, 'b': 0.49, 'c': 0.60}
     res = ct.categories_above_threshold(p, 0.3)
-    assert res == ['b', 'c']
+    assert set(res) == set(['b', 'c'])
     res = ct.categories_above_threshold(p, 0.61)
     assert ['Other'] == res
