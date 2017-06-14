@@ -10,7 +10,7 @@ from urbansearch.workers import Workers
 @patch('urbansearch.workers.classifytext.ClassifyText')
 @patch('urbansearch.workers.gathering.PageDownloader')
 @patch('urbansearch.workers.Event')
-class Test_Mock_Workers(TestCase):
+class Test_Workers(TestCase):
 
     @patch('urbansearch.workers.Process')
     def test_run_classifying_workers(self, mock_event, mock_pd,
