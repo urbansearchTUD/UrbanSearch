@@ -4,6 +4,7 @@ from queue import Empty
 from multiprocessing import Process, Event
 from ast import literal_eval
 
+import config
 from urbansearch.gathering import gathering
 from urbansearch.filtering import cooccurrence
 from urbansearch.clustering import classifytext, text_preprocessor
@@ -25,23 +26,27 @@ class Workers(object):
         self.ct = classifytext.ClassifyText()
         self.co = cooccurrence.CoOccurrenceChecker()
         self.prepr = text_preprocessor.PreProcessor()
+        self.commit = config.get('neo4j', 'commit_threshold')
 
-    def run_classifying_workers(self, no_of_workers, queue, join=True,
-                                to_db=False, pre_downloaded=False):
+    def run_classifying_workers(self, no_of_workers, queue, threshold,
+                                **kwargs):
         """ Run workers to classify indices consumed from the queue in
         parallel. Workers will only terminate if producers are done, which can
         be signaled setting the producer_done event.
 
         :no_of_workers: Number of workers that will run
         :queue: multiprocessing.Queue where the indices will be added to
+        :threshold: Threshold for categories, if probability of category is
+        higher than threshold the label is added.
         :join: Wait for workers to be done and join. Default is True.
         parameter
         """
         func = self.classifying_worker
-        if pre_downloaded:
+        if kwargs.get('pre_downloaded', False):
             func = self.classifying_from_files_worker
 
-        workers = [Process(target=func, args=(queue, to_db))
+        workers = [Process(target=func, args=(queue, threshold,
+                                              kwargs.get('to_db', False)))
                    for i in range(no_of_workers)]
 
         for worker in workers:
@@ -49,14 +54,14 @@ class Workers(object):
 
         LOGGER.info("Classifying workers started")
 
-        if join:
+        if kwargs.get('join', True):
             # Wait for processes to finish
             for worker in workers:
                 worker.join()
         else:
             return workers
 
-    def classifying_worker(self, queue, to_db):
+    def classifying_worker(self, queue, threshold, to_db):
         """ Classifying worker that classifies relevant indices from a queue.
         Can output to database. Worker stops if queue is Empty and received
         signal that the producers that fill the queue are done. See function
@@ -79,7 +84,7 @@ class Workers(object):
                 txt = self.pd.index_to_txt(index)
                 prob = self.ct.probability_per_category(txt,
                                                         self.prepr.pre_process)
-                topics = None # TODO Return all above threshold in classifytext
+                topics = self.ct.categories_above_threshold(prob, threshold)
 
                 if to_db:
                     self._store_indices_db(index, indices)
@@ -92,8 +97,7 @@ class Workers(object):
                     self._store_info_db(digests, topics, topics_list,
                                         db_utils.store_indices_topics)
 
-                    # TODO CONFIG
-                    if len(digests) >= 40000:
+                    if len(digests) >= self.commit:
                         digests.clear()
             except Empty:
                 pass
@@ -101,7 +105,7 @@ class Workers(object):
         self._final_store_db(indices, digests, occurrences, probabilities,
                              topics_list)
 
-    def classifying_from_files_worker(self, queue, to_db=False):
+    def classifying_from_files_worker(self, queue, threshold, to_db=False):
         """ Classifying worker that classifies plain text files of relevant
         indices from a directory. Can output to database.
         Worker stops if queue is Empty and received signal that the file
@@ -125,8 +129,7 @@ class Workers(object):
                 co_occ = self.co.check(txt)
                 prob = self.ct.probability_per_category(txt,
                                                         self.prepr.pre_process)
-                topics = None # TODO Return all above threshold in classifytext
-
+                topics = self.ct.categories_above_threshold(prob, threshold)
                 if to_db:
                     self._store_indices_db(index, indices)
                     digests.append(index.get('digest', None))
@@ -138,8 +141,7 @@ class Workers(object):
                     self._store_info_db(digests, topics, topics_list,
                                         db_utils.store_indices_topics)
 
-                    # TODO CONFIG
-                    if len(digests) >= 40000:
+                    if len(digests) >= self.commit:
                         digests.clear()
             except Empty:
                 pass
@@ -154,10 +156,9 @@ class Workers(object):
         if index is None and final:
             db_utils.store_indices(indices)
 
-        if len(indices >= 40000): # TODO CONFIG
+        if len(indices) >= self.commit:
             if not db_utils.store_indices(indices):
-                # TODO Retry?
-                pass
+                LOGGER.error("Could not store indices in DB, query failed")
             indices.clear()
 
     def _store_info_db(self, digests, itm, itm_list, util_func, final=False):
@@ -171,10 +172,9 @@ class Workers(object):
         itm_list.append(itm)
 
         # Accumulate data to speed up db insertion
-        if len(itm_list >= 40000):
+        if len(itm_list) >= self.commit:
             if not util_func(itm_list):
-                # TODO Retry?
-                pass
+                LOGGER.error("Could not store list in DB, query failed")
             itm_list.clear()
 
     def _final_store_db(self, indices, digests, occurrences, probabilities,

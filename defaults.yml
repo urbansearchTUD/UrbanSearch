@@ -5,6 +5,7 @@ neo4j:
   password: ''
   relates_to_name: 'RELATES_TO'
   occurs_in_name: 'OCCURS_IN'
+  commit_threshold: 40000
 resources:
   test: tests/resources
   models: urbansearch/resources/models

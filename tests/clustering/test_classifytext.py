@@ -49,3 +49,12 @@ def test_category_with_threshold():
     res = ct.category_with_threshold(p, 0.5)
     assert 'Other' == res
     assert isinstance(res, str)
+
+
+def test_categories_above_threshold():
+    ct = classifytext.ClassifyText()
+    p = {'a': 0.2, 'b': 0.49, 'c': 0.60}
+    res = ct.categories_above_threshold(p, 0.3)
+    assert res == ['b', 'c']
+    res = ct.categories_above_threshold(p, 0.61)
+    assert ['Other'] == res
