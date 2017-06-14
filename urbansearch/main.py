@@ -116,7 +116,7 @@ def classify_textfiles_to_db(num_cworkers, directory, threshold, to_db=False):
     producer = w_factory.run_read_files_worker(directory, queue, join=False)
     consumers = w_factory.run_classifying_workers(num_cworkers, queue,
                                                   threshold, join=False,
-                                                  to_db=False,
+                                                  to_db=to_db,
                                                   pre_downloaded=True)
 
     # Join all workers when done
@@ -186,7 +186,7 @@ def _parse_arguments():
 
 if __name__ == "__main__":
     # Example call, no output to DB
-    classify_textfiles_to_db(2, '/home/gijs/BEP/pages/test2/', 0.30, to_db=False)
+    classify_textfiles_to_db(2, '/home/gijs/BEP/pages/test2/', 0.30, to_db=True)
     # args = _parse_arguments()
 
     # TODO Create CLI, make different PR
