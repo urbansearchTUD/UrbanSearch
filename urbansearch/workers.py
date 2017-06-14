@@ -101,9 +101,9 @@ class Workers(object):
                         digests.clear()
             except Empty:
                 pass
-
-        self._final_store_db(indices, digests, occurrences, probabilities,
-                             topics_list)
+        if to_db:
+            self._final_store_db(indices, digests, occurrences, probabilities,
+                                 topics_list)
 
     def classifying_from_files_worker(self, queue, threshold, to_db=False):
         """ Classifying worker that classifies plain text files of relevant
@@ -145,10 +145,10 @@ class Workers(object):
                         digests.clear()
             except Empty:
                 pass
-
-        data_lists = [indices, digests, occurrences, probabilities,
-                      topics_list]
-        self._final_store_db(data_lists)
+        if to_db:
+            data_lists = [indices, digests, occurrences, probabilities,
+                          topics_list]
+            self._final_store_db(data_lists)
 
     def _store_indices_db(self, index, indices, final=False):
         if index and indices:
