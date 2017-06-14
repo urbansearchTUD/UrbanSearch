@@ -134,7 +134,7 @@ def test_store_multi_index():
 def test_store_single_occurrence():
     digest = _create_test_index()
     city = 'Amsterdam'
-    assert db_utils.store_occurrence(digest, city)
+    assert db_utils.store_occurrence(digest, [city])
 
 
 @pytest.mark.usefixtures('clean_neo4j_index_and_rel')
@@ -142,12 +142,12 @@ def test_store_multi_occurrence():
     indices = [
             {'digest': 'unique_string', 'filename': 'test.gz',
              'length': 10, 'offset': 12},
-            {'digest': 'unique_string', 'filename': 'test2.gz',
+            {'digest': 'unique_string2', 'filename': 'test2.gz',
              'length': 11, 'offset': 13}
     ]
     db_utils.store_indices(indices)
     digests = ['unique_string', 'unique_string2']
-    occurrences = ['Amsterdam', 'Rotterdam', 'Appingedam']
+    occurrences = [['Amsterdam', 'Rotterdam'], ['Appingedam']]
     assert db_utils.store_occurrences(digests, occurrences)
 
 

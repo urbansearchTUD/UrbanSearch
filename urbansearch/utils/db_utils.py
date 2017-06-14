@@ -161,33 +161,31 @@ def store_indices(indices):
     return len(perform_queries(query_list, params_list)) == len(query_list)
 
 
-def _store_occurrence_query(digest, city):
-    # Generates a query for storing an occurrence, as a relation
+def _store_occurrence_query(digest, cities):
+    # Generates a query for storing occurrences, as a relation
     # between a city and an index. Returns a query, params tuple
     query = '''
         MATCH (i:Index {{ digest: $digest }})
-        MATCH (a:City {{ name: $city }})
-        MERGE (a)-[:{0}]->(i)
-    '''.format(OCCURS_IN)
-    return query, {'digest': digest, 'city': city}
+        MATCH (a:City) WHERE a.name IN [ {0} ]
+        MERGE (a)-[:{1}]->(i)
+    '''.format(', '.join('"{}"'.format(c) for c in cities), OCCURS_IN)
+    return query, {'digest': digest}
 
 
-def store_occurrence(digest, city):
+def store_occurrence(digest, cities):
     """
-    Creates a relation between the given index and city
+    Creates a relation between the given index and cities
 
     :param digest: The unique identifier of the index
-    :param city: The name of the city
+    :param cities: The names of the cities
     :return: True iff stored successfully
     """
-    return perform_query(*_store_occurrence_query(digest, city)) == []
+    return perform_query(*_store_occurrence_query(digest, cities)) == []
 
 
 def store_occurrences(digests, occurrences):
     """
     Same as store_occurrence but for multple indices/occurrences.
-    Allows for duplicate index digests to be able to store multiple
-    occurrences.
 
     :param digests: The unique identifiers of the indices
     :param occurrences: The names of the cities
@@ -195,12 +193,10 @@ def store_occurrences(digests, occurrences):
     """
     query_list = list()
     params_list = list()
-
     for i, fn in enumerate(digests):
         query, params = _store_occurrence_query(fn, occurrences[i])
         query_list.append(query)
         params_list.append(params)
-
     return len(perform_queries(query_list, params_list)) == len(query_list)
 
 

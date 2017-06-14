@@ -127,6 +127,8 @@ class Workers(object):
             try:
                 index, txt = queue.get(block=True, timeout=5)
                 co_occ = self.co.check(txt)
+                if not co_occ:
+                    continue
                 prob = self.ct.probability_per_category(txt,
                                                         self.prepr.pre_process)
                 topics = self.ct.categories_above_threshold(prob, threshold)
@@ -151,7 +153,7 @@ class Workers(object):
             self._final_store_db(data_lists)
 
     def _store_indices_db(self, index, indices, final=False):
-        if index and indices:
+        if index and indices is not None:
             indices.append(index)
 
         if index is None and final:
@@ -168,14 +170,14 @@ class Workers(object):
         if not itm and not itm_list:
             return
         elif itm is None and final:
-            util_func(itm_list)
+            util_func(digests, itm_list)
             return
 
         itm_list.append(itm)
 
         # Accumulate data to speed up db insertion
         if len(itm_list) >= self.commit:
-            if not util_func(itm_list):
+            if not util_func(digests, itm_list):
                 LOGGER.error("Could not store list in DB, query failed")
             itm_list.clear()
 
@@ -188,19 +190,12 @@ class Workers(object):
 
         # When done with queue but not above threshold still push to DB
         self._store_indices_db(None, indices, final=True)
-        self._store_info_db(digests, None, occurrences,
+        self._store_info_db(digests, (None, occurrences),
                             db_utils.store_occurrences, final=True)
-        self._store_info_db(digests, None, probabilities,
+        self._store_info_db(digests, (None, probabilities),
                             db_utils.store_indices_probabilities, final=True)
-        self._store_info_db(digests, None, topics_list,
+        self._store_info_db(digests, (None, topics_list),
                             db_utils.store_indices_topics, final=True)
-
-    def _store_in_db(self, index, probabilities, co_occ, pre_downloaded=False):
-        # If files are already downloaded, but not inserted in the db yet
-        if pre_downloaded:
-            db_utils.store_index(index, co_occ)
-        self._store_ic_rel(co_occ)
-        db_utils.store_index_probabilities(index, probabilities)
 
     def run_read_files_worker(self, directory, queue, join=True):
         """ Run a worker to read all pre-downloaded files from a directory,

@@ -34,7 +34,7 @@ class CoOccurrenceChecker(object):
         them as a list.
 
         :param page: A string to be checked for city co-occurrences.
-        :return: The co-occurrences as a list of tuples of city
+        :return: The occurrences as a list of city
         names or None.
         """
         if not isinstance(page, str):
@@ -51,9 +51,7 @@ class CoOccurrenceChecker(object):
         if len(occurrences) < 2:
             return None
 
-        # Return a list of tuples, with each tuple being
-        # a co-occurrence of two cities.
-        return list(itertools.combinations(occurrences, 2))
+        return occurrences
 
     def _calculate_occurrences(self, page):
         names = self.automaton.iter(page)
@@ -78,4 +76,4 @@ class CoOccurrenceChecker(object):
         if prev_name:
             result_set[prev_name] = None
 
-        return result_set.keys()
+        return list(result_set.keys())
