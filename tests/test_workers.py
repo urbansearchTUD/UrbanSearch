@@ -27,17 +27,16 @@ class Test_Workers(TestCase):
         with LogCapture() as l:
             w.run_classifying_workers(1, queue, 1, pre_downloaded=True)
             assert (l.__sizeof__()) > 0
-
-        assert mock_pre_process.called
+            assert mock_pre_process.called
 
     @patch('urbansearch.workers.db_utils')
-    def test_classifying_worker(self, mock_db_utils,
-                                mock_event, mock_pd, mock_classify,
-                                mock_coOc, mock_pre_process, mock_config):
+    def test_classifying_worker(self, mock_db_utils, mock_event,
+                                mock_pd, mock_classify, mock_coOc,
+                                mock_pre_process, mock_config):
         queue = MagicMock()
         queue.empty = MagicMock(side_effect=[False, True])
         queue.get = MagicMock(side_effect=[{Mock(), Mock()}])
-        mock_config.return_value = 0 #TODO
+        mock_config.return_value = 0
         w = Workers()
         w._store_indices_db = Mock()
         w._store_info_db = Mock()
@@ -206,9 +205,9 @@ class Test_Workers(TestCase):
 
     @patch('urbansearch.workers.db_utils')
     def test__store_indices_db_index_none(self, mock_db, mock_event,
-                               mock_pd, mock_classify,
-                               mock_coOc, mock_pre_process,
-                               mock_config):
+                                          mock_pd, mock_classify,
+                                          mock_coOc, mock_pre_process,
+                                          mock_config):
         mock_index = Mock(return_value=None)
         mock_indice = MagicMock()
         mock_indice.__len__.return_value = 0
@@ -242,21 +241,19 @@ class Test_Workers(TestCase):
             assert mock_list.append.called
             assert mock_list.clear.called
 
-
     def test__store_info_db_not_item(self, mock_event,
-                               mock_pd, mock_classify,
-                               mock_coOc, mock_pre_process,
-                               mock_config):
+                                     mock_pd, mock_classify,
+                                     mock_coOc, mock_pre_process,
+                                     mock_config):
         util_func = Mock()
         w = Workers()
         w._store_info_db(Mock(), [False, False], util_func)
         assert not util_func.called
 
-
     def test__store_info_db_final(self, mock_event,
-                               mock_pd, mock_classify,
-                               mock_coOc, mock_pre_process,
-                               mock_config):
+                                  mock_pd, mock_classify,
+                                  mock_coOc, mock_pre_process,
+                                  mock_config):
         mock_util_func = Mock()
         w = Workers()
         w._store_info_db(Mock(), [None, True], mock_util_func, True)
@@ -267,7 +264,8 @@ class Test_Workers(TestCase):
                              mock_coOc, mock_pre_process,
                              mock_config):
         mock_config.return_value = 0
-        data_lists = MagicMock(return_value=[Mock(), Mock(), Mock(), Mock(), Mock()])
+        data_lists = MagicMock(return_value=[Mock(), Mock(), Mock(),
+                                             Mock(), Mock()])
         w = Workers()
 
         w._store_indices_db = Mock()
@@ -277,4 +275,3 @@ class Test_Workers(TestCase):
 
         assert w._store_indices_db.called
         assert w._store_info_db.called
-
