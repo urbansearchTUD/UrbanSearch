@@ -30,7 +30,7 @@ def test_parse_arguments():
     in_args = ['dir', '33', 'out']
     args = td._parse_arguments(in_args)
     assert args.directory == 'dir'
-    assert args.workers == '33'
+    assert args.workers == 33
     assert args.output == 'out'
 
 """

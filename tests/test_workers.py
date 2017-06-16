@@ -232,6 +232,7 @@ class Test_Workers(TestCase):
         mock_list.__len__.return_value = 1
         mock_item = [mock_itm, mock_list]
         util_func = Mock()
+        util_func.__name__ = 'mocked_util_func'
 
         w = Workers()
         from testfixtures import LogCapture

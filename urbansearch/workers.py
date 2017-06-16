@@ -102,8 +102,10 @@ class Workers(object):
             except Empty:
                 pass
         if to_db:
+            LOGGER.info('Storing classification')
             self._final_store_db(indices, digests, occurrences, probabilities,
                                  topics_list)
+            LOGGER.info('Done storing classification')
 
     def classifying_from_files_worker(self, queue, threshold, to_db=False):
         """ Classifying worker that classifies plain text files of relevant
@@ -177,8 +179,10 @@ class Workers(object):
 
         # Accumulate data to speed up db insertion
         if len(itm_list) >= self.commit:
+            LOGGER.info('Storing {}...'.format(util_func.__name__))
             if not util_func(digests, itm_list):
                 LOGGER.error("Could not store list in DB, query failed")
+            LOGGER.info('Done storingi {}.'.format(util_func.__name__))
             itm_list.clear()
 
     def _final_store_db(self, data_lists):
@@ -189,13 +193,18 @@ class Workers(object):
         topics_list = data_lists[4]
 
         # When done with queue but not above threshold still push to DB
+        LOGGER.info('Final storing')
         self._store_indices_db(None, indices, final=True)
+        LOGGER.info('Final storing indices done')
         self._store_info_db(digests, (None, occurrences),
                             db_utils.store_occurrences, final=True)
+        LOGGER.info('Final storing occurrences done')
         self._store_info_db(digests, (None, probabilities),
                             db_utils.store_indices_probabilities, final=True)
+        LOGGER.info('Final storing probabilities done')
         self._store_info_db(digests, (None, topics_list),
                             db_utils.store_indices_topics, final=True)
+        LOGGER.info('Final storing done')
 
     def run_read_files_worker(self, directory, queue, join=True):
         """ Run a worker to read all pre-downloaded files from a directory,
@@ -243,6 +252,8 @@ class Workers(object):
                     except IndexError:
                         LOGGER.error('File {0} is not classifyable'
                                      .format(file.path))
+        LOGGER.info('File reading worker done.')
+
 
     def _store_ic_rel(self, co_occ):
         # Store all co-occurences as relations in database using db_utils

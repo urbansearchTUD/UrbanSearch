@@ -186,7 +186,7 @@ def _parse_arguments():
 
 if __name__ == "__main__":
     # Example call, no output to DB
-    classify_textfiles_to_db(2, '/home/gijs/BEP/pages/test2/', 0.30, to_db=True)
+    classify_textfiles_to_db(1, '/data/pietpages/', 0.30, to_db=True)
     # args = _parse_arguments()
 
     # TODO Create CLI, make different PR

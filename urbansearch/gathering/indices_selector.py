@@ -70,8 +70,8 @@ class IndicesSelector(object):
                 # TODO Create clean progress indicator
                 logger.info("Index {0}/{1} of file".format(i, n))
             try:
-              co_occ = occ.check(pd.index_to_raw_text(index))
-            except TypeError as e:
+                co_occ = occ.check(pd.index_to_txt(index))
+            except (UnicodeDecodeError, TypeError) as e:
                 logger.warning("Could not convert index to txt: {0}".format(e))
                 
             if co_occ:

@@ -1,7 +1,8 @@
 import math
 import logging
 from neo4j.v1 import (basic_auth, GraphDatabase, SessionError,
-                      CypherSyntaxError, DriverError, ServiceUnavailable)
+                      CypherSyntaxError, DriverError, ClientError,
+                      ServiceUnavailable)
 
 import config
 
@@ -10,11 +11,12 @@ DEFAULT_CAT_DICT = dict.fromkeys(CATEGORIES, 0)
 RELATES_TO = config.get('neo4j', 'relates_to_name')
 OCCURS_IN = config.get('neo4j', 'occurs_in_name')
 
-_logger = logging.getLogger('db_utils')
+_logger = logging.getLogger(__name__)
 _driver = GraphDatabase.driver(
     config.get('neo4j', 'bolt_uri'),
     auth=basic_auth(config.get('neo4j', 'username'),
-                    config.get('neo4j', 'password')))
+                    config.get('neo4j', 'password')),
+    encrypted=False)
 
 _cities = None
 
@@ -39,11 +41,12 @@ def _run(runner, query, *params, **kwparams):
     # object.
     try:
         return [r for r in runner.run(query, *params, **kwparams)]
-    except (CypherSyntaxError, SessionError) as e:
+    except (ClientError, CypherSyntaxError, SessionError) as e:
+        print('{}\n{}'.format(query, params))
         _logger.error('query {}\nraised: {}'.format(query, e))
 
 
-def perform_queries(queries, params):
+def perform_queries(queries, params, access_mode='write'):
     """
     Performs the given queries with given parameters, in a single
     transaction.
@@ -52,13 +55,13 @@ def perform_queries(queries, params):
     :param params: A list of lists of parameters belonging to the queries
     :return: A list of result lists
     """
-    with _driver.session() as session:
+    with _driver.session(access_mode=access_mode) as session:
         with session.begin_transaction() as tx:
             return [[r for r in _run(tx, queries[i], params[i])]
                     for i in range(len(queries))]
 
 
-def perform_query(query, *params, **kwparams):
+def perform_query(query, *params, access_mode='write', **kwparams):
     """
     Performs the given query with given parameters, either as an expanded
     list or an expanded dictionary.
@@ -68,37 +71,44 @@ def perform_query(query, *params, **kwparams):
     :param kwparams: The query parameters, as key value pairs
     :return: A list of resulting records
     """
-    with _driver.session() as session:
+    with _driver.session(access_mode=access_mode) as session:
         return _run(session, query, *params, **kwparams)
 
 
-def _store_ic_rel_query(city_a, city_b):
+def _store_ic_rel_query(city_a, city_b, values=None):
     # Generates a query for storing an intercity relation
     # Returns a query, params tuple
+    if not values:
+        values = DEFAULT_CAT_DICT
+    else:
+        values = {**DEFAULT_CAT_DICT, **values}
     query = '''
         MATCH (a:City {{ name: $a }})
         MATCH (b:City {{ name: $b }})
-        MERGE (a)<-[r:{0}]-(b)
+        MERGE (a)-[r:{0}]->(b)
         ON CREATE SET r = {{ {1} }}
-    '''.format(RELATES_TO, ', '.join('{0}: $val'.format(p)
-                                     for p in CATEGORIES))
-    return query, {'a': city_a, 'b': city_b, 'val': 0}
+        ON MATCH SET {2}
+    '''.format(RELATES_TO, ', '.join('{0}: ${0}'.format(p)
+                                     for p in CATEGORIES),
+               ', '.join('r.{0}=${0}'.format(p) for p in CATEGORIES))
+    return query, {'a': city_a, 'b': city_b, **values}
 
 
-def store_ic_rel(city_a, city_b):
+def store_ic_rel(city_a, city_b, values=None):
     """
     Stores a relation between the given cities and initialises the
-    scores for all topics to 0.
+    scores for all topics to 0, but only if at least one relation score is
+    given.
 
     :param city_a: City A
     :param city_b: City B
     :return: True iff stored successfully
     """
-    query, params = _store_ic_rel_query(city_a, city_b)
+    query, params = _store_ic_rel_query(city_a, city_b, values)
     return perform_query(query, params) == []
 
 
-def store_ic_rels(pairs):
+def store_ic_rels(pairs, values=None):
     """
     Same as store_ic_rel, but for multiple city pairs
 
@@ -108,8 +118,11 @@ def store_ic_rels(pairs):
     query_list = list()
     params_list = list()
 
-    for pair in pairs:
-        query, params = _store_ic_rel_query(pair[0], pair[1])
+    for i, pair in enumerate(pairs):
+        if values and len(values) > i:
+            query, params = _store_ic_rel_query(pair[0], pair[1], values[i])
+        else:
+            query, params = _store_ic_rel_query(pair[0], pair[1], None)
         query_list.append(query)
         params_list.append(params)
 
@@ -158,6 +171,7 @@ def store_indices(indices):
         query_list.append(query)
         params_list.append(params)
 
+    _logger.warn('PERFORMING {} STORE_INDEX QUERIES!'.format(len(query_list)))
     return len(perform_queries(query_list, params_list)) == len(query_list)
 
 
@@ -258,8 +272,8 @@ def _store_index_probabilities_query(digest, probabilities):
     query = '''
         MATCH (i:Index {{ digest: $digest }})
         SET {}
-    '''.format(','.join('i.{0}=${0}'.format(k) for k in probabilities.keys()))
-    return query, {'digest': digest, **probabilities}
+    '''.format(','.join('i.{}={}'.format(k, v) for k, v in probabilities.items()))
+    return query, {'digest': digest}
 
 
 def store_index_probabilities(digest, probabilities=None):
@@ -328,7 +342,8 @@ def get_ic_rel(city_a, city_b):
     :param city_b: City B
     :return: A dictionary containing the scores per topic
     """
-    result = perform_query(*_get_ic_rel_query(city_a, city_b))
+    result = perform_query(*_get_ic_rel_query(city_a, city_b),
+                           access_mode='read')
     return _parse_ic_rel_result(result)
 
 
@@ -348,7 +363,8 @@ def get_ic_rels(city_pairs):
         params_list.append(params)
 
     return [_parse_ic_rel_result(r)
-            for r in perform_queries(query_list, params_list)]
+            for r in perform_queries(query_list, params_list,
+                                     access_mode='read')]
 
 
 def _get_index_probabilities_query(digest):
@@ -374,7 +390,8 @@ def get_index_probabilities(digest):
     :param digest: A unique identifier representing an index
     :return: The dictionary of topic probabilities
     """
-    result = perform_query(*_get_index_probabilities_query(digest))
+    result = perform_query(*_get_index_probabilities_query(digest),
+                           access_mode='read')
     return _parse_index_probabilities_result(result)
 
 
@@ -395,7 +412,8 @@ def get_indices_probabilities(digests):
         params_list.append(params)
 
     return [_parse_index_probabilities_result(r)
-            for r in perform_queries(query_list, params_list)]
+            for r in perform_queries(query_list, params_list,
+                                     access_mode='read')]
 
 
 def _get_index_topics_query(digest):
@@ -421,7 +439,8 @@ def get_index_topics(digest):
     :param digest: A unique identifier, representing an index
     :return: A list of topics
     """
-    result = perform_query(*_get_index_topics_query(digest))
+    result = perform_query(*_get_index_topics_query(digest),
+                           access_mode='read')
     return _parse_index_topics_result(result)
 
 
@@ -441,7 +460,8 @@ def get_indices_topics(digests):
         params_list.append(params)
 
     return [_parse_index_topics_result(r)
-            for r in perform_queries(query_list, params_list)]
+            for r in perform_queries(query_list, params_list,
+                                     access_mode='read')]
 
 
 def _get_cities():
@@ -450,7 +470,8 @@ def _get_cities():
     global _cities
 
     if not _cities:
-        _cities = [c for c in perform_query('MATCH (a:City) RETURN a')]
+        _cities = [c for c in perform_query('MATCH (a:City) RETURN a',
+                                            access_mode='read')]
 
     return _cities
 
