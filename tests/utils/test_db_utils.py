@@ -334,4 +334,7 @@ def test_get_indices_topics():
 
 
 def test_compute_ic_relations():
+    index = _create_test_index()
+    occurrences = ['Amsterdam', 'Rotterdam']
+    db_utils.store_occurrence(index, occurrences)
     assert len(db_utils.compute_ic_relations(cities=['Amsterdam'])) > 0

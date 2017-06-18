@@ -339,14 +339,14 @@ def compute_ic_relations(cities=None):
     """
     query = '''
         UNWIND $cities as city_a
-        MATCH (:City { name: city_a })-[:OCCURS_IN]->
-            (i:Index)<-[:OCCURS_IN]-(b:City)
+        MATCH (:City {{ name: city_a }})-[:{0}]->
+            (i:Index)<-[:{0}]-(b:City)
         WHERE b.name <> city_a
         WITH DISTINCT city_a, b, LABELS(i) as labels,
             COUNT(i) AS labelCount
         UNWIND labels AS category
         RETURN city_a, b.name AS city_b, category, SUM(labelCount) AS score
-    '''
+    '''.format(OCCURS_IN)
 
     if not cities:
         cities = city_names()
