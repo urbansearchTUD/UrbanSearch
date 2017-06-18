@@ -82,29 +82,6 @@ class Test_Workers(TestCase):
             assert not w._store_info_db.called
             assert w._final_store_db.called
 
-    @patch('urbansearch.workers.db_utils.store_ic_rel')
-    def test__store_ic_rel(self, mock_db_utils_store_ic,
-                           mock_event, mock_pd, mock_classify,
-                           mock_coOc, mock_config, mock_pre_process):
-        mock_db_utils_store_ic.return_value = True
-        w = Workers()
-        w._store_ic_rel([{Mock(), Mock()}])
-        assert mock_db_utils_store_ic.called
-
-    @patch('urbansearch.workers.db_utils.store_ic_rel')
-    def test__store_ic_rel_no_rel(self, mock_db_utils_store_ic,
-                                  mock_event, mock_pd, mock_classify,
-                                  mock_coOc, mock_config, mock_pre_process):
-        mock_db_utils_store_ic.return_value = False
-        w = Workers()
-
-        from testfixtures import LogCapture
-        with LogCapture() as l:
-            w._store_ic_rel([{Mock(), Mock()}])
-            assert (l.__sizeof__()) > 0
-
-        assert mock_db_utils_store_ic.called
-
     @patch('urbansearch.workers.db_utils')
     def test_classifying_from_files_worker(self, mock_db_utils, mock_event,
                                            mock_pd, mock_classify,

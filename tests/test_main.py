@@ -155,6 +155,6 @@ def test_mock_classify_text_files_to_db_not_connected(mock_db_connected,
 
             from testfixtures import LogCapture
             with LogCapture() as l:
-                main.classify_textfiles_to_db(Mock(), Mock(), 1)
+                main.classify_textfiles_to_db(Mock(), Mock(), 1, True)
                 assert (l.__sizeof__()) > 0
                 assert not mock_workers.called

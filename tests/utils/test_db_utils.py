@@ -55,18 +55,6 @@ def _create_test_index(digest='unique_string'):
     return index['digest']
 
 
-def test_caching():
-    # Without cities cached
-    start = time.time()
-    db_utils.city_names()
-    time_a = time.time() - start
-    # With cities cached
-    start = time.time()
-    db_utils.city_names()
-    time_b = time.time() - start
-    assert time_a > time_b
-
-
 def test_city_names():
     actual = db_utils.city_names()
     expected = ['Amsterdam', 'Rotterdam', 'Den Haag', 'Appingedam']
@@ -170,7 +158,8 @@ def test_get_intercity_relation():
         'education': 0,
         'collaboration': 0,
         'transportation': 0,
-        'other': 0
+        'other': 0,
+        'total': 0
     }
     db_utils.store_ic_rel('Rotterdam', 'Amsterdam')
     assert db_utils.get_ic_rel('Rotterdam', 'Amsterdam') == expected
@@ -186,7 +175,8 @@ def test_get_intercity_relation_multi():
         'education': 0,
         'collaboration': 0,
         'transportation': 0,
-        'other': 0
+        'other': 0,
+        'total': 0
     }
     expected = [d, d]
     db_utils.store_ic_rels([('Rotterdam', 'Amsterdam'),
