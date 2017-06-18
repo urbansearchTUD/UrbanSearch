@@ -324,7 +324,7 @@ class Workers(object):
         worker[0].start()
 
         if join:
-            w.join()
+            worker[0].join()
         else:
             return worker
 
@@ -349,7 +349,6 @@ class Workers(object):
 
         while not ic_rel_producers_done.is_set():
             time.sleep(1)
-            pass
 
         try:
             while not queue.empty():

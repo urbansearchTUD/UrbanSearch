@@ -253,3 +253,53 @@ class Test_Workers(TestCase):
 
         assert w._store_indices_db.called
         assert w._store_info_db.called
+
+    @patch('urbansearch.workers.db_utils')
+    def test_run_compute_ic_rels_workers_nojoin(self, mock_db, *args, **kwargs):
+        mock_db.city_names.return_value = ['Heeg']
+        w = Workers()
+        workers = w.run_compute_ic_rels_workers(1, Mock(), False)
+        assert workers and len(workers) == 1
+
+    @patch('urbansearch.workers.db_utils')
+    def test_compute_ic_rels_worker(self, mock_db, *args, **kwargs):
+        relations = [{'city_a': 'city_a', 'city_b': 'city_b',
+            'category': 'some_category', 'score': 1}]
+        mock_db.compute_ic_relations.return_value = relations
+        queue = Mock()
+        w = Workers()
+        w.compute_ic_rels_worker(None, queue)
+
+        # Test whether the relation is added to the queue
+        assert queue.put_nowait.called == 1
+
+    @patch('urbansearch.workers.db_utils')
+    def test__commit_ic_rels(self, mock_db, *args, **kwargs):
+        mock_db.store_ic_rels.side_effect = [True, False]
+        w = Workers()
+        pairs = [('a', 'b')]
+        values = [{'testscore': 0}]
+        assert w._commit_ic_rels(pairs, values) is None
+        assert w._commit_ic_rels(pairs, values) is None
+        assert len(pairs) == 0
+        assert len(values) == 0
+
+    @patch('urbansearch.workers.db_utils')
+    def test_run_store_ic_rels_worker(self, mock_db, *args, **kwargs):
+        w = Workers()
+        wrkrs = w.run_store_ic_rels_worker(Mock(), join=False)
+        assert len(wrkrs) == 1
+        wrkrs[0].terminate()
+
+    @patch('urbansearch.workers.db_utils')
+    @patch('urbansearch.workers.time')
+    @patch('urbansearch.workers.ic_rel_producers_done')
+    def test_store_ic_rels_worker(self, mock_db, mock_time, mock_prod, *args, **kwargs):
+        mock_db.city_names.return_value = ['Heeg']
+        mock_time.sleep.side_effect = Exception('Ignore sleep')
+        mock_prod.is_set.side_effect = [False, True]
+        queue = Mock()
+        queue.empty.side_effect = [False, True]
+        queue.get.return_value = (('Heeg', 'Sneek'), {'score': 0})
+        w = Workers()
+        assert w.store_ic_rels_worker(queue, False) is None

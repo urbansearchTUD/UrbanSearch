@@ -55,6 +55,10 @@ def _create_test_index(digest='unique_string'):
     return index['digest']
 
 
+def test_connected_to_db():
+    assert db_utils.connected_to_db()
+
+
 def test_city_names():
     actual = db_utils.city_names()
     expected = ['Amsterdam', 'Rotterdam', 'Den Haag', 'Appingedam']
@@ -327,3 +331,7 @@ def test_get_indices_topics():
     indices = [_create_test_index(), _create_test_index('test2.gz')]
     db_utils.store_indices_topics(indices, [['Economy'], []])
     assert db_utils.get_indices_topics(indices) == [['Economy'], []]
+
+
+def test_compute_ic_relations():
+    assert len(db_utils.compute_ic_relations(cities=['Amsterdam'])) > 0
