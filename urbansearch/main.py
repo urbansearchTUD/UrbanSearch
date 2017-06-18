@@ -102,7 +102,7 @@ def classify_textfiles_to_db(num_cworkers, directory, threshold, to_db=False):
     :directory: Path to directory containing indices
     :to_db: Output results to database specified in config
     """
-    if not db_utils.connected_to_db():
+    if to_db and not db_utils.connected_to_db():
         LOGGER.error("No database connection!")
         return
 
@@ -121,6 +121,33 @@ def classify_textfiles_to_db(num_cworkers, directory, threshold, to_db=False):
 
     # Join all workers when done
     _join_file_workers(w_factory, producer, consumers)
+
+
+def create_ic_relations_to_db(num_workers, to_db=False):
+    """
+    Creates intercity relations and stores them in the database if desired.
+    If storing is desired, a connection to the database must be possible.
+    Blocks until the producers and workers are done.
+
+    :param num_workers: The number of workers to use for computing the
+    relation scores. This is a read-only operation.
+    :param to_db: Defaults to false. If true, the relations are stored.
+    """
+    if to_db and not db_utils.connected_to_db():
+        LOGGER.error('No database connection!')
+        return
+
+    w_factory = workers.Workers()
+    man = Manager()
+    queue = man.Queue()
+
+    producers = w_factory.run_compute_ic_rels_workers(num_workers, queue,
+                                                      join=False)
+    consumers = w_factory.run_store_ic_rels_worker(queue, join=False,
+                                                   to_db=to_db)
+
+    # Join all workers when done
+    _join_ic_rel_workers(w_factory, producers, consumers)
 
 
 def _join_workers(cworker, producers, consumers):
@@ -151,6 +178,20 @@ def _join_file_workers(w, producers, consumers):
 
     # Clear event in case it is used again
     w.clear_file_producers_done()
+
+
+def _join_ic_rel_workers(w, producers, consumers):
+    for p in producers:
+        p.join()
+
+    # Signal consumers that producers have finished
+    w.set_ic_rel_producers_done()
+
+    for c in consumers:
+        c.join()
+
+    # Clear event in case it is used again
+    w.clear_ic_rel_producers_done()
 
 
 def _parse_arguments():
@@ -186,7 +227,8 @@ def _parse_arguments():
 
 if __name__ == "__main__":
     # Example call, no output to DB
-    classify_textfiles_to_db(1, '/data/pietpages/', 0.30, to_db=True)
+    # classify_textfiles_to_db(1, '/data/pietpages/', 0.30, to_db=True)
+    create_ic_relations_to_db(1, to_db=True)
     # args = _parse_arguments()
 
     # TODO Create CLI, make different PR

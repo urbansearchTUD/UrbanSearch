@@ -1,5 +1,6 @@
 import os
 import logging
+import time
 from queue import Empty
 from multiprocessing import Process, Event
 from ast import literal_eval
@@ -11,6 +12,7 @@ from urbansearch.clustering import classifytext, text_preprocessor
 from urbansearch.utils import db_utils
 producers_done = Event()
 file_producers_done = Event()
+ic_rel_producers_done = Event()
 
 LOGGER = logging.getLogger(__name__)
 
@@ -247,47 +249,148 @@ class Workers(object):
                     text = f.readlines()
                     try:
                         index = literal_eval(text.pop(0).strip())
-                        index['digest'] = 'digest{}'.format(digest)
+                        # FIXME: remove in future version
+                        if 'digest' not in index:
+                            index['digest'] = 'digest{}'.format(digest)
                         queue.put_nowait((index, '\n'.join(text)))
                     except IndexError:
                         LOGGER.error('File {0} is not classifyable'
                                      .format(file.path))
         LOGGER.info('File reading worker done.')
 
+    def run_compute_ic_rels_workers(self, num_workers, queue, join=True):
+        """
+        Creates workers for computing intercity relations. This method is
+        blocking if join is true. Else, it merely returns the created workers.
 
-    def _store_ic_rel(self, co_occ):
-        # Store all co-occurences as relations in database using db_utils
-        for city_a, city_b in co_occ:
-            if db_utils.store_ic_rel(city_a, city_b):
-                pass
-            else:
-                LOGGER.error("Database did not store IC_REL {0}-{1}"
-                             .format(city_a, city_b))
+        :param num_workers: The number of workers to be used
+        :param queue: The queue to work from
+        :param join: If true, this method blocks until the workers are done
+        :return: If join is false, returns the workers. Else, return nothing.
+        """
+        cities = db_utils.city_names()
+        size = int(len(cities) / num_workers) + 1
+
+        workers = [Process(target=self.compute_ic_rels_worker,
+                           args=(cities[i:i+size], queue))
+                   for i in range(num_workers)]
+
+        LOGGER.info('Created compute_ic_rels workers')
+
+        for w in workers:
+            w.start()
+
+        if join:
+            for w in workers:
+                w.join()
+            LOGGER.info('compute_ic_rels workers done')
+        else:
+            return workers
+
+
+    def compute_ic_rels_worker(self, cities, queue):
+        """
+        Computes the relations for a batch of cities and queues them
+        separately.
+        :param cities: The list of city names
+        :param queue: The queue to append
+        """
+        relations = {}
+        for rel in db_utils.compute_ic_relations(cities):
+            relation = (rel['city_a'], rel['city_b'])
+            if relation not in relations:
+                relations[relation] = {}
+            relations[relation][rel['category'].lower()] = rel['score']
+
+        for relation, scores in relations.items():
+            queue.put_nowait((relation, scores))
+        LOGGER.info('IC relation computer done')
+
+    def run_store_ic_rels_worker(self, queue, join=True, to_db=False):
+        """
+        Creates and starts a worker for storing intercity relations
+        from a queue.
+        :param queue: The queue to work from
+        :param join: If true, this function blocks untill the worker is done
+        If false, the worker is returned
+        :param to_db: If true, relations are stored in the database. Else, it
+        is seen as a dry run.
+        :return: If join=False, the worker is returned. Else, nothing is
+        returned
+        """
+        # Only a single worker, Neo4j didn't seem to be thread-safe sometimes
+        worker = [Process(target=self.store_ic_rels_worker,
+                          args=(queue, to_db))]
+        worker[0].start()
+
+        if join:
+            w.join()
+        else:
+            return worker
+
+    def _commit_ic_rels(self, pairs, values):
+        LOGGER.info('Creating IC relations...')
+        if not db_utils.store_ic_rels(pairs, values):
+            LOGGER.warn('Creating failed for some relations!')
+        pairs.clear()
+        values.clear()
+
+    def store_ic_rels_worker(self, queue, to_db):
+        """
+        Stores the intercity relations in the database, iff to_db is
+        specified. If not, a dry run is performed.
+
+        :param queue: The queue containing the relations, as pair-scores tuple
+        :param to_db: If true, stores the relations in the db.
+        Else, it is considered a dry run.
+        """
+        pairs_list = list()
+        values_list = list()
+
+        while not ic_rel_producers_done.is_set():
+            time.sleep(1)
+            pass
+
+        try:
+            while not queue.empty():
+                pair, values = queue.get(block=True, timeout=5)
+                pairs_list.append(pair)
+                values_list.append(values)
+
+                if to_db and len(pairs_list) > self.commit:
+                    self._commit_ic_rels(pairs_list, values_list)
+        except Empty:
+            pass
+
+        if to_db:
+            self._commit_ic_rels(pairs_list, values_list)
 
     def set_producers_done(self):
-        """ Set the signal that producers are done.
-
-        """
+        """ Set the signal that producers are done."""
         global producers_done
         producers_done.set()
 
     def clear_producers_done(self):
-        """ Clear the signal that producers are done.
-
-        """
+        """ Clear the signal that producers are done."""
         global producers_done
         producers_done.clear()
 
     def set_file_producers_done(self):
-        """ Set the signal that producers are done.
-
-        """
+        """ Set the signal that producers are done."""
         global file_producers_done
         file_producers_done.set()
 
     def clear_file_producers_done(self):
-        """ Clear the signal that producers are done.
-
-        """
+        """ Clear the signal that producers are done."""
         global file_producers_done
         file_producers_done.clear()
+
+    def set_ic_rel_producers_done(self):
+        """ Set the signal that producers are done."""
+        global ic_rel_producers_done
+        ic_rel_producers_done.set()
+
+    def clear_ic_rel_producers_done(self):
+        """ Clear the signal that producers are done."""
+        global ic_rel_producers_done
+        ic_rel_producers_done.clear()

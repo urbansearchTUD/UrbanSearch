@@ -8,6 +8,7 @@ import config
 
 CATEGORIES = config.get('score', 'categories')
 DEFAULT_CAT_DICT = dict.fromkeys(CATEGORIES, 0)
+DEFAULT_SCORE_DICT = {'total': 0, **DEFAULT_CAT_DICT}
 RELATES_TO = config.get('neo4j', 'relates_to_name')
 OCCURS_IN = config.get('neo4j', 'occurs_in_name')
 
@@ -79,26 +80,26 @@ def _store_ic_rel_query(city_a, city_b, values=None):
     # Generates a query for storing an intercity relation
     # Returns a query, params tuple
     if not values:
-        values = DEFAULT_CAT_DICT
+        values = DEFAULT_SCORE_DICT
     else:
-        values = {**DEFAULT_CAT_DICT, **values}
+        values = {**DEFAULT_SCORE_DICT, **values}
+        values['total'] = sum(values.values())
     query = '''
         MATCH (a:City {{ name: $a }})
         MATCH (b:City {{ name: $b }})
         MERGE (a)-[r:{0}]->(b)
         ON CREATE SET r = {{ {1} }}
         ON MATCH SET {2}
-    '''.format(RELATES_TO, ', '.join('{0}: ${0}'.format(p)
-                                     for p in CATEGORIES),
-               ', '.join('r.{0}=${0}'.format(p) for p in CATEGORIES))
+    '''.format(RELATES_TO, ', '.join('{0}: ${0}'.format(v)
+                                     for v in values.keys()),
+               ', '.join('r.{0}=${0}'.format(v) for v in values.keys()))
     return query, {'a': city_a, 'b': city_b, **values}
 
 
 def store_ic_rel(city_a, city_b, values=None):
     """
     Stores a relation between the given cities and initialises the
-    scores for all topics to 0, but only if at least one relation score is
-    given.
+    scores for all topics to 0. Any existing scores are overridden.
 
     :param city_a: City A
     :param city_b: City B
@@ -316,6 +317,50 @@ def store_indices_probabilities(digests, probabilities):
         params_list.append(params)
 
     return len(perform_queries(query_list, params_list)) == len(query_list)
+
+
+def compute_ic_relations(cities=None):
+    """
+    Computes the relation scores per category for the given cities.
+    Computation is done by simply counting the occurrences of both
+    city A and city B in labelled documents. A total score is also
+    calculated.
+
+    The result set is a list of dictionaries, containing:
+
+    `city_a`: The name of city A
+    `city_b': The name of city B
+    `category`: The name of the category
+    `score`: The score computed for the category
+
+    :param cities: Optional. A list of cities to compute the relations for.
+    If no cities are provided, relations are computed for all cities.
+    :return: A list of dictionaries of the format given above.
+    """
+    query = '''
+        UNWIND $cities as city_a
+        MATCH (:City { name: city_a })-[:OCCURS_IN]->
+            (i:Index)<-[:OCCURS_IN]-(b:City)
+        WHERE b.name <> city_a
+        WITH DISTINCT city_a, b, LABELS(i) as labels,
+            COUNT(i) AS labelCount
+        UNWIND labels AS category
+        RETURN city_a, b.name AS city_b, category, SUM(labelCount) AS score
+    '''
+
+    if not cities:
+        cities = city_names()
+
+    result = list()
+    for rec in perform_query(query, cities=cities, access_mode='read'):
+        result.append({
+            'city_a': rec['city_a'],
+            'city_b': rec['city_b'],
+            'category': rec['category'],
+            'score': rec['score']
+        })
+
+    return result
 
 
 def _get_ic_rel_query(city_a, city_b):

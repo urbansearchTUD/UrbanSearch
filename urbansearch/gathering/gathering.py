@@ -207,7 +207,7 @@ class PageDownloader(object):
         :param filename: Path to .gz file
         :return: Return list of indices
         """
-        with gzip.GzipFile(filename, errors='ignore') as gz_obj:
+        with gzip.GzipFile(filename) as gz_obj:
             # Remove the garbage before { and parse to json and add to list
             indices = [json.loads('{' + x.split('{', 1)[-1]) for x in
                        gz_obj.read().decode('utf-8').strip().split('\n')
