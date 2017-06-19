@@ -48,7 +48,9 @@ class CoOccurrenceChecker(object):
 
         # if the occurrence list is smaller than 2, there are no
         # co-occurrences and the page may be discared.
-        if len(occurrences) < 2:
+        # Also, a maximum of 25 occurrences is allowed. See the report
+        # for justification
+        if not (2 < len(occurrences) < 25):
             return None
 
         return occurrences
