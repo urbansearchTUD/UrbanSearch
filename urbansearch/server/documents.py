@@ -33,19 +33,3 @@ def get_random():
             pass
 
     return jsonify(status=200, document=document)
-
-
-@documents_api.route('/test', methods=['GET'], strict_slashes=False)
-def get_random_test():
-    """
-    """
-    while True:
-        try:
-            path = DOCUMENT_PATH.format(randint(0, 1),randint(0, 1))
-            with open(path) as f:
-                document = f.read()
-                break
-        except:
-            pass
-
-    return jsonify(status=200, document=document)
