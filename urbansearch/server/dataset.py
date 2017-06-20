@@ -4,6 +4,8 @@ from flask import Blueprint, jsonify, request
 from urbansearch.server.decorators import is_json
 from urbansearch.utils.dataset_p_utils import DatasetPickleUtils
 
+CATEGORIES = config.get('score', 'categories')
+
 dataset_api = Blueprint('dataset_api', __name__)
 dpu = DatasetPickleUtils()
 
@@ -17,7 +19,7 @@ def append():
     try:
         data = request.json
         dpu.append_to_inputs(data['document'], category=data['category'])
-        
+
         return jsonify(status=200, message='Document successfully added')
     except:
         return jsonify(error=True, status=400,
@@ -48,7 +50,7 @@ def create():
     """
     try:
         dpu.generate_dataset()
-        
+
         return jsonify(status=200, message='Dataset successfully created')
     except:
         return jsonify(error=True, status=500,
@@ -81,6 +83,25 @@ def init_categorysets():
         dpu.init_categorysets()
         return jsonify(status=200,
                        message='Categorysets initialized successfully')
+    except:
+        return jsonify(error=True, status=500,
+                       message='Initialization of categorysets failed')
+
+@dataset_api.route('/lengths', methods=['GET'],
+                   strict_slashes=False)
+def lengths():
+    """
+    Returns the length of each category dataset
+    """
+    try:
+        lengths = {}
+
+        for category in CATEGORIES:
+            data = dpu.load('{}.pickle'.format(category))
+            lengths[category] = len(data['inputs'])
+
+        return jsonify(status=200,
+                       lengths=str(lengths))
     except:
         return jsonify(error=True, status=500,
                        message='Initialization of categorysets failed')
