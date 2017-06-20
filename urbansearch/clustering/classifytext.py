@@ -11,6 +11,7 @@ SGDC = 'sgdc'
 
 
 class ClassifyText(object):
+
     """
     The ClassifyText class returns an object which lets users predict the
     category of files. The object loads a pre-trained model.
@@ -74,3 +75,17 @@ class ClassifyText(object):
             return key
         else:
             return "Other"
+
+    def categories_above_threshold(self, prob, threshold):
+        """ Return categories with probabilities above the threshold.
+        If no category is above threshold list only contains 'Other'.
+
+        :prob: Dict with category as key and probability as value
+        :threshold: A threshold for the probability between 0 and 1
+        :return: List with categories above threshold, otherwise
+        returns list with only 'Other' as element.
+        """
+        assert 0 <= threshold <= 1
+        above = [k for (k, v) in prob.items() if v >= threshold]
+
+        return above if above else ['Other']

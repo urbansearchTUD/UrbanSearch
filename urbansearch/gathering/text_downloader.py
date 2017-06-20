@@ -68,7 +68,7 @@ class TextDownloader(object):
         # Write index on first line of file, append the text
         final_text = str(index) + '\n' + text
         with open(os.path.join(output_dir, "W{0}-{1}.txt".format(w_id, n)),
-                  "w") as f:
+                  "w", errors="replace") as f:
                 f.write(final_text)
 
     def _parse_arguments(self, args):
@@ -78,6 +78,7 @@ class TextDownloader(object):
                                  + ' indices. .gz files only.')
 
         parser.add_argument('workers',
+                            type=int,
                             help='Number of parallel workers used')
 
         parser.add_argument('output',

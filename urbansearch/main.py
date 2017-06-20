@@ -25,7 +25,8 @@ def download_indices_for_url(url):
 
 
 @app.route('/classify_documents/log_only', methods=['GET'])
-def classify_documents_from_indices(pworkers=1, cworkers=1, directory=None):
+def classify_documents_from_indices(pworkers=1, cworkers=1, directory=None,
+                                    threshold=0):
     """ Run workers to classify all documents and log only.
     All the indices from the specified directory will be parsed using the
     number of workers specified.
@@ -37,6 +38,7 @@ def classify_documents_from_indices(pworkers=1, cworkers=1, directory=None):
     pworkers = int(request.args.get('pworkers', 0))
     cworkers = int(request.args.get('cworkers', 0))
     directory = request.args.get('directory')
+    threshold = float(request.args.get('threshold', 0))
 
     if directory:
         LOGGER.info("Using files from dir: {0}".format(directory))
@@ -47,14 +49,16 @@ def classify_documents_from_indices(pworkers=1, cworkers=1, directory=None):
     queue = man.Queue()
 
     producers = ind_sel.run_workers(pworkers, directory, queue, join=False)
-    consumers = cworker.run_classifying_workers(cworkers, queue, join=False)
+    consumers = cworker.run_classifying_workers(cworkers, queue, threshold,
+                                                join=False)
 
     # Join all workers when done
     _join_workers(cworker, producers, consumers)
 
 
 @app.route('/classify_documents/to_database', methods=['GET'])
-def classify_indices_to_db(pworkers=1, cworkers=1, directory=None):
+def classify_indices_to_db(pworkers=1, cworkers=1, directory=None,
+                           threshold=0):
     """ Run workers to classify all documents and output to database.
     Database must be online, all the indices from the specified directory
     will be parsed using the number of workers specified.
@@ -66,6 +70,7 @@ def classify_indices_to_db(pworkers=1, cworkers=1, directory=None):
     pworkers = int(request.args.get('pworkers', 0))
     cworkers = int(request.args.get('cworkers', 0))
     directory = request.args.get('directory')
+    threshold = float(request.args.get('threshold', 0))
 
     if not db_utils.connected_to_db():
         LOGGER.error("No database connection!")
@@ -80,14 +85,14 @@ def classify_indices_to_db(pworkers=1, cworkers=1, directory=None):
     queue = man.Queue()
 
     producers = ind_sel.run_workers(pworkers, directory, queue, join=False)
-    consumers = cworker.run_classifying_workers(cworkers, queue, join=False,
-                                                to_db=False)
+    consumers = cworker.run_classifying_workers(cworkers, queue, threshold,
+                                                join=False, to_db=False)
 
     # Join all workers when done
     _join_workers(cworker, producers, consumers)
 
 
-def classify_textfiles_to_db(num_cworkers, directory, to_db=False):
+def classify_textfiles_to_db(num_cworkers, directory, threshold, to_db=False):
     """ Run workers to classify all documents and output to database.
     Database must be online, all the indices from the specified directory
     will be parsed using the number of workers specified.
@@ -97,7 +102,7 @@ def classify_textfiles_to_db(num_cworkers, directory, to_db=False):
     :directory: Path to directory containing indices
     :to_db: Output results to database specified in config
     """
-    if not db_utils.connected_to_db():
+    if to_db and not db_utils.connected_to_db():
         LOGGER.error("No database connection!")
         return
 
@@ -110,11 +115,39 @@ def classify_textfiles_to_db(num_cworkers, directory, to_db=False):
 
     producer = w_factory.run_read_files_worker(directory, queue, join=False)
     consumers = w_factory.run_classifying_workers(num_cworkers, queue,
-                                                  join=False, to_db=False,
+                                                  threshold, join=False,
+                                                  to_db=to_db,
                                                   pre_downloaded=True)
 
     # Join all workers when done
     _join_file_workers(w_factory, producer, consumers)
+
+
+def create_ic_relations_to_db(num_workers, to_db=False):
+    """
+    Creates intercity relations and stores them in the database if desired.
+    If storing is desired, a connection to the database must be possible.
+    Blocks until the producers and workers are done.
+
+    :param num_workers: The number of workers to use for computing the
+    relation scores. This is a read-only operation.
+    :param to_db: Defaults to false. If true, the relations are stored.
+    """
+    if to_db and not db_utils.connected_to_db():
+        LOGGER.error('No database connection!')
+        return
+
+    w_factory = workers.Workers()
+    man = Manager()
+    queue = man.Queue()
+
+    producers = w_factory.run_compute_ic_rels_workers(num_workers, queue,
+                                                      join=False)
+    consumers = w_factory.run_store_ic_rels_worker(queue, join=False,
+                                                   to_db=to_db)
+
+    # Join all workers when done
+    _join_ic_rel_workers(w_factory, producers, consumers)
 
 
 def _join_workers(cworker, producers, consumers):
@@ -136,6 +169,7 @@ def _join_file_workers(w, producers, consumers):
     # Wait for producers to finish
     for p in producers:
         p.join()
+
     # Signal consumers that producers have finished
     w.set_file_producers_done()
 
@@ -144,6 +178,20 @@ def _join_file_workers(w, producers, consumers):
 
     # Clear event in case it is used again
     w.clear_file_producers_done()
+
+
+def _join_ic_rel_workers(w, producers, consumers):
+    for p in producers:
+        p.join()
+
+    # Signal consumers that producers have finished
+    w.set_ic_rel_producers_done()
+
+    for c in consumers:
+        c.join()
+
+    # Clear event in case it is used again
+    w.clear_ic_rel_producers_done()
 
 
 def _parse_arguments():
@@ -179,7 +227,8 @@ def _parse_arguments():
 
 if __name__ == "__main__":
     # Example call, no output to DB
-    classify_textfiles_to_db(2, '/data/', to_db=False)
+    # classify_textfiles_to_db(1, '/data/pietpages/', 0.30, to_db=True)
+    create_ic_relations_to_db(1, to_db=True)
     # args = _parse_arguments()
 
     # TODO Create CLI, make different PR

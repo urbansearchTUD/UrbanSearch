@@ -55,16 +55,8 @@ def _create_test_index(digest='unique_string'):
     return index['digest']
 
 
-def test_caching():
-    # Without cities cached
-    start = time.time()
-    db_utils.city_names()
-    time_a = time.time() - start
-    # With cities cached
-    start = time.time()
-    db_utils.city_names()
-    time_b = time.time() - start
-    assert time_a > time_b
+def test_connected_to_db():
+    assert db_utils.connected_to_db()
 
 
 def test_city_names():
@@ -134,7 +126,7 @@ def test_store_multi_index():
 def test_store_single_occurrence():
     digest = _create_test_index()
     city = 'Amsterdam'
-    assert db_utils.store_occurrence(digest, city)
+    assert db_utils.store_occurrence(digest, [city])
 
 
 @pytest.mark.usefixtures('clean_neo4j_index_and_rel')
@@ -142,12 +134,12 @@ def test_store_multi_occurrence():
     indices = [
             {'digest': 'unique_string', 'filename': 'test.gz',
              'length': 10, 'offset': 12},
-            {'digest': 'unique_string', 'filename': 'test2.gz',
+            {'digest': 'unique_string2', 'filename': 'test2.gz',
              'length': 11, 'offset': 13}
     ]
     db_utils.store_indices(indices)
     digests = ['unique_string', 'unique_string2']
-    occurrences = ['Amsterdam', 'Rotterdam', 'Appingedam']
+    occurrences = [['Amsterdam', 'Rotterdam'], ['Appingedam']]
     assert db_utils.store_occurrences(digests, occurrences)
 
 
@@ -170,7 +162,8 @@ def test_get_intercity_relation():
         'education': 0,
         'collaboration': 0,
         'transportation': 0,
-        'other': 0
+        'other': 0,
+        'total': 0
     }
     db_utils.store_ic_rel('Rotterdam', 'Amsterdam')
     assert db_utils.get_ic_rel('Rotterdam', 'Amsterdam') == expected
@@ -186,7 +179,8 @@ def test_get_intercity_relation_multi():
         'education': 0,
         'collaboration': 0,
         'transportation': 0,
-        'other': 0
+        'other': 0,
+        'total': 0
     }
     expected = [d, d]
     db_utils.store_ic_rels([('Rotterdam', 'Amsterdam'),
@@ -337,3 +331,10 @@ def test_get_indices_topics():
     indices = [_create_test_index(), _create_test_index('test2.gz')]
     db_utils.store_indices_topics(indices, [['Economy'], []])
     assert db_utils.get_indices_topics(indices) == [['Economy'], []]
+
+
+def test_compute_ic_relations():
+    index = _create_test_index()
+    occurrences = ['Amsterdam', 'Rotterdam']
+    db_utils.store_occurrence(index, occurrences)
+    assert len(db_utils.compute_ic_relations(cities=['Amsterdam'])) > 0

@@ -191,7 +191,7 @@ class PageDownloader(object):
         :param filename: Filename of the file to open
         :return: List of parsed JSON indices
         """
-        with open(filename, 'r') as f:
+        with open(filename, 'r', errors='replace') as f:
             # Remove the garbage before { and parse to json and add to list
             indices = [json.loads('{' + x.split('{', 1)[-1]) for x in
                        f.read().strip().split('\n')

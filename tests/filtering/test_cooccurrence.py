@@ -12,20 +12,19 @@ def test_single_occurrence():
 
 
 def test_single_cooccurrence():
-    expected = [('Amsterdam', 'Rotterdam')]
+    expected = ['Amsterdam', 'Rotterdam']
     result_set = c.check('Amsterdam and Rotterdam are Dutch cities')
     assert result_set == expected
 
 
 def test_single_cooccurrence2():
-    expected = [('Amsterdam', 'Rotterdam')]
+    expected = ['Amsterdam', 'Rotterdam']
     result_set = c.check('In Amsterdam en Rotterdam wonen mensen')
     assert result_set == expected
 
 
 def test_multi_cooccurrence():
-    expected = [('Rotterdam', 'Amsterdam'), ('Rotterdam', 'Den Haag'),
-                ('Amsterdam', 'Den Haag')]
+    expected = ['Rotterdam', 'Amsterdam', 'Den Haag']
     assert (c.check('Rotterdam, Amsterdam and Den Haag are the three largest'
                     'cities of the Netherlands') == expected)
 
@@ -35,15 +34,12 @@ def test_first_overlap():
 
 
 def test_last_overlap():
-    expected = [('Rotterdam', 'Amsterdam Zuidoost')]
+    expected = ['Rotterdam', 'Amsterdam Zuidoost']
     assert (c.check('Rotterdam and Amsterdam Zuidoost are cities') == expected)
 
 
 def test_overlap():
-    expected = [('Rotterdam', 'Den Haag'), ('Rotterdam', 'Amsterdam'),
-                ('Rotterdam', 'Amsterdam Zuidoost'),
-                ('Den Haag', 'Amsterdam'), ('Den Haag', 'Amsterdam Zuidoost'),
-                ('Amsterdam', 'Amsterdam Zuidoost')]
+    expected = ['Rotterdam', 'Den Haag', 'Amsterdam', 'Amsterdam Zuidoost']
     actual = c.check('The following cities are related: Rotterdam, Den Haag,'
                      'Amsterdam and Amsterdam Zuidoost.')
     assert actual == expected

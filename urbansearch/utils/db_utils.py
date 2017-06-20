@@ -1,20 +1,23 @@
 import math
 import logging
 from neo4j.v1 import (basic_auth, GraphDatabase, SessionError,
-                      CypherSyntaxError, DriverError, ServiceUnavailable)
+                      CypherSyntaxError, DriverError, ClientError,
+                      ServiceUnavailable)
 
 import config
 
 CATEGORIES = config.get('score', 'categories')
 DEFAULT_CAT_DICT = dict.fromkeys(CATEGORIES, 0)
+DEFAULT_SCORE_DICT = {'total': 0, **DEFAULT_CAT_DICT}
 RELATES_TO = config.get('neo4j', 'relates_to_name')
 OCCURS_IN = config.get('neo4j', 'occurs_in_name')
 
-_logger = logging.getLogger('db_utils')
+_logger = logging.getLogger(__name__)
 _driver = GraphDatabase.driver(
     config.get('neo4j', 'bolt_uri'),
     auth=basic_auth(config.get('neo4j', 'username'),
-                    config.get('neo4j', 'password')))
+                    config.get('neo4j', 'password')),
+    encrypted=False)
 
 _cities = None
 
@@ -39,11 +42,12 @@ def _run(runner, query, *params, **kwparams):
     # object.
     try:
         return [r for r in runner.run(query, *params, **kwparams)]
-    except (CypherSyntaxError, SessionError) as e:
+    except (ClientError, CypherSyntaxError, SessionError) as e:
+        print('{}\n{}'.format(query, params))
         _logger.error('query {}\nraised: {}'.format(query, e))
 
 
-def perform_queries(queries, params):
+def perform_queries(queries, params, access_mode='write'):
     """
     Performs the given queries with given parameters, in a single
     transaction.
@@ -52,13 +56,13 @@ def perform_queries(queries, params):
     :param params: A list of lists of parameters belonging to the queries
     :return: A list of result lists
     """
-    with _driver.session() as session:
+    with _driver.session(access_mode=access_mode) as session:
         with session.begin_transaction() as tx:
             return [[r for r in _run(tx, queries[i], params[i])]
                     for i in range(len(queries))]
 
 
-def perform_query(query, *params, **kwparams):
+def perform_query(query, *params, access_mode='write', **kwparams):
     """
     Performs the given query with given parameters, either as an expanded
     list or an expanded dictionary.
@@ -68,37 +72,44 @@ def perform_query(query, *params, **kwparams):
     :param kwparams: The query parameters, as key value pairs
     :return: A list of resulting records
     """
-    with _driver.session() as session:
+    with _driver.session(access_mode=access_mode) as session:
         return _run(session, query, *params, **kwparams)
 
 
-def _store_ic_rel_query(city_a, city_b):
+def _store_ic_rel_query(city_a, city_b, values=None):
     # Generates a query for storing an intercity relation
     # Returns a query, params tuple
+    if not values:
+        values = DEFAULT_SCORE_DICT
+    else:
+        values = {**DEFAULT_SCORE_DICT, **values}
+        values['total'] = sum(values.values())
     query = '''
         MATCH (a:City {{ name: $a }})
         MATCH (b:City {{ name: $b }})
-        MERGE (a)<-[r:{0}]-(b)
+        MERGE (a)-[r:{0}]->(b)
         ON CREATE SET r = {{ {1} }}
-    '''.format(RELATES_TO, ', '.join('{0}: $val'.format(p)
-                                     for p in CATEGORIES))
-    return query, {'a': city_a, 'b': city_b, 'val': 0}
+        ON MATCH SET {2}
+    '''.format(RELATES_TO, ', '.join('{0}: ${0}'.format(v)
+                                     for v in values.keys()),
+               ', '.join('r.{0}=${0}'.format(v) for v in values.keys()))
+    return query, {'a': city_a, 'b': city_b, **values}
 
 
-def store_ic_rel(city_a, city_b):
+def store_ic_rel(city_a, city_b, values=None):
     """
     Stores a relation between the given cities and initialises the
-    scores for all topics to 0.
+    scores for all topics to 0. Any existing scores are overridden.
 
     :param city_a: City A
     :param city_b: City B
     :return: True iff stored successfully
     """
-    query, params = _store_ic_rel_query(city_a, city_b)
+    query, params = _store_ic_rel_query(city_a, city_b, values)
     return perform_query(query, params) == []
 
 
-def store_ic_rels(pairs):
+def store_ic_rels(pairs, values=None):
     """
     Same as store_ic_rel, but for multiple city pairs
 
@@ -108,8 +119,11 @@ def store_ic_rels(pairs):
     query_list = list()
     params_list = list()
 
-    for pair in pairs:
-        query, params = _store_ic_rel_query(pair[0], pair[1])
+    for i, pair in enumerate(pairs):
+        if values and len(values) > i:
+            query, params = _store_ic_rel_query(pair[0], pair[1], values[i])
+        else:
+            query, params = _store_ic_rel_query(pair[0], pair[1], None)
         query_list.append(query)
         params_list.append(params)
 
@@ -158,36 +172,35 @@ def store_indices(indices):
         query_list.append(query)
         params_list.append(params)
 
+    _logger.warn('PERFORMING {} STORE_INDEX QUERIES!'.format(len(query_list)))
     return len(perform_queries(query_list, params_list)) == len(query_list)
 
 
-def _store_occurrence_query(digest, city):
-    # Generates a query for storing an occurrence, as a relation
+def _store_occurrence_query(digest, cities):
+    # Generates a query for storing occurrences, as a relation
     # between a city and an index. Returns a query, params tuple
     query = '''
         MATCH (i:Index {{ digest: $digest }})
-        MATCH (a:City {{ name: $city }})
-        MERGE (a)-[:{0}]->(i)
-    '''.format(OCCURS_IN)
-    return query, {'digest': digest, 'city': city}
+        MATCH (a:City) WHERE a.name IN [ {0} ]
+        MERGE (a)-[:{1}]->(i)
+    '''.format(', '.join('"{}"'.format(c) for c in cities), OCCURS_IN)
+    return query, {'digest': digest}
 
 
-def store_occurrence(digest, city):
+def store_occurrence(digest, cities):
     """
-    Creates a relation between the given index and city
+    Creates a relation between the given index and cities
 
     :param digest: The unique identifier of the index
-    :param city: The name of the city
+    :param cities: The names of the cities
     :return: True iff stored successfully
     """
-    return perform_query(*_store_occurrence_query(digest, city)) == []
+    return perform_query(*_store_occurrence_query(digest, cities)) == []
 
 
 def store_occurrences(digests, occurrences):
     """
     Same as store_occurrence but for multple indices/occurrences.
-    Allows for duplicate index digests to be able to store multiple
-    occurrences.
 
     :param digests: The unique identifiers of the indices
     :param occurrences: The names of the cities
@@ -195,12 +208,10 @@ def store_occurrences(digests, occurrences):
     """
     query_list = list()
     params_list = list()
-
     for i, fn in enumerate(digests):
         query, params = _store_occurrence_query(fn, occurrences[i])
         query_list.append(query)
         params_list.append(params)
-
     return len(perform_queries(query_list, params_list)) == len(query_list)
 
 
@@ -262,8 +273,8 @@ def _store_index_probabilities_query(digest, probabilities):
     query = '''
         MATCH (i:Index {{ digest: $digest }})
         SET {}
-    '''.format(','.join('i.{0}=${0}'.format(k) for k in probabilities.keys()))
-    return query, {'digest': digest, **probabilities}
+    '''.format(','.join('i.{}={}'.format(k, v) for k, v in probabilities.items()))
+    return query, {'digest': digest}
 
 
 def store_index_probabilities(digest, probabilities=None):
@@ -308,6 +319,50 @@ def store_indices_probabilities(digests, probabilities):
     return len(perform_queries(query_list, params_list)) == len(query_list)
 
 
+def compute_ic_relations(cities=None):
+    """
+    Computes the relation scores per category for the given cities.
+    Computation is done by simply counting the occurrences of both
+    city A and city B in labelled documents. A total score is also
+    calculated.
+
+    The result set is a list of dictionaries, containing:
+
+    `city_a`: The name of city A
+    `city_b': The name of city B
+    `category`: The name of the category
+    `score`: The score computed for the category
+
+    :param cities: Optional. A list of cities to compute the relations for.
+    If no cities are provided, relations are computed for all cities.
+    :return: A list of dictionaries of the format given above.
+    """
+    query = '''
+        UNWIND $cities as city_a
+        MATCH (:City {{ name: city_a }})-[:{0}]->
+            (i:Index)<-[:{0}]-(b:City)
+        WHERE b.name <> city_a
+        WITH DISTINCT city_a, b, LABELS(i) as labels,
+            COUNT(i) AS labelCount
+        UNWIND labels AS category
+        RETURN city_a, b.name AS city_b, category, SUM(labelCount) AS score
+    '''.format(OCCURS_IN)
+
+    if not cities:
+        cities = city_names()
+
+    result = list()
+    for rec in perform_query(query, cities=cities, access_mode='read'):
+        result.append({
+            'city_a': rec['city_a'],
+            'city_b': rec['city_b'],
+            'category': rec['category'],
+            'score': rec['score']
+        })
+
+    return result
+
+
 def _get_ic_rel_query(city_a, city_b):
     # Generates a query for retrieving intercity relation statistics
     # Returns a query, params tuple
@@ -332,7 +387,8 @@ def get_ic_rel(city_a, city_b):
     :param city_b: City B
     :return: A dictionary containing the scores per topic
     """
-    result = perform_query(*_get_ic_rel_query(city_a, city_b))
+    result = perform_query(*_get_ic_rel_query(city_a, city_b),
+                           access_mode='read')
     return _parse_ic_rel_result(result)
 
 
@@ -352,7 +408,8 @@ def get_ic_rels(city_pairs):
         params_list.append(params)
 
     return [_parse_ic_rel_result(r)
-            for r in perform_queries(query_list, params_list)]
+            for r in perform_queries(query_list, params_list,
+                                     access_mode='read')]
 
 
 def _get_index_probabilities_query(digest):
@@ -378,7 +435,8 @@ def get_index_probabilities(digest):
     :param digest: A unique identifier representing an index
     :return: The dictionary of topic probabilities
     """
-    result = perform_query(*_get_index_probabilities_query(digest))
+    result = perform_query(*_get_index_probabilities_query(digest),
+                           access_mode='read')
     return _parse_index_probabilities_result(result)
 
 
@@ -399,7 +457,8 @@ def get_indices_probabilities(digests):
         params_list.append(params)
 
     return [_parse_index_probabilities_result(r)
-            for r in perform_queries(query_list, params_list)]
+            for r in perform_queries(query_list, params_list,
+                                     access_mode='read')]
 
 
 def _get_index_topics_query(digest):
@@ -425,7 +484,8 @@ def get_index_topics(digest):
     :param digest: A unique identifier, representing an index
     :return: A list of topics
     """
-    result = perform_query(*_get_index_topics_query(digest))
+    result = perform_query(*_get_index_topics_query(digest),
+                           access_mode='read')
     return _parse_index_topics_result(result)
 
 
@@ -445,7 +505,8 @@ def get_indices_topics(digests):
         params_list.append(params)
 
     return [_parse_index_topics_result(r)
-            for r in perform_queries(query_list, params_list)]
+            for r in perform_queries(query_list, params_list,
+                                     access_mode='read')]
 
 
 def _get_cities():
@@ -454,7 +515,8 @@ def _get_cities():
     global _cities
 
     if not _cities:
-        _cities = [c for c in perform_query('MATCH (a:City) RETURN a')]
+        _cities = [c for c in perform_query('MATCH (a:City) RETURN a',
+                                            access_mode='read')]
 
     return _cities
 
