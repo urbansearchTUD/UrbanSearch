@@ -50,7 +50,7 @@ class CoOccurrenceChecker(object):
         # co-occurrences and the page may be discared.
         # Also, a maximum of 25 occurrences is allowed. See the report
         # for justification
-        if not (2 < len(occurrences) < 25):
+        if not (2 <= len(occurrences) <= 25):
             return None
 
         return occurrences
