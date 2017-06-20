@@ -11,7 +11,7 @@ classify_documents_api = Blueprint('classify_documents_api', __name__)
 LOGGER = logging.getLogger(__name__)
 
 
-@app.route('/log_only', methods=['GET'])
+@classify_documents_api.route('/log_only', methods=['GET'])
 def classify_documents_from_indices(pworkers=1, cworkers=1, directory=None):
     """ Run workers to classify all documents and log only.
     All the indices from the specified directory will be parsed using the
@@ -40,7 +40,7 @@ def classify_documents_from_indices(pworkers=1, cworkers=1, directory=None):
     _join_workers(cworker, producers, consumers)
 
 
-@app.route('/to_database', methods=['GET'])
+@classify_documents_api.route('/to_database', methods=['GET'])
 def classify_indices_to_db(pworkers=1, cworkers=1, directory=None):
     """ Run workers to classify all documents and output to database.
     Database must be online, all the indices from the specified directory
