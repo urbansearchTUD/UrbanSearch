@@ -1,10 +1,7 @@
 ####### UrbanSearch requirements.txt #######
-#
-####### Requirements without Version Specifiers ######
+
 beautifulsoup4
-# hack for gensim - travis stuff
 flask
-gensim
 neo4j-driver
 nltk
 pyahocorasick
@@ -13,12 +10,5 @@ pytest-cov
 PyYAML
 requests
 scikit-learn
-flask
 sklearn
 testfixtures
-
-#
-####### Requirements with Version Specifiers ######
-#   See https://www.python.org/dev/peps/pep-0440/#version-specifiers
-#
-# #
