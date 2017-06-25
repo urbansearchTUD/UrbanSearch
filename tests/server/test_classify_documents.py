@@ -14,7 +14,6 @@ s = Server(run=False)
 def test_download_indices_for_url(mock_rcw, mock_rw, mock_jw):
     with s.app.test_client() as c:
         resp = c.get('/api/v1/classify_documents/log_only?directory=test')
-        data = json.loads(resp.data)
 
         assert mock_rcw.called
         assert mock_rw.called

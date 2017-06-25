@@ -15,16 +15,16 @@ VALIDATION_SETS_DIRECTORY = config.get('resources', 'validation_sets')
 
 def test_init_no_file():
     mm = modelmanager.ModelManager()
-    assert mm.clf == None
+    assert mm.clf is None
 
 def test_init():
     mm = modelmanager.ModelManager(filename='sgdcmodel.pickle')
-    assert mm.clf != None
+    assert mm.clf is not None
     assert isinstance(mm.clf, Pipeline)
 
 def test_load(filename='sgdcmodel.pickle'):
     mm = modelmanager.ModelManager()
-    assert mm.clf == None
+    assert mm.clf is None
     mm.clf = mm.load('sgdcmodel.pickle')
     assert isinstance(mm.clf, Pipeline)
 
@@ -55,18 +55,18 @@ def test_predict():
 def test_predict_no_clf():
     mm = modelmanager.ModelManager()
     prediction = mm.predict(['ssdfsaf dsfsadfds dsfsdafsd'])
-    assert prediction == None
+    assert prediction is None
 
 def test_propabilities():
     mm = modelmanager.ModelManager(filename='sgdcmodel.pickle')
     prediction = mm.probabilities(['ssdfsaf dsfsadfds dsfsdafsd'])
-    assert prediction != None
+    assert prediction is not None
     assert isinstance(prediction[0], ndarray)
 
 def test_propabilities_no_clf():
     mm = modelmanager.ModelManager()
     prediction = mm.probabilities(['ssdfsaf dsfsadfds dsfsdafsd'])
-    assert prediction == None
+    assert prediction is None
 
 @patch.object(pickle, 'dump')
 def test_save_no_clf(mock_method):
