@@ -102,6 +102,13 @@ class ModelManager(object):
             with open(os.path.join(MODELS_DIRECTORY, filename), 'wb') as f:
                 pickle.dump(self.clf, f, pickle.HIGHEST_PROTOCOL)
 
+    def score(self):
+        """
+        Test the objects classifier
+        """
+        if self.clf and self.x_test and self.y_test:
+            return self.clf.score(self.x_test, self.y_test)
+
     def test(self):
         """
         Test the objects classifier

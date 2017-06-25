@@ -1,5 +1,6 @@
 from flask import Flask
 
+from urbansearch.server.classifier import classifier_api
 from urbansearch.server.classify_documents import classify_documents_api
 from urbansearch.server.dataset import dataset_api
 from urbansearch.server.documents import documents_api
@@ -55,4 +56,6 @@ class Server(object):
         self.app.register_blueprint(indices_api,
                                     url_prefix=API_PREFIX + '/indices')
         self.app.register_blueprint(
-            indices_api, url_prefix=API_PREFIX + '/classify_documents')
+            classify_documents_api, url_prefix=API_PREFIX + '/classify_documents')
+        self.app.register_blueprint(classifier_api,
+                                    url_prefix=API_PREFIX + '/classifier')

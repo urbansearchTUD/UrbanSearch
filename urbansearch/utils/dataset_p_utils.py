@@ -1,6 +1,7 @@
 import config
 from datetime import datetime
 import os
+import math
 import pickle
 
 from urbansearch.utils.p_utils import PickleUtils
@@ -134,6 +135,45 @@ class DatasetPickleUtils(PickleUtils):
                 pass
 
         filename = 'data.{}.pickle'.format(datetime.now().strftime('%d%m%Y'))
+        self.init_dataset(filename, inputs=x, outputs=y)
+
+        return filename
+
+    def generate_equal_dataset(self, default=False):
+        """
+        Generates a dataset which combines the files from the predefined
+        categories and pickles a object containing 'inputs' and 'outputs'
+        attributes. The dataset will contain equally sized sets for every
+        category, with every set being scaled to the size of the smallest
+        dataset.
+
+        :return filename: Path of the saved dataset
+        """
+        categories = list(CATEGORIES)
+        categories.pop(categories.index('other'))
+        min_size = math.inf
+        sets = {}
+        x = []
+        y = []
+
+        for category in categories:
+            try:
+                data = self.load(self.category_to_file(category))
+                sets[category] = data['inputs']
+                if len(sets[category]) < min_size:
+                    min_size = len(sets[category])
+            except:
+                pass
+
+        for cat, s in sets.items():
+            x += s[:min_size]
+            y += ([cat] * min_size)
+
+        if not default:
+            filename = 'data.{}.pickle'.format(datetime.now().strftime('%d%m%Y'))
+        else:
+            filename = 'data.default.pickle'
+
         self.init_dataset(filename, inputs=x, outputs=y)
 
         return filename
