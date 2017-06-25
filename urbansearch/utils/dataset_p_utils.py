@@ -1,6 +1,7 @@
 import config
 from datetime import datetime
 import os
+import math
 import pickle
 
 from urbansearch.utils.p_utils import PickleUtils
@@ -138,6 +139,56 @@ class DatasetPickleUtils(PickleUtils):
 
         return filename
 
+    @staticmethod
+    def _load_files_with_min(categories):
+        # Loads pickle files for every catory and reports the smallest
+        # category data set
+        sets = {}
+        min_size = math.inf
+        for category in categories:
+            try:
+                data = self.load(self.category_to_file(category))
+                sets[category] = data['inputs']
+                if len(sets[category]) < min_size:
+                    min_size = len(sets[category])
+            except:
+                pass
+        return sets, min_size
+
+    @staticmethod
+    def _generate_file_name(default):
+        # Generates a file name for the pickle file
+        if not default:
+            filename = 'data.{}.pickle'.format(datetime.now().strftime('%d%m%Y'))
+        else:
+            filename = 'data.default.pickle'
+
+
+    def generate_equal_dataset(self, default=False):
+        """
+        Generates a dataset which combines the files from the predefined
+        categories and pickles a object containing 'inputs' and 'outputs'
+        attributes. The dataset will contain equally sized sets for every
+        category, with every set being scaled to the size of the smallest
+        dataset.
+
+        :return filename: Path of the saved dataset
+        """
+        categories = list(CATEGORIES)
+        categories.pop(categories.index('other'))
+        x = []
+        y = []
+
+        sets, min_size = self._load_files_with_min(categories)
+
+        for cat, s in sets.items():
+            x += s[:min_size]
+            y += ([cat] * min_size)
+
+        self.init_dataset(filename, inputs=x, outputs=y)
+
+        return self._generate_file_name(default)
+
     def load(self, filename):
         """
         Dataset load function, overwrites the p_utils load function
@@ -155,7 +206,6 @@ class DatasetPickleUtils(PickleUtils):
         """
         for category in CATEGORIES:
             filename = self.category_to_file(category)
-            print('saving file {}'.format(filename))
             data = self.load(filename)
             self.save(data, '{}.{}.pickle'.format(category,
                                             datetime.now().strftime('%d%m%Y')))

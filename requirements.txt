@@ -12,7 +12,7 @@ pytest
 pytest-cov
 PyYAML
 requests
-scikit-learn
+scikit-learn==0.18.1
 flask
 sklearn
 testfixtures
