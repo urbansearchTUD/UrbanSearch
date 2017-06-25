@@ -79,8 +79,6 @@ def metrics_equal():
 
     report = classification_report(mm.y_test, predicts)
 
-    print(classification_report(mm.y_test, predicts))
-
     return jsonify(status=200, message=report)
 
 
@@ -101,9 +99,4 @@ def probabilities_equal():
             'category': mm.y_test[i]
         })
         
-    print(result)
-
     return jsonify(status=200, result=result)
-
-
-# @classifier_api.route('', methods=[''])

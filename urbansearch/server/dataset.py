@@ -117,6 +117,5 @@ def persist_categorysets():
         dpu.persist_categorysets()
         return jsonify(status=200, message='Categorysets successfully saved')
     except Exception as e:
-        print(e)
         return jsonify(error=True, status=500,
                        message='Save of categorysets failed')
