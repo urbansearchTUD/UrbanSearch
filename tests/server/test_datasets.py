@@ -44,6 +44,33 @@ def test_append_route_no_json(append_mock):
         assert not append_mock.called
 
 
+@patch.object(DatasetPickleUtils, 'append_to_inputs')
+def test_append_all(append_mock):
+    with s.app.test_client() as c:
+        resp = c.post('/api/v1/datasets/append_all', data=json.dumps({
+            'document': 'test',
+            'categories': ['education', 'transportation']}),
+            content_type='application/json'
+            )
+        data = json.loads(resp.data)
+
+        assert data['status'] == 200
+
+        append_mock.assert_any_call('test', category='education')
+        append_mock.assert_any_call('test', category='transportation')
+
+@patch.object(DatasetPickleUtils, 'append_to_inputs')
+def test_append_all_error(append_mock):
+    with s.app.test_client() as c:
+        resp = c.post('/api/v1/datasets/append_all', data=json.dumps({
+            'faulty': 'test',
+            'fault': ''}),
+            content_type='application/json'
+            )
+        data = json.loads(resp.data)
+
+        assert data['status'] == 400
+
 @patch.object(DatasetPickleUtils, 'generate_dataset')
 def test_create_route(create_mock):
     with s.app.test_client() as c:
@@ -91,3 +118,33 @@ def test_create_categoryset_route_no_json(create_mock):
 
         assert data['status'] == 400
         assert not create_mock.called
+
+@patch.object(DatasetPickleUtils, 'init_categorysets')
+def test_init_categorysets(create_mock):
+    with s.app.test_client() as c:
+        resp = c.post('/api/v1/datasets/init_categorysets')
+
+        data = json.loads(resp.data)
+
+        assert data['status'] == 200
+        assert create_mock.called
+
+@patch.object(DatasetPickleUtils, 'load')
+def test_lengths(load_mock):
+    load_mock.return_value = {'inputs': ['test']}
+    with s.app.test_client() as c:
+        resp = c.get('/api/v1/datasets/lengths')
+
+        data = json.loads(resp.data)
+        print(data['lengths'])
+        assert data['status'] == 200
+
+@patch.object(DatasetPickleUtils, 'persist_categorysets')
+def test_persist_categorysets(persist_mock):
+    with s.app.test_client() as c:
+        resp = c.post('/api/v1/datasets/persist/categorysets')
+
+        data = json.loads(resp.data)
+
+        assert data['status'] == 200
+        assert persist_mock.called
