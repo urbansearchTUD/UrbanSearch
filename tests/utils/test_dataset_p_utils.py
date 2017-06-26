@@ -104,12 +104,12 @@ def test_append_list_to_inputs_no_list():
     os.remove(file_path)
 
 def test_category_to_file():
-    assert pdu.category_to_file('education') == 'education.pickle'
+    assert pdu._category_to_file('education') == 'education.pickle'
 
 def test_filename_to_path():
     filename = 'test_123.pickle'
     file_path = os.path.join(DATA_SETS_DIRECTORY, filename)
-    assert file_path == pdu.filename_to_path(filename)
+    assert file_path == pdu._filename_to_path(filename)
 
 def test_init_categoryset():
     filename = 'test_123.pickle'
