@@ -159,9 +159,9 @@ class DatasetPickleUtils(PickleUtils):
     def _generate_file_name(default):
         # Generates a file name for the pickle file
         if not default:
-            filename = 'data.{}.pickle'.format(datetime.now().strftime('%d%m%Y'))
+            return 'data.{}.pickle'.format(datetime.now().strftime('%d%m%Y'))
         else:
-            filename = 'data.default.pickle'
+            return 'data.default.pickle'
 
 
     def generate_equal_dataset(self, default=False):
@@ -185,9 +185,10 @@ class DatasetPickleUtils(PickleUtils):
             x += s[:min_size]
             y += ([cat] * min_size)
 
+        filename = self._generate_file_name(default)
         self.init_dataset(filename, inputs=x, outputs=y)
 
-        return self._generate_file_name(default)
+        return filename
 
     def load(self, filename):
         """
