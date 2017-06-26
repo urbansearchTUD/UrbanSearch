@@ -62,10 +62,11 @@ class TextDownloader(object):
                         if txt is None:
                             continue
                         self._write_txt_file_index(index, txt, output_dir,
-                                                   w_id, i)
+                                                   (w_id, i))
 
-    def _write_txt_file_index(self, index, text, output_dir, w_id, n):
+    def _write_txt_file_index(self, index, text, output_dir, name):
         # Write index on first line of file, append the text
+        w_id, n = name
         final_text = str(index) + '\n' + text
         with open(os.path.join(output_dir, "W{0}-{1}.txt".format(w_id, n)),
                   "w", errors="replace") as f:
