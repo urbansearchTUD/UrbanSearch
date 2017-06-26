@@ -130,7 +130,7 @@ class DatasetPickleUtils(PickleUtils):
 
         for category in CATEGORIES:
             try:
-                data = self.load(_self._category_to_file(category))
+                data = self.load(self._category_to_file(category))
                 x += data['inputs']
                 y += ([category] * len(data['inputs']))
             except:
