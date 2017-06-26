@@ -33,7 +33,7 @@ def test_parse_arguments():
     assert args.workers == 33
     assert args.output == 'out'
 
-"""
+
 def test_run_workers(tmpdir):
     td = text_downloader.TextDownloader()
     directory = os.path.join(config.get('resources', 'test'), 'indices_dir/')
@@ -41,10 +41,8 @@ def test_run_workers(tmpdir):
                            'W1-0.txt'), "r") as text_file:
         exp = text_file.readlines()
 
-    td.run_workers(2, directory, str(tmpdir))
-    # Check line in middle of text
+    td.run_workers(2, directory, "/tmp")
     # Could be either Worker1 or Worker 0, so try and except
-    _file = next(os.scandir(str(tmpdir)))
+    _file = next(os.scandir("/tmp"))
     with open(_file.path, 'r') as f:
             assert f.readlines()[1] == exp[1]
-"""
