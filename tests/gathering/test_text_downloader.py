@@ -43,6 +43,9 @@ def test_run_workers(tmpdir):
 
     td.run_workers(2, directory, "/tmp")
     # Could be either Worker1 or Worker 0, so try and except
-    _file = next(os.scandir("/tmp"))
-    with open(_file.path, 'r') as f:
-            assert f.readlines()[1] == exp[1]
+    try:
+        with open('/tmp/W0-0.txt', 'r') as f:
+                assert f.readlines()[1] == exp[1]
+    except OSError:
+        with open('/tmp/W1-0.txt', 'r') as f:
+                assert f.readlines()[1] == exp[1]
