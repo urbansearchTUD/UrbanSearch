@@ -158,3 +158,31 @@ def test_mock_classify_text_files_to_db_not_connected(mock_db_connected,
                 main.classify_textfiles_to_db(Mock(), Mock(), 1, True)
                 assert (l.__sizeof__()) > 0
                 assert not mock_workers.called
+
+
+def test__join_ic_rel_workers():
+    w = Mock()
+    producers = [Mock()]
+    consumers = [Mock()]
+
+    main._join_ic_rel_workers(w, producers, consumers)
+    for p in producers:
+        assert p.join.called
+    for c in consumers:
+        assert c.join.called
+    assert w.set_ic_rel_producers_done.called
+    assert w.clear_ic_rel_producers_done.called
+
+
+@patch('urbansearch.workers.Workers')
+@patch('urbansearch.main.Manager')
+def test_create_ic_relations_to_db(mock_manager, mock_workers):
+    w = mock_workers.return_value = Mock()
+    worker = w.Workers.return_value
+    man = mock_manager.return_value = Mock()
+    main._join_ic_rel_workers = Mock()
+
+    main.create_ic_relations_to_db(Mock())
+
+    assert w.run_compute_ic_rels_workers.called
+    assert w.run_store_ic_rels_worker.called
