@@ -68,11 +68,11 @@ def _load_user_config():
 
 def _load_system_config():
     try:
-        with open(os.path.join(SYS_CONFIG_PATH, CONFIG_FILE), 'r+') as f:
+        with open(os.path.join(SYS_CONFIG_PATH, CONFIG_FILE), 'r') as f:
             # Concatenate config, override defaults with YAML values
             return yaml.load(f)
     except Exception as e:
-        pass
+        raise
 
 def _load_config():
     # Fills the global CONFIG dictionary using default and custom config
