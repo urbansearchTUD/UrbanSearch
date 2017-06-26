@@ -85,8 +85,7 @@ class IndicesSelector(object):
 
         return relevant_indices
 
-    def run_workers(self, num_workers, directory, queue, opt=False,
-                    join=True):
+    def run_workers(self, num_workers, directory, queue, **kwargs):
         """ Run workers to process indices from a directory with files
         in parallel. All parsed indices will be added to the queue.
 
@@ -96,7 +95,7 @@ class IndicesSelector(object):
         :opt: Determine optimal number of workers and ignore num_workers
         parameter
         """
-        if opt:
+        if kwargs.get('opt', False):
             num_workers = process_utils.compute_num_workers()
 
         files = [_file.path for _file in os.scandir(directory)
@@ -109,7 +108,7 @@ class IndicesSelector(object):
         for worker in workers:
             worker.start()
 
-        if join:
+        if kwargs.get('join', True):
             # Wait for processes to finish
             for worker in workers:
                 worker.join()
