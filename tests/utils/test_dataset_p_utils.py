@@ -3,6 +3,7 @@ import datetime
 import os
 import pickle
 import pytest
+from unittest.mock import patch, Mock
 
 from urbansearch.utils import dataset_p_utils, p_utils
 
@@ -205,3 +206,12 @@ def test_set_output():
 
     data = pdu.load(filename)
     assert data['output'] == 'yolo'
+
+
+def test_load_files_with_min():
+    pdu.load = Mock()
+    pdu.load.return_value = True
+    categories = ['testcat1', 'testcat2']
+    pdu._load_files_with_min(categories)
+
+    assert pdu.load.call_count == 2
