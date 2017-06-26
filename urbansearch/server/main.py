@@ -26,12 +26,6 @@ class Server(object):
         """
 
         self.app = Flask(__name__)
-
-        @self.app.route("/")
-        def hello():
-            return "<h1 style='color:blue'>Hello There!</h1>"
-
-
         self.register_blueprints()
 
         @self.app.after_request

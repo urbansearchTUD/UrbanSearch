@@ -26,7 +26,7 @@ class DatasetPickleUtils(PickleUtils):
         if not filename and not category:
             raise Exception('Filename or category should be specified')
 
-        filename = self.category_to_file(category) if category else filename
+        filename = self._category_to_file(category) if category else filename
         dataset = self.load(filename)
 
         if isinstance(dataset['inputs'], list):
@@ -43,7 +43,7 @@ class DatasetPickleUtils(PickleUtils):
         :param text: the texts to append
         """
         if isinstance(texts, list) and (filename or category):
-            filename = self.category_to_file(category) if category else filename
+            filename = self._category_to_file(category) if category else filename
             dataset = self.load(filename)
 
             if isinstance(dataset['inputs'], list):
@@ -55,7 +55,8 @@ class DatasetPickleUtils(PickleUtils):
             raise Exception(
                 'Texts should be a string got {}'.format(type(texts)))
 
-    def category_to_file(self, category):
+    @staticmethod
+    def _category_to_file(category):
         """
         Return the filename for the category
 
@@ -64,7 +65,8 @@ class DatasetPickleUtils(PickleUtils):
         """
         return '{}.pickle'.format(category)
 
-    def filename_to_path(self, filename):
+    @staticmethod
+    def _filename_to_path(filename):
         """
         Return the path for the file
 
@@ -87,7 +89,7 @@ class DatasetPickleUtils(PickleUtils):
             'inputs': inputs
         }
 
-        self.save(categoryset, self.category_to_file(category))
+        self.save(categoryset, self._category_to_file(category))
 
     def init_categorysets(self):
         """
@@ -128,7 +130,7 @@ class DatasetPickleUtils(PickleUtils):
 
         for category in CATEGORIES:
             try:
-                data = self.load(self.category_to_file(category))
+                data = self.load(_self._category_to_file(category))
                 x += data['inputs']
                 y += ([category] * len(data['inputs']))
             except:
@@ -139,20 +141,20 @@ class DatasetPickleUtils(PickleUtils):
 
         return filename
 
-    @staticmethod
-    def _load_files_with_min(categories):
+    def _load_files_with_min(self, categories):
         # Loads pickle files for every catory and reports the smallest
         # category data set
         sets = {}
         min_size = math.inf
         for category in categories:
             try:
-                data = self.load(self.category_to_file(category))
+                data = self.load(self._category_to_file(category))
                 sets[category] = data['inputs']
                 if len(sets[category]) < min_size:
                     min_size = len(sets[category])
             except:
                 pass
+
         return sets, min_size
 
     @staticmethod
@@ -197,7 +199,7 @@ class DatasetPickleUtils(PickleUtils):
         :param filename: the file which we want to load
         :return: The object saved in the file
         """
-        return super().load(self.filename_to_path(filename))
+        return super().load(self._filename_to_path(filename))
 
     def persist_categorysets(self):
         """
@@ -206,7 +208,7 @@ class DatasetPickleUtils(PickleUtils):
         format: $CATEGORY.$DATE_OF_SAVE.pickle
         """
         for category in CATEGORIES:
-            filename = self.category_to_file(category)
+            filename = self._category_to_file(category)
             data = self.load(filename)
             self.save(data, '{}.{}.pickle'.format(category,
                                             datetime.now().strftime('%d%m%Y')))
@@ -218,7 +220,7 @@ class DatasetPickleUtils(PickleUtils):
         :param obj: the object we want to save/pickle
         :param filename: the filename to which we want to save the object
         """
-        super().save(obj, self.filename_to_path(filename))
+        super().save(obj, self._filename_to_path(filename))
 
     def set_output(self, filename, output):
         """
