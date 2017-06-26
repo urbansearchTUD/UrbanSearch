@@ -72,7 +72,7 @@ def _load_system_config():
             # Concatenate config, override defaults with YAML values
             return yaml.load(f)
     except Exception as e:
-        raise
+        pass
 
 def _load_config():
     # Fills the global CONFIG dictionary using default and custom config
