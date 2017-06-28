@@ -1,6 +1,9 @@
 import config
 import os
 import pickle
+from sklearn.model_selection import GridSearchCV
+from time import time
+
 MODELS_DIRECTORY = config.get('resources', 'models')
 TEST_SETS_DIRECTORY = config.get('resources', 'test_sets')
 TRAINING_SETS_DIRECTORY = config.get('resources', 'training_sets')
@@ -69,6 +72,16 @@ class ModelManager(object):
             data = pickle.load(f)
             self.x_validate = data['documents']
             self.y_validate = data['categories']
+
+    def optimise(self, parameters):
+        if self.clf and self.x_train and self.y_train:
+            grid_search = GridSearchCV(self.clf, parameters, n_jobs=-1, verbose=0, cv=5)
+            start_time = time()
+            grid_search.fit(self.x_train, self.y_train)
+            duration = time() - start_time
+            best_parameters = grid_search.best_params_
+
+            return {**best_parameters, **{'duration': duration}}
 
     def predict(self, files):
         """
