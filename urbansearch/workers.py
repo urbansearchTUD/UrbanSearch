@@ -9,7 +9,7 @@ import config
 from urbansearch.gathering import gathering
 from urbansearch.filtering import cooccurrence
 from urbansearch.clustering import classifytext, text_preprocessor
-from urbansearch.utils import db_utils
+from urbansearch.utils import db_utils, progress_utils
 producers_done = Event()
 file_producers_done = Event()
 ic_rel_producers_done = Event()
@@ -48,7 +48,8 @@ class Workers(object):
             func = self.classifying_from_files_worker
 
         workers = [Process(target=func, args=(queue, threshold,
-                                              kwargs.get('to_db', False)))
+                                              kwargs.get('to_db', False),
+                                              kwargs.get('progress', False)))
                    for i in range(no_of_workers)]
 
         for worker in workers:
@@ -63,7 +64,7 @@ class Workers(object):
         else:
             return workers
 
-    def classifying_worker(self, queue, threshold, to_db):
+    def classifying_worker(self, queue, threshold, to_db, progress=False):
         """ Classifying worker that classifies relevant indices from a queue.
         Can output to database. Worker stops if queue is Empty and received
         signal that the producers that fill the queue are done. See function
@@ -83,6 +84,9 @@ class Workers(object):
         while not queue.empty() or not producers_done.is_set():
             try:
                 index, co_occ = queue.get(block=True, timeout=5)
+                if progress:
+                    with progress_utils.counter_lock:
+                        progress_utils.counter.value += 1
                 txt = self.pd.index_to_txt(index)
                 prob = self.ct.probability_per_category(txt,
                                                         self.prepr.pre_process)
@@ -109,7 +113,8 @@ class Workers(object):
                                  topics_list)
             LOGGER.info('Done storing classification')
 
-    def classifying_from_files_worker(self, queue, threshold, to_db=False):
+    def classifying_from_files_worker(self, queue, threshold, to_db=False,
+                                      progress=False):
         """ Classifying worker that classifies plain text files of relevant
         indices from a directory. Can output to database.
         Worker stops if queue is Empty and received signal that the file
@@ -130,6 +135,9 @@ class Workers(object):
         while not queue.empty() or not file_producers_done.is_set():
             try:
                 index, txt = queue.get(block=True, timeout=5)
+                if progress:
+                    with progress_utils.counter_lock:
+                        progress_utils.counter.value += 1
                 co_occ = self.co.check(txt)
                 if not co_occ:
                     continue

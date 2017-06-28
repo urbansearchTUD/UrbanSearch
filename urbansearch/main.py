@@ -4,7 +4,7 @@ from argparse import ArgumentParser
 from flask import Flask, request
 from urbansearch.gathering import indices_selector, gathering
 from urbansearch import workers
-from urbansearch.utils import db_utils
+from urbansearch.utils import db_utils, progress_utils
 
 LOGGER = logging.getLogger(__name__)
 app = Flask(__name__)
@@ -26,7 +26,7 @@ def download_indices_for_url(url):
 
 @app.route('/classify_documents/log_only', methods=['GET'])
 def classify_documents_from_indices(pworkers=1, cworkers=1, directory=None,
-                                    threshold=0):
+                                    threshold=0, progress=True):
     """ Run workers to classify all documents and log only.
     All the indices from the specified directory will be parsed using the
     number of workers specified.
@@ -50,7 +50,9 @@ def classify_documents_from_indices(pworkers=1, cworkers=1, directory=None,
 
     producers = ind_sel.run_workers(pworkers, directory, queue, join=False)
     consumers = cworker.run_classifying_workers(cworkers, queue, threshold,
-                                                join=False)
+                                                join=False, progress=progress)
+    if progress:
+        progress_utils.print_progress(directory, pre_downloaded=False)
 
     # Join all workers when done
     _join_workers(cworker, producers, consumers)
@@ -58,7 +60,7 @@ def classify_documents_from_indices(pworkers=1, cworkers=1, directory=None,
 
 @app.route('/classify_documents/to_database', methods=['GET'])
 def classify_indices_to_db(pworkers=1, cworkers=1, directory=None,
-                           threshold=0):
+                           threshold=0, progress=True):
     """ Run workers to classify all documents and output to database.
     Database must be online, all the indices from the specified directory
     will be parsed using the number of workers specified.
@@ -86,13 +88,17 @@ def classify_indices_to_db(pworkers=1, cworkers=1, directory=None,
 
     producers = ind_sel.run_workers(pworkers, directory, queue, join=False)
     consumers = cworker.run_classifying_workers(cworkers, queue, threshold,
-                                                join=False, to_db=False)
+                                                join=False, to_db=False,
+                                                progress=progress)
+    if progress:
+        progress_utils.print_progress(directory, pre_downloaded=False)
 
     # Join all workers when done
     _join_workers(cworker, producers, consumers)
 
 
-def classify_textfiles_to_db(num_cworkers, directory, threshold, to_db=False):
+def classify_textfiles_to_db(num_cworkers, directory, threshold, to_db=False,
+                             progress=True):
     """ Run workers to classify all documents and output to database.
     Database must be online, all the indices from the specified directory
     will be parsed using the number of workers specified.
@@ -117,7 +123,11 @@ def classify_textfiles_to_db(num_cworkers, directory, threshold, to_db=False):
     consumers = w_factory.run_classifying_workers(num_cworkers, queue,
                                                   threshold, join=False,
                                                   to_db=to_db,
-                                                  pre_downloaded=True)
+                                                  pre_downloaded=True,
+                                                  progress=progress)
+
+    if progress:
+        progress_utils.print_progress(directory, pre_downloaded=True)
 
     # Join all workers when done
     _join_file_workers(w_factory, producer, consumers)
@@ -227,8 +237,8 @@ def _parse_arguments():
 
 if __name__ == "__main__":
     # Example call, no output to DB
-    # classify_textfiles_to_db(1, '/data/pietpages/', 0.30, to_db=True)
-    create_ic_relations_to_db(1, to_db=True)
+    classify_textfiles_to_db(2, '/home/gijs/BEP/pages/tmppages/', 0.30, to_db=False)
+    # create_ic_relations_to_db(1, to_db=True)
     # args = _parse_arguments()
 
     # TODO Create CLI, make different PR
