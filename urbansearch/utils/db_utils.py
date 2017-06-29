@@ -43,7 +43,6 @@ def _run(runner, query, *params, **kwparams):
     try:
         return [r for r in runner.run(query, *params, **kwparams)]
     except (ClientError, CypherSyntaxError, SessionError) as e:
-        print('{}\n{}'.format(query, params))
         _logger.error('query {}\nraised: {}'.format(query, e))
 
 
@@ -368,7 +367,7 @@ def _get_ic_rel_query(city_a, city_b):
     # Returns a query, params tuple
     query = '''
         MATCH (a:City {{name: $city_a}})-[r:{0}]-(b:City {{name: $city_b}})
-        RETURN properties(r) AS relation
+        RETURN a.name AS city_a, b.name AS city_b, properties(r) AS relation
     '''.format(RELATES_TO)
     return query, {'city_a': city_a, 'city_b': city_b}
 
@@ -410,6 +409,36 @@ def get_ic_rels(city_pairs):
     return [_parse_ic_rel_result(r)
             for r in perform_queries(query_list, params_list,
                                      access_mode='read')]
+
+
+def get_all_ic_rels():
+    """
+    Utility function to get all intercity relations.
+    Generates a triangular matrix of all cities and retrieves the scores
+    per pair.
+
+    :return: A list of dictionaries, containing the scores per city pair
+    """
+    query = '''
+        MATCH (c:City)-[r:RELATES_TO]->(c2:City)
+        WHERE ID(c) < ID(c2) AND c.name <> c2.name
+        RETURN c.name AS city_a, c.population AS pop_a, c2.name AS city_b,
+            c2.population AS pop_b, properties(r) AS relation, 2 * 6371 *
+                asin(sqrt(haversin(radians(c.latitude - c2.latitude)) +
+                cos(radians(c.latitude)) * cos(radians(c2.latitude)) *
+                haversin(radians(c.longitude - c2.longitude)))) AS dist
+    '''
+    result = perform_query(query, [], access_mode='read')
+    ic_rels = list()
+    for i, row in enumerate(result):
+        relation = {k: v for k, v in row['relation'].items() if k != 'index'}
+        relation['city_a'] = row['city_a']
+        relation['city_b'] = row['city_b']
+        relation['pop_a'] = row['pop_a']
+        relation['pop_b'] = row['pop_b']
+        relation['dist'] = row['dist']
+        ic_rels.append(relation)
+    return ic_rels
 
 
 def _get_index_probabilities_query(digest):
