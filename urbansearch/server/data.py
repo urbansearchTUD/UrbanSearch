@@ -1,7 +1,7 @@
 import csv
 import io
 import time
-from flask import Blueprint, send_file, request
+from flask import Blueprint, send_file, request, jsonify
 
 import config
 from urbansearch.utils import db_utils
@@ -72,3 +72,27 @@ def _export_all_with_threshold(threshold):
     header.remove('other')
     header.append('filtered_total')
     return _gen_csv(header, data, 'threshold{}'.format(threshold.replace('.', '_')))
+
+
+@data_api.route('/top_probability/<string:digest>', methods=['GET'])
+def top_probability(digest):
+    """
+    Retrieves the top probability for a given document.
+
+    :param digest: The unique identifier of a document
+    :return: A category:probability JSON object
+    """
+    probabilities = db_utils.get_index_probabilities(digest)
+    max_cat = max(probabilities, key=probabilities.get)
+    return jsonify({max_cat: probabilities[max_cat]})
+
+
+@data_api.route('/probabilities/<string:digest>', methods=['GET'])
+def probabilities(digest):
+    """
+    Retrieves the category probabilities for a given document.
+    :param digest: the unique identifier of the document
+    :return: a JSON object containing all category:probability pairs
+    """
+    probabilities = db_utils.get_index_probabilities(digest)
+    return jsonify(probabilities)
