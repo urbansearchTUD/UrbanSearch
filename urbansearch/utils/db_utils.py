@@ -7,6 +7,8 @@ from neo4j.v1 import (basic_auth, GraphDatabase, SessionError,
 import config
 
 CATEGORIES = config.get('score', 'categories')
+CAT_NO_OTHER = list(CATEGORIES)
+CAT_NO_OTHER.remove('other')
 DEFAULT_CAT_DICT = dict.fromkeys(CATEGORIES, 0)
 DEFAULT_SCORE_DICT = {'total': 0, **DEFAULT_CAT_DICT}
 RELATES_TO = config.get('neo4j', 'relates_to_name')
@@ -355,6 +357,43 @@ def compute_ic_relations(cities=None):
         result.append({
             'city_a': rec['city_a'],
             'city_b': rec['city_b'],
+            'category': rec['category'],
+            'score': rec['score']
+        })
+
+    return result
+
+
+def compute_all_ic_rels_with_threshold(threshold):
+    """
+    Computes all intercity relations for documents classified with higher probability
+    than the given threshold.
+
+    :param threshold: The minimum probability
+    :result: A list of dictionaries with city_a, city_b, category and score fields.
+    """
+    query = '''
+        UNWIND [{0}] AS category
+        MATCH (a:City)-[:{1}]->(i:Index)<-[:{1}]-(b:City)
+        WHERE ID(a) < ID(b) AND a.name <> b.name AND i[category] >= {2}
+        MATCH (a)-[r:{3}]->(b)
+        WITH a.name AS city_a, a.population AS pop_a, b.name AS city_b,
+            b.population AS pop_b, r.total AS total, COUNT(i) AS count, category,
+            2 * 6371 * asin(sqrt(haversin(radians(a.latitude - b.latitude)) +
+            cos(radians(a.latitude)) * cos(radians(b.latitude)) *
+            haversin(radians(a.longitude - b.longitude)))) AS dist
+        RETURN city_a, pop_a, city_b, pop_b, dist, total, category, SUM(count) AS score
+    '''.format(','.join('"{}"'.format(c) for c in CAT_NO_OTHER), OCCURS_IN, threshold, RELATES_TO)
+
+    result = list()
+    for rec in perform_query(query, [], access_mode='read'):
+        result.append({
+            'city_a': rec['city_a'],
+            'pop_a': rec['pop_a'],
+            'city_b': rec['city_b'],
+            'pop_b': rec['pop_b'],
+            'dist': rec['dist'],
+            'total': rec['total'],
             'category': rec['category'],
             'score': rec['score']
         })
