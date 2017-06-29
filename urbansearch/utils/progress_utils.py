@@ -88,7 +88,6 @@ def print_progress(directory, pre_downloaded=False, indices_progress=False):
             avg = (stop - start) / 100
 
             avg_history, final_avg = _avg_time_spent(avg_history, avg)
-
             time_left = _time_remaining(total, counter.value, final_avg)
             _curses_print(counter.value, total, time_left, None,
                           indices_progress=indices_progress)
@@ -108,6 +107,33 @@ def print_progress(directory, pre_downloaded=False, indices_progress=False):
                 been = True
             elif ind_counter.value % 50 != 0:
                 been = False
+        # Avoid using 100% CPU
+        time.sleep(0.01)
+    _print_progress_cleanup()
+
+
+def print_indices_progress(directory):
+    total = _total_index_count(directory)
+
+    ind_start = 0
+    ind_stop = 0
+    been = False
+    avg_ind_history = [0, []]
+
+    while ind_counter.value < total:
+        if ind_counter.value % 50 == 0 and not been:
+            ind_stop = timeit.default_timer()
+            ind_avg = (ind_stop - ind_start) / 50
+            avg_ind_history, final_avg = _avg_time_spent(avg_ind_history,
+                                                         ind_avg)
+
+            ind_time = _time_remaining(total, ind_counter.value, final_avg)
+            _curses_print(counter.value, total, None, ind_time,
+                          indices_progress=True)
+            ind_start = timeit.default_timer()
+            been = True
+        elif ind_counter.value % 50 != 0:
+            been = False
         # Avoid using 100% CPU
         time.sleep(0.01)
     _print_progress_cleanup()
