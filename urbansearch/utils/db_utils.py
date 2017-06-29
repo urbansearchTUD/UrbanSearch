@@ -385,20 +385,7 @@ def compute_all_ic_rels_with_threshold(threshold):
         RETURN city_a, pop_a, city_b, pop_b, dist, total, category, SUM(count) AS score
     '''.format(','.join('"{}"'.format(c) for c in CAT_NO_OTHER), OCCURS_IN, threshold, RELATES_TO)
 
-    result = list()
-    for rec in perform_query(query, [], access_mode='read'):
-        result.append({
-            'city_a': rec['city_a'],
-            'pop_a': rec['pop_a'],
-            'city_b': rec['city_b'],
-            'pop_b': rec['pop_b'],
-            'dist': rec['dist'],
-            'total': rec['total'],
-            'category': rec['category'],
-            'score': rec['score']
-        })
-
-    return result
+    return perform_query(query, [], access_mode='read')
 
 
 def _get_ic_rel_query(city_a, city_b):
