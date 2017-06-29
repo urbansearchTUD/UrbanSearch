@@ -5,6 +5,7 @@ from sklearn.metrics import classification_report
 from sklearn.model_selection import train_test_split
 
 from urbansearch.utils.dataset_p_utils import DatasetPickleUtils
+from urbansearch.clustering.binary_modelmanager import BinaryModelManager
 from urbansearch.clustering.sgdc_modelmanager import SGDCModelManager
 
 DEFAULT_CLASSIFIER = config.get('classification', 'default_classifier')
@@ -64,6 +65,10 @@ def train_test_equal():
     mm.train()
     score = mm.score()
 
+    probabilities = mm.predict(mm.x_test)
+    print(mm.score())
+    print(classification_report(mm.y_test, probabilities))
+
     return jsonify(status=200, score=score)
 
 
@@ -98,5 +103,19 @@ def probabilities_equal():
             'probabilities': list(probabilities[i]),
             'category': mm.y_test[i]
         })
-        
+
     return jsonify(status=200, result=result)
+
+@classifier_api.route('/probabilities/binary', methods=['GET'], strict_slashes=False)
+def probabilities_binary():
+    dataset_path = dpu.generate_equal_dataset()
+    dataset = dpu.load(dataset_path)
+    mm = BinaryModelManager()
+
+    mm.x_train, mm.x_test, mm.y_train, mm.y_test = train_test_split(dataset['inputs'], dataset['outputs'], random_state=42)
+    mm.train()
+    probabilities = mm.predict(mm.x_test)
+
+    print(mm.score())
+    print(classification_report(mm.y_test, probabilities))
+    return jsonify(status=200, result='yolo')
