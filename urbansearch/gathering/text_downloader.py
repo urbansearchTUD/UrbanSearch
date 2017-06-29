@@ -4,7 +4,7 @@ from argparse import ArgumentParser
 from multiprocessing import Process
 
 from urbansearch.gathering import gathering, indices_selector
-from urbansearch.utils import process_utils
+from urbansearch.utils import process_utils, progress_utils
 
 
 class TextDownloader(object):
@@ -33,17 +33,22 @@ class TextDownloader(object):
 
         div_files = process_utils.divide_files(files, num_workers)
         workers = [Process(target=self.worker, args=(div_files[i], output_dir,
-                                                     i, kwargs.get('gz', True)))
+                                                     i, kwargs.get('gz', True),
+                                                     kwargs.get('progress',
+                                                                False)))
                    for i in range(num_workers)]
 
         for worker in workers:
             worker.start()
 
+        if kwargs.get('progress', False):
+            progress_utils.print_indices_progress(directory)
+
         # Wait for processes to finish
         for worker in workers:
             worker.join()
 
-    def worker(self, files, output_dir, w_id, gz=True):
+    def worker(self, files, output_dir, w_id, gz=True, progress=False):
         """
         Worker that will parse indices from files in file list and put the
         write the results to separate files. Uses .gz files as input.
@@ -57,7 +62,11 @@ class TextDownloader(object):
         if gz:
             for file in files:
                 if file.endswith('.gz'):
-                    for i, index in enumerate(rlv_indices(file)):
+                    for i, index in enumerate(rlv_indices(file,
+                                                          progress=True)):
+                        if progress:
+                            with progress_utils.counter_lock:
+                                progress_utils.counter.value += 1
                         txt = self.pd.index_to_txt(index)
                         if txt is None:
                             continue
@@ -85,6 +94,8 @@ class TextDownloader(object):
         parser.add_argument('output',
                             help='Output directory where text containing at '
                                  + 'least 1 co-occurrence will be stored.')
+        parser.add_argument('--progress', action="store_true",
+                            dest="progress", help='Print the progress')
         return parser.parse_args(args)
 
 
@@ -95,5 +106,4 @@ if __name__ == "__main__":
     directory = args.directory
     output_dir = args.output
     workers = args.workers
-
-    td.run_workers(workers, directory, output_dir)
+    td.run_workers(workers, directory, output_dir, progress=args.progress)
