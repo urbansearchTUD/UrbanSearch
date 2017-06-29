@@ -246,5 +246,5 @@ if __name__ == "__main__":
     # create_ic_relations_to_db(1, to_db=True)
     # args = _parse_arguments()
     # directory = '/home/gijs/BEP/test2/'
-    # classify_documents_from_indices(2, 2, directory,
+    # classify_documents_from_indices(8, 2, directory,
     #                                threshold=0, progress=True)
