@@ -26,7 +26,7 @@ def download_indices_for_url(url):
 
 @app.route('/classify_documents/log_only', methods=['GET'])
 def classify_documents_from_indices(pworkers=1, cworkers=1, directory=None,
-                                    threshold=0, progress=True):
+                                    threshold=0, progress=False):
     """ Run workers to classify all documents and log only.
     All the indices from the specified directory will be parsed using the
     number of workers specified.
@@ -52,7 +52,7 @@ def classify_documents_from_indices(pworkers=1, cworkers=1, directory=None,
     queue = man.Queue()
 
     producers = ind_sel.run_workers(pworkers, directory, queue, join=False,
-                                    progress=True)
+                                    progress=False)
     consumers = cworker.run_classifying_workers(cworkers, queue, threshold,
                                                 join=False, progress=progress)
     if progress:
@@ -65,7 +65,7 @@ def classify_documents_from_indices(pworkers=1, cworkers=1, directory=None,
 
 @app.route('/classify_documents/to_database', methods=['GET'])
 def classify_indices_to_db(pworkers=1, cworkers=1, directory=None,
-                           threshold=0, progress=True):
+                           threshold=0, progress=False):
     """ Run workers to classify all documents and output to database.
     Database must be online, all the indices from the specified directory
     will be parsed using the number of workers specified.
@@ -103,7 +103,7 @@ def classify_indices_to_db(pworkers=1, cworkers=1, directory=None,
 
 
 def classify_textfiles_to_db(num_cworkers, directory, threshold, to_db=False,
-                             progress=True):
+                             progress=False):
     """ Run workers to classify all documents and output to database.
     Database must be online, all the indices from the specified directory
     will be parsed using the number of workers specified.
@@ -242,7 +242,7 @@ def _parse_arguments():
 
 if __name__ == "__main__":
     # Example call, no output to DB
-    classify_textfiles_to_db(2, '/home/gijs/BEP/pages/tmppages/', 0.30, to_db=False)
+    classify_textfiles_to_db(2, '/home/gijs/BEP/pages/tmppages/', 0.30, to_db=False, progress=True)
     # create_ic_relations_to_db(1, to_db=True)
     # args = _parse_arguments()
     # directory = '/home/gijs/BEP/test2/'

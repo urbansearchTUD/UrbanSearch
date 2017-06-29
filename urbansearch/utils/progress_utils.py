@@ -17,7 +17,7 @@ counter_lock = Lock()
 
 console = curses.initscr()
 curses.noecho()
-curses.cbreak()
+#curses.cbreak()
 
 LOGGER = logging.getLogger(__name__)
 
