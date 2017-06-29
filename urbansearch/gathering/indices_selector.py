@@ -6,7 +6,7 @@ from multiprocessing import Process
 
 from urbansearch.gathering import gathering
 from urbansearch.filtering import cooccurrence
-from urbansearch.utils import process_utils, db_utils
+from urbansearch.utils import process_utils, db_utils, progress_utils
 logger = logging.getLogger(__name__)
 
 
@@ -29,7 +29,7 @@ class IndicesSelector(object):
         return list(itertools.chain.from_iterable(relevant_indices))
 
     def relevant_indices_from_file(self, filepath, to_database=False,
-                                   worker=False):
+                                   worker=False, progress=False):
         """ Collect all indices from file and return files that are relevant.
         An index is relevant if it contains at least one co-occurrence of
         cities. Input file can be .gz or document containing string
@@ -51,29 +51,22 @@ class IndicesSelector(object):
                          .format(filepath))
             indices = None
 
-        # Store all relevant indices in a list, using cooccurrence check
-        # relevant_indices = [index for index in indices
-        #                    if occ.check(pd.index_to_txt(index))]
-        # Uncomment and remove lines below if progress is not interesting
-        return self._relevant_indices(indices, to_database, worker)
+        return self._relevant_indices(indices, to_database, worker, progress)
 
-    def _relevant_indices(self, indices, to_database, worker):
+    def _relevant_indices(self, indices, to_database, worker, progress=False):
         pd = self.page_downloader
         occ = self.occurrence_checker
         relevant_indices = []
-        i = 0
-        n = len(indices)
 
         for index in indices:
-            i += 1
-            if i % 10 == 0:
-                # TODO Create clean progress indicator
-                logger.info("Index {0}/{1} of file".format(i, n))
+            if progress:
+                with progress_utils.ind_counter_lock:
+                    progress_utils.ind_counter.value += 1
             try:
                 co_occ = occ.check(pd.index_to_txt(index))
             except (UnicodeDecodeError, TypeError) as e:
                 logger.warning("Could not convert index to txt: {0}".format(e))
-                
+
             if co_occ:
                 if to_database:
                     db_utils.store_index(index, co_occ)
@@ -102,7 +95,9 @@ class IndicesSelector(object):
                  if _file.is_file()]
 
         div_files = process_utils.divide_files(files, num_workers)
-        workers = [Process(target=self.worker, args=(queue, div_files[i]))
+        workers = [Process(target=self.worker, args=(queue, div_files[i],
+                                                     kwargs.get('progress',
+                                                                False)))
                    for i in range(num_workers)]
 
         for worker in workers:
@@ -115,7 +110,7 @@ class IndicesSelector(object):
         else:
             return workers
 
-    def worker(self, queue, files):
+    def worker(self, queue, files, progress=False):
         """
         Worker that will parse indices from files in file list and put the
         results in a Queue. Can use plain text files containing indices or
@@ -125,5 +120,6 @@ class IndicesSelector(object):
         :files: List of filepaths to files that this worker will use
         """
         for file in files:
-            for index in self.relevant_indices_from_file(file, worker=True):
+            for index in self.relevant_indices_from_file(file, worker=True,
+                                                         progress=progress):
                 queue.put(index)

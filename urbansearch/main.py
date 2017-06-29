@@ -35,10 +35,13 @@ def classify_documents_from_indices(pworkers=1, cworkers=1, directory=None,
     :cworkers: Number of consuming workers, classifying indices from the queue.
     :directory: Path to directory containing indices
     """
-    pworkers = int(request.args.get('pworkers', 0))
-    cworkers = int(request.args.get('cworkers', 0))
-    directory = request.args.get('directory')
-    threshold = float(request.args.get('threshold', 0))
+    try:
+        pworkers = int(request.args.get('pworkers', 0))
+        cworkers = int(request.args.get('cworkers', 0))
+        directory = request.args.get('directory')
+        threshold = float(request.args.get('threshold', 0))
+    except RuntimeError:
+        LOGGER.warning("Not using request")
 
     if directory:
         LOGGER.info("Using files from dir: {0}".format(directory))
@@ -48,11 +51,13 @@ def classify_documents_from_indices(pworkers=1, cworkers=1, directory=None,
     man = Manager()
     queue = man.Queue()
 
-    producers = ind_sel.run_workers(pworkers, directory, queue, join=False)
+    producers = ind_sel.run_workers(pworkers, directory, queue, join=False,
+                                    progress=True)
     consumers = cworker.run_classifying_workers(cworkers, queue, threshold,
                                                 join=False, progress=progress)
     if progress:
-        progress_utils.print_progress(directory, pre_downloaded=False)
+        progress_utils.print_progress(directory, pre_downloaded=False,
+                                      indices_progress=True)
 
     # Join all workers when done
     _join_workers(cworker, producers, consumers)
@@ -240,5 +245,6 @@ if __name__ == "__main__":
     classify_textfiles_to_db(2, '/home/gijs/BEP/pages/tmppages/', 0.30, to_db=False)
     # create_ic_relations_to_db(1, to_db=True)
     # args = _parse_arguments()
-
-    # TODO Create CLI, make different PR
+    # directory = '/home/gijs/BEP/test2/'
+    # classify_documents_from_indices(2, 2, directory,
+    #                                threshold=0, progress=True)
