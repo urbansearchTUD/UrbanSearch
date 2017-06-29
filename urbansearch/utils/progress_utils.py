@@ -1,3 +1,4 @@
+import time
 import gzip
 import timeit
 import os
@@ -52,13 +53,15 @@ def _total_file_count(directory):
 def _curses_print(current, total, time, ind_time, indices_progress=False):
     if time is not None:
         h, m, s = time
-    h_i, m_i, s_i = ind_time
+    if ind_time is not None:
+        h_i, m_i, s_i = ind_time
+
     if time is not None:
         console.addstr(0, 0, 'Progress: {0}/{1} Left: {2} h {3} m {4} s \r'
                        .format(current, total, h, m, s))
-        if indices_progress:
-            console.addstr(1, 0, 'Indices Progress: {0}/{1} Left: {2} h {3} m {4} s\r'
-                           .format(ind_counter.value, total, h_i, m_i, s_i))
+    if indices_progress and ind_time is not None:
+        console.addstr(1, 0, 'Indices Progress: {0}/{1} Left: {2} h {3} m {4} s\r'
+                       .format(ind_counter.value, total, h_i, m_i, s_i))
     console.refresh()
 
 
@@ -71,12 +74,9 @@ def print_progress(directory, pre_downloaded=False, indices_progress=False):
     start = 0
     ind_start = 0
     ind_stop = 0
-    h, m, s, h2, m2, s2 = (999,) * 6
     been = False
-    avg_lst = list()
-    avg_index = 0
-    ind_avg_lst = list()
-    ind_avg_index = 0
+    avg_history = [0, []]
+    avg_ind_history = [0, []]
 
     while counter.value < total:
         if counter.value == 1:
@@ -86,16 +86,11 @@ def print_progress(directory, pre_downloaded=False, indices_progress=False):
         if counter.value % 100 == 0 and counter.value > 0:
             stop = timeit.default_timer()
             avg = (stop - start) / 100
-            if avg_index >= 100:
-                avg_index = 0
-            avg_lst.insert(avg_index, avg)
-            avg_index += 1
-            final_avg = statistics.median(avg_lst)
-            remaining = (total - counter.value) * avg
-            m, s = divmod(remaining, 60)
-            h, m = divmod(m, 60)
 
-            _curses_print(counter.value, total, (h, m, round(s)), (h2, m2, s2),
+            avg_history, final_avg = _avg_time_spent(avg_history, avg)
+
+            time_left = _time_remaining(total, counter.value, final_avg)
+            _curses_print(counter.value, total, time_left, None,
                           indices_progress=indices_progress)
             start = timeit.default_timer()
 
@@ -103,22 +98,40 @@ def print_progress(directory, pre_downloaded=False, indices_progress=False):
             if ind_counter.value % 50 == 0 and not been:
                 ind_stop = timeit.default_timer()
                 ind_avg = (ind_stop - ind_start) / 50
-                if ind_avg_index >= 100:
-                    ind_avg_index = 0
-                ind_avg_lst.insert(ind_avg_index, ind_avg)
-                ind_avg_index += 1
-                final_avg = statistics.median(ind_avg_lst)
-                ind_remaining = (total - ind_counter.value) * final_avg
-                m2, s2 = divmod(ind_remaining, 60)
-                h2, m2 = divmod(m2, 60)
-                _curses_print(counter.value, total, None, (h2, m2, round(s2)),
+                avg_ind_history, final_avg = _avg_time_spent(avg_ind_history,
+                                                             ind_avg)
+
+                ind_time = _time_remaining(total, ind_counter.value, final_avg)
+                _curses_print(counter.value, total, None, ind_time,
                               indices_progress=True)
                 ind_start = timeit.default_timer()
                 been = True
             elif ind_counter.value % 50 != 0:
                 been = False
-
+        # Avoid using 100% CPU
+        time.sleep(0.01)
     _print_progress_cleanup()
+
+
+def _avg_time_spent(history, value):
+    index = history[0]
+    avg_list = history[1]
+
+    if index >= 100:
+        index = 0
+    avg_list.insert(index, value)
+    index += 1
+    final_avg = statistics.median(avg_list)
+
+    return [index, avg_list], final_avg
+
+
+def _time_remaining(total, current, avg):
+    remaining = (total - current) * avg
+    minutes, seconds = divmod(remaining, 60)
+    hours, minutes = divmod(minutes, 60)
+
+    return (hours, minutes, round(seconds))
 
 
 def _print_progress_cleanup():
