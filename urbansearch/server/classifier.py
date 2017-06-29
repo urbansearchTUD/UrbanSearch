@@ -50,7 +50,7 @@ def train_equal():
     else:
         filename = 'clf.{}.pickle'.format(datetime.now().strftime('%d%m%Y'))
 
-    if request.args.get('save'):
+    if request.args.get('save') == 'true':
         mm.save(filename)
 
     return jsonify(status=200, message='success')
