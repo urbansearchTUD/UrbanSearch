@@ -17,20 +17,26 @@ smm = SGDCModelManager()
 
 @classifier_api.route('/train', methods=['POST'])
 def train():
-    dataset_path = dpu.generate_dataset()
+    if request.args.get('equal') == 'true':
+        dataset_path = dpu.generate_equal_dataset()
+    else:
+        dataset_path = dpu.generate_dataset()
+
     dataset = dpu.load(dataset_path)
 
-    smm.x_train = dataset['inputs']
-    smm.y_train = dataset['outputs']
+    mm = SGDCModelManager()
+    mm.x_train = dataset['inputs']
+    mm.y_train = dataset['outputs']
 
-    smm.train()
+    mm.train()
 
     if request.args.get('default') == 'true':
         filename = DEFAULT_CLASSIFIER
     else:
         filename = 'clf.{}.pickle'.format(datetime.now().strftime('%d%m%Y'))
 
-    smm.save(filename)
+    if request.args.get('save') == 'true':
+        mm.save(filename)
 
     return jsonify(status=200, message='success')
 
