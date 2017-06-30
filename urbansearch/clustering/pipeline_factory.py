@@ -58,7 +58,7 @@ class PipelineFactory(object):
                                   fit_intercept=True,
                                   l1_ratio=0.15,
                                   learning_rate='optimal',
-                                  loss='hinge',
+                                  loss='log',
                                   n_iter=10,
                                   n_jobs=1,
                                   penalty='l2',
