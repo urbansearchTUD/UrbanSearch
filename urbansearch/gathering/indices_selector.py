@@ -78,6 +78,26 @@ class IndicesSelector(object):
 
         return relevant_indices
 
+    def relevant_index_exec(self, func, *args):
+        """ Check if an index is relevant and apply the supplied function with
+        the supplied arguments.
+
+        :func: Function that will be executed on relevant index
+        :args: Function arguments
+
+        """
+        occ = self.occurrence_checker
+
+        try:
+            # Prevent double download, TextDownloader HACK HACK
+            txt = list(args)[1]
+            co_occ = occ.check(txt)
+        except (UnicodeDecodeError, TypeError) as e:
+            logger.warning("Could not convert index to txt: {0}".format(e))
+
+        if co_occ:
+            func(*args)
+
     def run_workers(self, num_workers, directory, queue, **kwargs):
         """ Run workers to process indices from a directory with files
         in parallel. All parsed indices will be added to the queue.

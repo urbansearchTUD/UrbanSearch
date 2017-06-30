@@ -1,10 +1,14 @@
 import os
+import logging
 import sys
 from argparse import ArgumentParser
 from multiprocessing import Process
 
 from urbansearch.gathering import gathering, indices_selector
 from urbansearch.utils import process_utils, progress_utils
+
+logging.captureWarnings(True)
+LOGGER = logging.getLogger(__name__)
 
 
 class TextDownloader(object):
@@ -40,6 +44,7 @@ class TextDownloader(object):
 
         for worker in workers:
             worker.start()
+        LOGGER.info("Workers have started")
 
         if kwargs.get('progress', False):
             progress_utils.print_indices_progress(directory)
@@ -58,20 +63,20 @@ class TextDownloader(object):
         :w_id: Id of this worker, to prevent writing to same file
         :gz: Use .gz files or not, default: True.
         """
-        rlv_indices = self.ind.relevant_indices_from_file
         if gz:
             for file in files:
                 if file.endswith('.gz'):
-                    for i, index in enumerate(rlv_indices(file,
-                                                          progress=True)):
+                    indices = self.pd._worker_indices_from_gz_file(file)
+                    for i, index in enumerate(indices):
                         if progress:
-                            with progress_utils.counter_lock:
-                                progress_utils.counter.value += 1
+                            with progress_utils.ind_counter_lock:
+                                progress_utils.ind_counter.value += 1
                         txt = self.pd.index_to_txt(index)
                         if txt is None:
                             continue
-                        self._write_txt_file_index(index, txt, output_dir,
-                                                   (w_id, i))
+                        self.ind.relevant_index_exec(self._write_txt_file_index,
+                                                     index, txt, output_dir,
+                                                     (w_id, i))
 
     def _write_txt_file_index(self, index, text, output_dir, name):
         # Write index on first line of file, append the text
