@@ -14,10 +14,8 @@ ind_counter = Value(c_int)
 
 ind_counter_lock = Lock()
 counter_lock = Lock()
-
-console = curses.initscr()
-curses.noecho()
-#curses.cbreak()
+console = None
+# curses.cbreak()
 
 LOGGER = logging.getLogger(__name__)
 
@@ -66,6 +64,9 @@ def _curses_print(current, total, time, ind_time, indices_progress=False):
 
 
 def print_progress(directory, pre_downloaded=False, indices_progress=False):
+    global console
+    console = curses.initscr()
+    curses.noecho()
     if pre_downloaded:
         total = _total_file_count(directory)
     else:

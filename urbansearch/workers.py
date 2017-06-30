@@ -1,3 +1,4 @@
+import sys
 import os
 import logging
 import time
@@ -250,17 +251,13 @@ class Workers(object):
         :directory: Source directory containing files
         :queue: Queue to add the tuples to
         """
-        # FIXME: tmp stupid hack due to bad initial design
-        for digest, file in enumerate(os.scandir(directory)):
+        for file in os.scandir(directory):
             if file.is_file():
                 with open(file.path, 'r', errors='replace') as f:
                     text = f.readlines()
                     try:
                         index = literal_eval(text.pop(0).strip())
-                        # FIXME: remove in future version
-                        if 'digest' not in index:
-                            index['digest'] = 'digest{}'.format(digest)
-                        queue.put_nowait((index, '\n'.join(text)))
+                        queue.put((index, '\n'.join(text)), block=True)
                     except IndexError:
                         LOGGER.error('File {0} is not classifyable'
                                      .format(file.path))

@@ -129,7 +129,7 @@ class Test_Workers(TestCase):
         w.read_files_worker(Mock(), queue)
 
         assert mock_lit_ev.called
-        assert queue.put_nowait.called
+        assert queue.put.called
 
     @patch('urbansearch.workers.Process')
     def test_run_read_files_worker(self, mock_process, mock_event, mock_pd,
