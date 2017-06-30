@@ -231,7 +231,6 @@ def test_get_index_probabilities():
         'education': 0,
         'collaboration': 0,
         'transportation': 0,
-        'other': 0
     }
     assert db_utils.get_index_probabilities(index) == expected
 
@@ -248,7 +247,6 @@ def test_get_index_probabilities():
         'education': 0,
         'collaboration': 0,
         'transportation': 0,
-        'other': 0
     }
     expected = [probabilities, probabilities]
     assert db_utils.get_indices_probabilities(indices) == expected
@@ -271,7 +269,6 @@ def test_store_index_probabilities_full():
         'education': 0.15,
         'collaboration': 0.16,
         'transportation': 0.17,
-        'other': 0.19
     }
     assert db_utils.store_index_probabilities(digest, probabilities)
     assert db_utils.get_index_probabilities(digest) == probabilities
@@ -295,7 +292,6 @@ def test_store_index_probabilities_with_update():
         'education': 0,
         'collaboration': 0,
         'transportation': 0,
-        'other': 0
     }
     assert db_utils.store_index_probabilities(index, probabilities)
     assert db_utils.store_index_probabilities(index, update)
@@ -313,7 +309,6 @@ def test_store_indices_probabilities():
         'education': 0,
         'collaboration': 0,
         'transportation': 0,
-        'other': 0
     }
     expected = [values, values]
     assert db_utils.store_indices_probabilities(indices, expected)

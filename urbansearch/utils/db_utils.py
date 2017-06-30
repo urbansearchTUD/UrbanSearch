@@ -10,6 +10,7 @@ CATEGORIES = config.get('score', 'categories')
 CAT_NO_OTHER = list(CATEGORIES)
 CAT_NO_OTHER.remove('other')
 DEFAULT_CAT_DICT = dict.fromkeys(CATEGORIES, 0)
+DEFAULT_CAT_DICT_NO_OTHER = dict.fromkeys(CAT_NO_OTHER, 0)
 DEFAULT_SCORE_DICT = {'total': 0, **DEFAULT_CAT_DICT}
 RELATES_TO = config.get('neo4j', 'relates_to_name')
 OCCURS_IN = config.get('neo4j', 'occurs_in_name')
@@ -269,7 +270,7 @@ def _store_index_probabilities_query(digest, probabilities):
     # Default probabilities (0) are used if none are provided
     # Returns a query, params tuple
     if not probabilities:
-        probabilities = DEFAULT_CAT_DICT
+        probabilities = DEFAULT_CAT_DICT_NO_OTHER
 
     query = '''
         MATCH (i:Index {{ digest: $digest }})
@@ -291,7 +292,6 @@ def store_index_probabilities(digest, probabilities=None):
     - education
     - collaboration
     - transportation
-    - other
 
     :param digest: The unique identifier of the index
     :param probabilities: A dictionary of topic:probability pairs
@@ -473,7 +473,7 @@ def _get_index_probabilities_query(digest):
     query = '''
         MATCH (i:Index {{ digest: $digest }})
         RETURN {}
-    '''.format(', '.join('i.{0} AS {0}'.format(p) for p in CATEGORIES))
+    '''.format(', '.join('i.{0} AS {0}'.format(p) for p in CAT_NO_OTHER))
     return query, {'digest': digest}
 
 
