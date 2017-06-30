@@ -122,7 +122,7 @@ def classify_textfiles_to_db(num_cworkers, directory, threshold, to_db=False,
 
     w_factory = workers.Workers()
     man = Manager()
-    queue = man.Queue()
+    queue = man.Queue(10000)
 
     producer = w_factory.run_read_files_worker(directory, queue, join=False)
     consumers = w_factory.run_classifying_workers(num_cworkers, queue,
@@ -242,7 +242,7 @@ def _parse_arguments():
 
 if __name__ == "__main__":
     # Example call, no output to DB
-    classify_textfiles_to_db(2, '/home/gijs/BEP/pages/tmppages/', 0.30, to_db=False, progress=True)
+    classify_textfiles_to_db(2, '/home/gijs/BEP/pages/tmppages/', 0.30, to_db=False, progress=False)
     # create_ic_relations_to_db(1, to_db=True)
     # args = _parse_arguments()
     # directory = '/home/gijs/BEP/test2/'
