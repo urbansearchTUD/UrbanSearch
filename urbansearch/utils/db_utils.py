@@ -592,6 +592,22 @@ def get_related_documents(city_a, city_b):
         })
     return results
 
+
+def get_index(digest):
+    """
+    Returns the index as dictionary. Contains filename,
+    content length and offset.
+    :param digest: The unique identifier of the index
+    :return: The index dictionary
+    """
+    query = '''
+        MATCH (i:Index) WHERE i.digest = $digest
+        RETURN i.filename AS filename, i.offset AS offset,
+            i.length AS length
+    '''
+    return {**perform_query(query, {'digest': digest})[0]}
+
+
 def _get_cities():
     # Returns a list of Neo4j City objects. Tries to reuse them
     # save database hits
