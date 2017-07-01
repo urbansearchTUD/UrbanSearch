@@ -3,9 +3,12 @@ import os
 from flask import Blueprint, jsonify, request
 from random import randint
 
+from urbansearch.utils import db_utils
 from urbansearch.clustering.classifytext import ClassifyText
+from urbansearch.gathering.gathering import PageDownloader
 
 ct = ClassifyText()
+pd = PageDownloader()
 documents_api = Blueprint('documents_api', __name__)
 
 DATA_DIRECTORY = config.get('resources', 'data')
@@ -39,3 +42,21 @@ def get_random():
             pass
 
     return jsonify(status=200, document=document)
+
+
+@documents_api.route('/download', methods=['GET'], strict_slashes=False)
+def download():
+    """
+    Downloads and parses the given document from Common Crawl.
+    Requires a request parameter digest.
+
+    :return: The downloaded document
+    """
+    if 'digest' not in request.args:
+        return jsonify(status=400, message='No digest provided!')
+
+    index = db_utils.get_index(request.args.get('digest'))
+    text = pd.index_to_txt(index).split('\n')
+    text = '\n'.join(line for line in text if line)
+
+    return jsonify(status=200, document=text)
