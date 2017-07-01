@@ -17,6 +17,7 @@ NUMBER_OF_DOCUMENTS_PER_WORKER = config.get('api', 'num_of_docs')
 def get_categorie(document):
     ct.category_with_threshold(ct.probability_per_category(document), 0.3)
 
+
 def random_worker():
     return randint(0, NUMBER_OF_WORKERS - 1)
 
@@ -27,8 +28,6 @@ def random_file():
 
 @documents_api.route('/', methods=['GET'], strict_slashes=False)
 def get_random():
-    """
-    """
     while True:
         try:
             with open(DOCUMENT_PATH.format(random_worker(),
