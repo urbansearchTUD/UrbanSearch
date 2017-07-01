@@ -564,6 +564,34 @@ def get_indices_topics(digests):
                                      access_mode='read')]
 
 
+def get_related_documents(city_a, city_b):
+    """
+    Retrieves a list of Common Crawl documents in which
+    both city_a and city_b occur, as well as the categories these
+    documents are classified as.
+
+    :param city_a: Name of city A
+    :param city_b: Name of city B
+    :return: A list of dictionaries containing digest and categories.
+    """
+    query = '''
+        MATCH (:City {{ name: $city_a }})-[:{0}]->
+            (i:Index)<-[:{0}]-(:City {{ name: $city_b }})
+        RETURN i.digest AS digest, labels(i) AS categories,
+            properties(i) AS probabilities
+    '''.format(OCCURS_IN)
+
+    results = []
+    for r in perform_query(query, {'city_a': city_a, 'city_b': city_b}):
+        r['categories'].remove('Index')
+        categories = {cat.lower(): r['probabilities'][cat.lower()]
+                      for cat in r['categories']}
+        results.append({
+            'digest': r['digest'],
+            'categories': categories
+        })
+    return results
+
 def _get_cities():
     # Returns a list of Neo4j City objects. Tries to reuse them
     # save database hits
