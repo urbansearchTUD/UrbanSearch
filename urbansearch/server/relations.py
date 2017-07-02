@@ -15,3 +15,11 @@ def all_for_ic_rel():
     documents = db_utils.get_related_documents(city_a, city_b)
 
     return jsonify(status=200, documents=documents)
+
+
+@relations_api.route('/all', methods=['GET'], strict_slashes=False)
+def all():
+    threshold = int(request.args.get('threshold', 125))
+    relations = db_utils.get_ic_rels(None, threshold)
+
+    return jsonify(status=200, relations=relations)
