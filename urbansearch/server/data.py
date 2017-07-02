@@ -21,9 +21,8 @@ def _gen_csv(header, data, name):
         writer.writerow(row)
 
     filename = 'export-{}.csv'.format(name)
-    response = make_response(fobj)
-    response.headers['Content-Disposition'] = 'attachment; filename={}'
-        .format(filename)
+    response = make_response(fobj.getvalue())
+    response.headers['Content-Disposition'] = 'attachment; filename={}'.format(filename)
     return response 
 
 @data_api.route('/export_all', methods=['GET'])
