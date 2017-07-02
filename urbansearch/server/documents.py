@@ -1,6 +1,6 @@
 import config
 import os
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, make_response
 from random import randint
 
 from urbansearch.utils import db_utils
@@ -55,8 +55,11 @@ def download():
     if 'digest' not in request.args:
         return jsonify(status=400, message='No digest provided!')
 
-    index = db_utils.get_index(request.args.get('digest'))
+    digest = request.args.get('digest')
+    index = db_utils.get_index(digest)
     text = pd.index_to_txt(index).split('\n')
     text = '\n'.join(line for line in text if line)
 
-    return jsonify(status=200, document=text)
+    response = make_response(text)
+    response.headers['Content-Disposition'] = 'attachment; filename={}.txt'.format(digest)
+    return response
