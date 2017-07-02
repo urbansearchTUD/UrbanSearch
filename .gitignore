@@ -100,3 +100,4 @@ ENV/
 *.swo
 
 urbansearch/resources/data_sets/*.pickle
+urbansearch/resources/models/

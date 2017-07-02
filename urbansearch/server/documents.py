@@ -5,10 +5,12 @@ from random import randint
 
 from urbansearch.utils import db_utils
 from urbansearch.clustering.classifytext import ClassifyText
+from urbansearch.clustering.text_preprocessor import PreProcessor
 from urbansearch.gathering.gathering import PageDownloader
 
 ct = ClassifyText()
 pd = PageDownloader()
+pp = PreProcessor()
 documents_api = Blueprint('documents_api', __name__)
 
 DATA_DIRECTORY = config.get('resources', 'data')
@@ -35,7 +37,7 @@ def get_random():
         try:
             with open(DOCUMENT_PATH.format(random_worker(),
                       random_file())) as f:
-                document = f.read()
+                document = pp.clean_file(f)
                 if get_categorie(document) != 'Other':
                     break
         except:

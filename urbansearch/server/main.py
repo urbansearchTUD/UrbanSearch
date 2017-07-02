@@ -19,7 +19,7 @@ class Server(object):
     is set to True (default).
     """
 
-    def __init__(self, run=True):
+    def __init__(self, run=True, debug=False):
         """
         Constructor
 
