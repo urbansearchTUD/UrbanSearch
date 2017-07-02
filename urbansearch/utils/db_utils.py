@@ -404,7 +404,7 @@ def _get_ic_rel_query(city_a, city_b, threshold):
 def _parse_ic_rel_result(result):
     # Checks the result and returns a dictionary of the relation scores
     if result:
-        return {**result}
+        return {'from': result['from'], 'to': result['to'], **result['relation']}
 
 
 def get_ic_rel(city_a, city_b, threshold):
@@ -678,7 +678,7 @@ def cities():
     """
     query = 'MATCH (c:City) RETURN ID(c) AS id, properties(c) AS city'
     result = perform_query(query, None, access_mode='read')
-    return [{r['id']: r['city']} for r in result]
+    return [{'id': r['id'], **r['city']} for r in result]
 
 
 def city_distance(name_a, name_b):
