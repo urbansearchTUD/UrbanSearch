@@ -12,6 +12,6 @@ def all_for_ic_rel():
 
     city_a = request.args.get('city_a')
     city_b = request.args.get('city_b')
-    documents = db_utils.get_related_documents(city_a, city_b)
+    documents = db_utils.get_related_documents(city_a, city_b, int(request.args.get('limit', 300)))
 
     return jsonify(status=200, documents=documents)
