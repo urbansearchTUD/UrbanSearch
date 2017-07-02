@@ -34,6 +34,20 @@ class PreProcessor:
         return [word for word in text if
                 word not in stopwords.words(self.lang) and 2 < len(word) < 37]
 
+    def clean_file(self, f):
+        """
+        removes lines smaller than 4 words
+        :param file: File
+        :return: String
+        """
+        result = ""
+
+        for line in f:
+            if len(line.split()) > 4:
+                result = result + line
+
+        return result
+
     @staticmethod
     def clean_text(text):
         """
