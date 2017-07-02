@@ -8,6 +8,7 @@ from urbansearch.server.indices import indices_api
 from urbansearch.server.predict import predict_api
 from urbansearch.server.data import data_api
 from urbansearch.server.relations import relations_api
+from urbansearch.server.cities import cities_api
 
 API_PREFIX = '/api/v1'
 
@@ -59,3 +60,5 @@ class Server(object):
                                     url_prefix=API_PREFIX + '/data')
         self.app.register_blueprint(relations_api,
                                     url_prefix=API_PREFIX + '/relations')
+        self.app.register_blueprint(cities_api,
+                                    url_prefix=API_PREFIX + '/cities')

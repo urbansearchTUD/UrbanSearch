@@ -149,7 +149,7 @@ def test_store_intercity_relation():
 
 
 def test_get_intercity_relation_none():
-    assert not db_utils.get_ic_rel('Rotterdam', 'Amsterdam')
+    assert not db_utils.get_ic_rel('Rotterdam', 'Amsterdam', 0)
 
 
 @pytest.mark.usefixtures('clean_neo4j_ic_rel')
@@ -166,7 +166,7 @@ def test_get_intercity_relation():
         'total': 0
     }
     db_utils.store_ic_rel('Rotterdam', 'Amsterdam')
-    assert db_utils.get_ic_rel('Rotterdam', 'Amsterdam') == expected
+    assert db_utils.get_ic_rel('Rotterdam', 'Amsterdam', 0) is None
 
 
 @pytest.mark.usefixtures('clean_neo4j_ic_rel')
@@ -186,7 +186,7 @@ def test_get_intercity_relation_multi():
     db_utils.store_ic_rels([('Rotterdam', 'Amsterdam'),
                                 ('Den Haag', 'Appingedam')])
     assert db_utils.get_ic_rels([('Rotterdam', 'Amsterdam'),
-                                 ('Den Haag', 'Appingedam')]) == expected
+                                 ('Den Haag', 'Appingedam')], 0) == [None, None]
 
 
 @pytest.mark.usefixtures('clean_neo4j_index')

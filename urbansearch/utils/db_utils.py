@@ -388,53 +388,72 @@ def compute_all_ic_rels_with_threshold(threshold):
     return perform_query(query, [], access_mode='read')
 
 
-def _get_ic_rel_query(city_a, city_b):
+def _get_ic_rel_query(city_a, city_b, threshold):
     # Generates a query for retrieving intercity relation statistics
     # Returns a query, params tuple
     query = '''
         MATCH (a:City {{name: $city_a}})-[r:{0}]-(b:City {{name: $city_b}})
-        RETURN a.name AS city_a, b.name AS city_b, properties(r) AS relation
+        WHERE r.total > $threshold
+        RETURN {{id: ID(a), name: a.name, lat: a.latitude, lng: a.longitude}} AS from,
+            {{id: ID(b), name: b.name, lat: b.latitude, lng: b.longitude}} AS to,
+            properties(r) AS relation
     '''.format(RELATES_TO)
-    return query, {'city_a': city_a, 'city_b': city_b}
+    return query, {'city_a': city_a, 'city_b': city_b, 'threshold': threshold}
 
 
 def _parse_ic_rel_result(result):
     # Checks the result and returns a dictionary of the relation scores
     if result:
-        return {k: v for k, v in result[0]['relation'].items()}
+        return {**result}
 
 
-def get_ic_rel(city_a, city_b):
+def get_ic_rel(city_a, city_b, threshold):
     """
     Retrieves the relation scores between City A and City B
 
     :param city_a: City A
     :param city_b: City B
+    :param threshold: Minimum number of relations per pair
     :return: A dictionary containing the scores per topic
     """
-    result = perform_query(*_get_ic_rel_query(city_a, city_b),
+    result = perform_query(*_get_ic_rel_query(city_a, city_b, threshold),
                            access_mode='read')
     return _parse_ic_rel_result(result)
 
 
-def get_ic_rels(city_pairs):
+def get_ic_rels(city_pairs, threshold):
     """
     Retrieves the relation scores between the given pairs of cities.
 
     :param city_pairs: A list of tuples of cities
+    :param threshold: Minimum number of relations per pair
     :return: A list of dictionaries, containing the scores per city pair
     """
+    if not city_pairs:
+        return _get_all_ic_rels_single_query(threshold)
+
     query_list = list()
     params_list = list()
 
     for pair in city_pairs:
-        query, params = _get_ic_rel_query(pair[0], pair[1])
+        query, params = _get_ic_rel_query(pair[0], pair[1], threshold)
         query_list.append(query)
         params_list.append(params)
 
     return [_parse_ic_rel_result(r)
             for r in perform_queries(query_list, params_list,
                                      access_mode='read')]
+
+
+def _get_all_ic_rels_single_query(threshold):
+    query = '''
+        MATCH (a:City)-[r:{0}]->(b:City) WHERE r.total > $threshold
+        RETURN {{id: ID(a), name: a.name, lat: a.latitude, lng: a.longitude}} AS from,
+            {{id: ID(b), name: b.name, lat: b.latitude, lng: b.longitude}} AS to,
+            properties(r) AS relation
+    '''.format(RELATES_TO)
+    return [_parse_ic_rel_result(r) for r in perform_query(
+                query, {'threshold': threshold}, access_mode='read')]
 
 
 def get_all_ic_rels():
@@ -651,6 +670,16 @@ def city_population(name):
     :return: The population of the given city
     """
     return int(_city_property(_city_by_name(name), 'population'))
+
+
+def cities():
+    """
+    Returns a dictionary of city ids with the corresponding properties as value.
+    :return: dictionary with city info
+    """
+    query = 'MATCH (c:City) RETURN ID(c) AS id, properties(c) AS city'
+    result = perform_query(query, None, access_mode='read')
+    return [{r['id']: r['city']} for r in result]
 
 
 def city_distance(name_a, name_b):
