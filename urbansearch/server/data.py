@@ -1,7 +1,7 @@
 import csv
 import io
 import time
-from flask import Blueprint, send_file, request, jsonify
+from flask import Blueprint, make_response, request, jsonify
 
 import config
 from urbansearch.utils import db_utils
@@ -19,14 +19,12 @@ def _gen_csv(header, data, name):
     writer.writeheader()
     for row in data:
         writer.writerow(row)
-    byteobj = io.BytesIO(fobj.getvalue().encode('utf-8'))
 
     filename = 'export-{}.csv'.format(name)
-    return send_file(byteobj,
-            attachment_filename=filename,
-            as_attachment=True,
-            mimetype='text/csv')
-
+    response = make_response(fobj)
+    response.headers['Content-Disposition'] = 'attachment; filename={}'
+        .format(filename)
+    return response 
 
 @data_api.route('/export_all', methods=['GET'])
 def export_all():
