@@ -11,3 +11,6 @@ api:
 resources:
   data: tests/resources/pages
   data_sets: tests/resources/data_sets
+  models: tests/resources/models
+classification:
+  default_classifier: clf.default.pickle
