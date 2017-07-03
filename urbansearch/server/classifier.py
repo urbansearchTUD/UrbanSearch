@@ -122,13 +122,5 @@ def probabilities_binary():
     mm.train()
     probabilities = mm.predict(mm.x_test)
 
-    tf = mm.clf.named_steps['tfidf'].transform(['lopen in de regen'])
-    i = mm.clf.named_steps['feat_select'].transform(tf)
-    print(mm.clf.named_steps['clf'].estimators_[2].predict_proba(i))
-    print(mm.clf.named_steps['clf'].classes_)
-    print(mm.clf.named_steps['clf'].label_binarizer_)
-    print(mm.clf.named_steps['clf'].multilabel_)
-
-    print(mm.score())
-    print(classification_report(mm.y_test, probabilities))
-    return jsonify(status=200, result='yolo')
+    result = mm.score()
+    return jsonify(status=200, result=result)
