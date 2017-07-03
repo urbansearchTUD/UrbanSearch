@@ -282,7 +282,7 @@ class Workers(object):
                        for i in range(num_workers)]
         else:
             workers = [Process(target=self.compute_ic_rels_worker,
-                               args=(None, queue)]
+                               args=(None, queue))]
 
         LOGGER.info('Created compute_ic_rels workers')
 
