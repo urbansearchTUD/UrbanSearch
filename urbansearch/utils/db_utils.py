@@ -583,7 +583,7 @@ def get_indices_topics(digests):
                                      access_mode='read')]
 
 
-def get_related_documents(city_a, city_b, limit=300):
+def get_related_documents(city_a, city_b, filter_other=True, limit=300):
     """
     Retrieves a list of Common Crawl documents in which
     both city_a and city_b occur, as well as the categories these
@@ -604,8 +604,12 @@ def get_related_documents(city_a, city_b, limit=300):
     results = []
     for r in perform_query(query, {'city_a': city_a, 'city_b': city_b}):
         r['categories'].remove('Index')
+        if filter_other and 'Other' in r['categories']:
+            r['categories'].remove('Other')
         categories = {cat.lower(): r['probabilities'][cat.lower()]
                       for cat in r['categories']}
+        if len(categories) == 0:
+            continue
         results.append({
             'digest': r['digest'],
             'categories': categories
