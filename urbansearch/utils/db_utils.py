@@ -583,7 +583,7 @@ def get_indices_topics(digests):
                                      access_mode='read')]
 
 
-def get_related_documents(city_a, city_b, limit=300):
+def get_related_documents(city_a, city_b, filter_other=True, limit=300):
     """
     Retrieves a list of Common Crawl documents in which
     both city_a and city_b occur, as well as the categories these
@@ -596,16 +596,19 @@ def get_related_documents(city_a, city_b, limit=300):
     query = '''
         MATCH (:City {{ name: $city_a }})-[:{0}]->
             (i:Index)<-[:{0}]-(:City {{ name: $city_b }})
+        {1}
         RETURN i.digest AS digest, labels(i) AS categories,
             properties(i) AS probabilities
-        LIMIT {1}
-    '''.format(OCCURS_IN, limit)
+        LIMIT {2}
+    '''.format(OCCURS_IN, 'WHERE NOT i:Other' if filter_other else '', limit)
 
     results = []
     for r in perform_query(query, {'city_a': city_a, 'city_b': city_b}):
         r['categories'].remove('Index')
         categories = {cat.lower(): r['probabilities'][cat.lower()]
                       for cat in r['categories']}
+        if len(categories) == 0:
+            continue
         results.append({
             'digest': r['digest'],
             'categories': categories

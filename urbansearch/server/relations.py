@@ -6,7 +6,7 @@ relations_api = Blueprint('relations_api', __name__)
 
 
 @relations_api.route('/document_info', methods=['GET'])
-def all_for_ic_rel():
+def document_info():
     if 'city_a' not in request.args or 'city_b' not in request.args:
         return jsonify(status=400, error='No city pair given')
 
