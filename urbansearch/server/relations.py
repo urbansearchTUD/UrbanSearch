@@ -5,7 +5,7 @@ from urbansearch.utils import db_utils
 relations_api = Blueprint('relations_api', __name__)
 
 
-@relations_api.route('/document_info', methods=['GET'], strict_slashes=False)
+@relations_api.route('/document_info', methods=['GET'])
 def all_for_ic_rel():
     if 'city_a' not in request.args or 'city_b' not in request.args:
         return jsonify(status=400, error='No city pair given')
@@ -17,7 +17,7 @@ def all_for_ic_rel():
     return jsonify(status=200, documents=documents)
 
 
-@relations_api.route('/all', methods=['GET'], strict_slashes=False)
+@relations_api.route('/all', methods=['GET'])
 def all():
     threshold = int(request.args.get('threshold', 125))
     relations = db_utils.get_ic_rels(None, threshold)

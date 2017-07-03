@@ -10,7 +10,7 @@ dataset_api = Blueprint('dataset_api', __name__)
 dpu = DatasetPickleUtils()
 
 
-@dataset_api.route('/append', methods=['POST'], strict_slashes=False)
+@dataset_api.route('/append', methods=['POST'])
 @is_json
 def append():
     """
@@ -25,7 +25,7 @@ def append():
         return jsonify(error=True, status=400,
                        message='Invalid JSON supplied for this API call')
 
-@dataset_api.route('/append_all', methods=['POST'], strict_slashes=False)
+@dataset_api.route('/append_all', methods=['POST'])
 @is_json
 def append_all():
     """
@@ -43,7 +43,7 @@ def append_all():
                        message='Invalid JSON supplied for this API call')
 
 
-@dataset_api.route('/create', methods=['GET'], strict_slashes=False)
+@dataset_api.route('/create', methods=['GET'])
 def create():
     """
     Create a dataset from all the available category sets
@@ -76,8 +76,7 @@ def create_categoryset():
                        message='Creation of categoryset failed')
 
 
-@dataset_api.route('/init_categorysets', methods=['POST'],
-                   strict_slashes=False)
+@dataset_api.route('/init_categorysets', methods=['POST'])
 def init_categorysets():
     try:
         dpu.init_categorysets()
@@ -87,8 +86,7 @@ def init_categorysets():
         return jsonify(error=True, status=500,
                        message='Initialization of categorysets failed')
 
-@dataset_api.route('/lengths', methods=['GET'],
-                   strict_slashes=False)
+@dataset_api.route('/lengths', methods=['GET'])
 def lengths():
     """
     Returns the length of each category dataset
@@ -107,8 +105,7 @@ def lengths():
                        message='Initialization of categorysets failed')
 
 
-@dataset_api.route('/persist/categorysets', methods=['POST'],
-                   strict_slashes=False)
+@dataset_api.route('/persist/categorysets', methods=['POST'])
 def persist_categorysets():
     """
     Persist the current categorysets

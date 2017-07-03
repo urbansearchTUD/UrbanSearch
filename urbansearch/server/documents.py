@@ -31,7 +31,7 @@ def random_file():
     return randint(0, NUMBER_OF_DOCUMENTS_PER_WORKER - 1)
 
 
-@documents_api.route('/', methods=['GET'], strict_slashes=False)
+@documents_api.route('/', methods=['GET'])
 def get_random():
     while True:
         try:
@@ -46,7 +46,7 @@ def get_random():
     return jsonify(status=200, document=document)
 
 
-@documents_api.route('/download', methods=['GET'], strict_slashes=False)
+@documents_api.route('/download', methods=['GET'])
 def download():
     """
     Downloads and parses the given document from Common Crawl.
