@@ -273,12 +273,16 @@ class Workers(object):
         :param join: If true, this method blocks until the workers are done
         :return: If join is false, returns the workers. Else, return nothing.
         """
-        cities = db_utils.city_names()
-        size = int(len(cities) / num_workers) + 1
+        if num_workers > 1:
+            cities = db_utils.city_names()
+            size = int(len(cities) / num_workers) + 1
 
-        workers = [Process(target=self.compute_ic_rels_worker,
-                           args=(cities[i:i+size], queue))
-                   for i in range(num_workers)]
+            workers = [Process(target=self.compute_ic_rels_worker,
+                               args=(cities[i:i+size], queue))
+                       for i in range(num_workers)]
+        else:
+            workers = [Process(target=self.compute_ic_rels_worker,
+                               args=(None, queue)]
 
         LOGGER.info('Created compute_ic_rels workers')
 
