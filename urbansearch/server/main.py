@@ -29,6 +29,7 @@ class Server(object):
         """
 
         self.app = Flask(__name__)
+        self.app.url_map.strict_slashes = False
         self.register_blueprints()
 
         @self.app.after_request

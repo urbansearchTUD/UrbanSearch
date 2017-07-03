@@ -11,8 +11,8 @@ LOGGER = logging.getLogger(__name__)
 indices_api = Blueprint('indices_api', __name__)
 
 
-@indices_api.route('/', methods=['GET'], strict_slashes=False)
-@indices_api.route('/download', methods=['GET'], strict_slashes=False)
+@indices_api.route('/', methods=['GET'])
+@indices_api.route('/download', methods=['GET'])
 def download_indices_for_url():
     """ Download all indices for a given url
 

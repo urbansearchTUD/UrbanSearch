@@ -61,7 +61,7 @@ def train_equal():
 
     return jsonify(status=200, message='success')
 
-@classifier_api.route('/train_test_equal', methods=['POST'], strict_slashes=False)
+@classifier_api.route('/train_test_equal', methods=['POST'])
 def train_test_equal():
     dataset_path = dpu.generate_equal_dataset()
     dataset = dpu.load(dataset_path)
@@ -78,7 +78,7 @@ def train_test_equal():
     return jsonify(status=200, score=score)
 
 
-@classifier_api.route('/metrics_equal', methods=['GET'], strict_slashes=False)
+@classifier_api.route('/metrics_equal', methods=['GET'])
 def metrics_equal():
     dataset_path = dpu.generate_equal_dataset()
     dataset = dpu.load(dataset_path)
@@ -93,7 +93,7 @@ def metrics_equal():
     return jsonify(status=200, message=report)
 
 
-@classifier_api.route('/probabilities_equal', methods=['GET'], strict_slashes=False)
+@classifier_api.route('/probabilities_equal', methods=['GET'])
 def probabilities_equal():
     dataset_path = dpu.generate_equal_dataset()
     dataset = dpu.load(dataset_path)
@@ -112,7 +112,7 @@ def probabilities_equal():
 
     return jsonify(status=200, result=result)
 
-@classifier_api.route('/probabilities/binary', methods=['GET'], strict_slashes=False)
+@classifier_api.route('/probabilities/binary', methods=['GET'])
 def probabilities_binary():
     dataset_path = dpu.generate_equal_dataset()
     dataset = dpu.load(dataset_path)

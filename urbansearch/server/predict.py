@@ -8,8 +8,8 @@ predict_api = Blueprint('predict_api', __name__)
 ct = ClassifyText()
 
 
-@predict_api.route('/', methods=['POST'], strict_slashes=False)
-@predict_api.route('/predict', methods=['POST'], strict_slashes=False)
+@predict_api.route('/', methods=['POST'])
+@predict_api.route('/predict', methods=['POST'])
 @is_json
 def predict():
     """
@@ -29,7 +29,7 @@ def predict():
                        message='Getting the prediction failed')
 
 
-@predict_api.route('/probabilities', methods=['POST'], strict_slashes=False)
+@predict_api.route('/probabilities', methods=['POST'])
 @is_json
 def probabilities():
     """
