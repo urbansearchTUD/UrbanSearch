@@ -114,6 +114,9 @@ def print_progress(directory, pre_downloaded=False, indices_progress=False):
 
 
 def print_indices_progress(directory):
+    global console
+    console = curses.initscr()
+    curses.noecho()
     total = _total_index_count(directory)
 
     ind_start = 0

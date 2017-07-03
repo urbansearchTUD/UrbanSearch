@@ -106,4 +106,8 @@ if __name__ == "__main__":
     directory = args.directory
     output_dir = args.output
     workers = args.workers
-    td.run_workers(workers, directory, output_dir, progress=args.progress)
+    try:
+        td.run_workers(workers, directory, output_dir,
+                       progress=args.progress)
+    except (KeyboardInterrupt, SystemExit):
+        progress_utils._print_progress_cleanup()
