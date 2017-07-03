@@ -7,6 +7,7 @@ import pickle
 from urbansearch.utils.p_utils import PickleUtils
 
 CATEGORIES = config.get('score', 'categories')
+CATEGORIES_NO_OTHER = config.get('score', 'categories_no_other')
 DATA_SETS_DIRECTORY = config.get('resources', 'data_sets')
 MODELS_DIRECTORY = config.get('resources', 'models')
 
@@ -128,7 +129,7 @@ class DatasetPickleUtils(PickleUtils):
         x = []
         y = []
 
-        for category in CATEGORIES:
+        for category in CATEGORIES_NO_OTHER:
             try:
                 data = self.load(self._category_to_file(category))
                 x += data['inputs']
@@ -176,12 +177,10 @@ class DatasetPickleUtils(PickleUtils):
 
         :return filename: Path of the saved dataset
         """
-        categories = list(CATEGORIES)
-        categories.pop(categories.index('other'))
         x = []
         y = []
 
-        sets, min_size = self._load_files_with_min(categories)
+        sets, min_size = self._load_files_with_min(CATEGORIES_NO_OTHER)
 
         for cat, s in sets.items():
             x += s[:min_size]
@@ -207,7 +206,7 @@ class DatasetPickleUtils(PickleUtils):
         init_categorysets is called. The files are saved in the following
         format: $CATEGORY.$DATE_OF_SAVE.pickle
         """
-        for category in CATEGORIES:
+        for category in CATEGORIES_NO_OTHER:
             filename = self._category_to_file(category)
             data = self.load(filename)
             self.save(data, '{}.{}.pickle'.format(category,

@@ -35,6 +35,14 @@ score:
     - collaboration
     - transportation
     - other
+  categories_no_other:
+    - commuting
+    - shopping
+    - leisure
+    - residential_mobility
+    - education
+    - collaboration
+    - transportation
 logging:
   version: 1
   formatters:

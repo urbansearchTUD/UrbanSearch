@@ -7,8 +7,7 @@ from neo4j.v1 import (basic_auth, GraphDatabase, SessionError,
 import config
 
 CATEGORIES = config.get('score', 'categories')
-CAT_NO_OTHER = list(CATEGORIES)
-CAT_NO_OTHER.remove('other')
+CAT_NO_OTHER = config.get('score', 'categories_no_other')
 DEFAULT_CAT_DICT = dict.fromkeys(CATEGORIES, 0)
 DEFAULT_CAT_DICT_NO_OTHER = dict.fromkeys(CAT_NO_OTHER, 0)
 DEFAULT_SCORE_DICT = {'total': 0, **DEFAULT_CAT_DICT}
