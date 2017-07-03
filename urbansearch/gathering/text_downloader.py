@@ -1,4 +1,5 @@
 import os
+import cProfile
 import sys
 from argparse import ArgumentParser
 from multiprocessing import Process
@@ -106,4 +107,8 @@ if __name__ == "__main__":
     directory = args.directory
     output_dir = args.output
     workers = args.workers
-    td.run_workers(workers, directory, output_dir, progress=args.progress)
+    try:
+        cProfile.run(td.run_workers(workers, directory, output_dir,
+                                    progress=args.progress))
+    except (KeyboardInterrupt, SystemExit):
+        progress_utils._print_progress_cleanup()
