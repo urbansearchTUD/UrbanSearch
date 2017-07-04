@@ -446,7 +446,7 @@ def get_ic_rels(city_pairs, threshold):
 
 def _get_all_ic_rels_single_query(threshold):
     query = '''
-        MATCH (a:City)-[r:{0}]->(b:City) WHERE r.total > $threshold
+        MATCH (a:City)-[r:{0}]->(b:City) WHERE r.total > $threshold AND ID(a) < ID(b)
         RETURN {{id: ID(a), name: a.name, lat: a.latitude, lng: a.longitude}} AS from,
             {{id: ID(b), name: b.name, lat: b.latitude, lng: b.longitude}} AS to,
             properties(r) AS relation
