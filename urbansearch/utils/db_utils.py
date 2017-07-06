@@ -596,6 +596,7 @@ def get_related_documents(city_a, city_b, filter_other=True, limit=300):
         MATCH (:City {{ name: $city_a }})-[:{0}]->
             (i:Index)<-[:{0}]-(:City {{ name: $city_b }})
         {1}
+        WITH DISTINCT i
         RETURN i.digest AS digest, labels(i) AS categories,
             properties(i) AS probabilities
         LIMIT {2}
